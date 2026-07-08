@@ -1,0 +1,34 @@
+from fastapi import APIRouter
+
+from sherlock_homes.adapter.inbound.api.v1.criminal_eurus_prophet_router import eurus_prophet_router
+from sherlock_homes.adapter.inbound.api.v1.criminal_irene_courier_router import irene_courier_router
+from sherlock_homes.adapter.inbound.api.v1.criminal_irene_ilustrator_router import irene_ilustrator_router
+from sherlock_homes.adapter.inbound.api.v1.criminal_magnussen_archivist_router import magnussen_archivist_router
+from sherlock_homes.adapter.inbound.api.v1.criminal_moriarty_disruptor_router import moriarty_disruptor_router
+from sherlock_homes.adapter.inbound.api.v1.detective_holmes_judge_router import holmes_judge_router
+from sherlock_homes.adapter.inbound.api.v1.detective_hudson_scheduler_router import mrshudson_scheduler_router
+from sherlock_homes.adapter.inbound.api.v1.detective_mary_mail_router import mary_mail_router
+from sherlock_homes.adapter.inbound.api.v1.detective_watson_watcher_router import watson_watcher_router
+from sherlock_homes.adapter.inbound.api.v1.police_anderson_discord_router import anderson_collector_router
+from sherlock_homes.adapter.inbound.api.v1.police_lestrade_telegram_router import lestrade_adapter_router
+from sherlock_homes.adapter.inbound.api.v1.police_molly_examiner_router import molly_examiner_router
+from sherlock_homes.adapter.inbound.api.v1.police_mycroft_contact_router import mycroft_juso_router
+
+sherlock_homes_router = APIRouter(prefix="/api/sherlock", tags=["sherlock-homes"])
+
+# Monenon main.py 호환 (기존 /api/sherlock/... 경로 유지)
+sherlock_router = sherlock_homes_router
+
+sherlock_homes_router.include_router(lestrade_adapter_router)
+sherlock_homes_router.include_router(anderson_collector_router)
+sherlock_homes_router.include_router(mycroft_juso_router)
+sherlock_homes_router.include_router(molly_examiner_router)
+sherlock_homes_router.include_router(moriarty_disruptor_router)
+sherlock_homes_router.include_router(eurus_prophet_router)
+sherlock_homes_router.include_router(irene_ilustrator_router)
+sherlock_homes_router.include_router(magnussen_archivist_router)
+sherlock_homes_router.include_router(holmes_judge_router)
+sherlock_homes_router.include_router(watson_watcher_router)
+sherlock_homes_router.include_router(mrshudson_scheduler_router)
+sherlock_homes_router.include_router(mary_mail_router)
+sherlock_homes_router.include_router(irene_courier_router)

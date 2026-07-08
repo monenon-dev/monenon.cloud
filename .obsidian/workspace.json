@@ -1,0 +1,214 @@
+{
+  "main": {
+    "id": "1e99a8bb5c5581f2",
+    "type": "split",
+    "children": [
+      {
+        "id": "f19c1d03e1df4683",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "678d850950dc2bd5",
+            "type": "leaf",
+            "state": {
+              "type": "empty",
+              "state": {},
+              "icon": "lucide-file",
+              "title": "New tab"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "bf5d0666bb5d2532",
+    "type": "split",
+    "children": [
+      {
+        "id": "95ce6480ccd0ad1b",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "eaa3505be6fddec2",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false
+              },
+              "icon": "lucide-folder-closed",
+              "title": "Files"
+            }
+          },
+          {
+            "id": "46bd530a8439f712",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "검색"
+            }
+          },
+          {
+            "id": "3dc5b36a77ebc3c3",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {},
+              "icon": "lucide-bookmark",
+              "title": "북마크"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "right": {
+    "id": "2f6740821c3d2bd4",
+    "type": "split",
+    "children": [
+      {
+        "id": "e686c8b03640e02c",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "5fabdc99c5a522a7",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "백링크"
+            }
+          },
+          {
+            "id": "85c8d9bebd54b5fe",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "나가는 링크"
+            }
+          },
+          {
+            "id": "fefd457518ce4b6b",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "태그"
+            }
+          },
+          {
+            "id": "6f5bd2074d872a5c",
+            "type": "leaf",
+            "state": {
+              "type": "all-properties",
+              "state": {
+                "sortOrder": "frequency",
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-archive",
+              "title": "모든 속성"
+            }
+          },
+          {
+            "id": "8b0d073f377846b0",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "개요"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:Open quick switcher": false,
+      "graph:Open graph view": false,
+      "canvas:Create new canvas": false,
+      "daily-notes:Open today's daily note": false,
+      "templates:Insert template": false,
+      "command-palette:Open command palette": false,
+      "bases:Create new base": false
+    }
+  },
+  "active": "678d850950dc2bd5",
+  "lastOpenFiles": [
+    "backend/apps/secretary/app/use_cases/suspension.py",
+    "pytest.ini",
+    "pytest-cache-files-l1bd61zg",
+    "backend/apps/titanic/tests/__pycache__/test_korean_ai.cpython-313-pytest-8.4.2.pyc",
+    "backend/pytest-korean-ai.ini",
+    "backend/apps/titanic/tests/test_korean_ai.py",
+    "backend/pyrightconfig.json",
+    "backend/requirements-test.txt",
+    "backend/pytest.ini",
+    "backend/apps/titanic/tests/domain/value_objects/__pycache__/test_passenger_jack_trainer_vo.cpython-313-pytest-8.4.2.pyc",
+    "backend/apps/titanic/tests/domain/value_objects/__pycache__/__init__.cpython-313.pyc",
+    "CLAUDE.md",
+    "backend/apps/titanic/_docs/CLAUDE.md",
+    "CURSOR.md",
+    "Pasted image 20260612131638.png",
+    "docs/obsidian/그래프 컬러 그룹.md",
+    "docs/colordrop.md",
+    "frontend/README.md",
+    "backend/CLAUDE.md",
+    "frontend/CLAUDE.md",
+    "docs/DevOps/backend/LIFESTYLE_ERD.md",
+    "claude.md",
+    "frontend/claude.md",
+    "backend/claude.md",
+    "agent.md",
+    "docs/DevOps/backend/BACKEND_RULES.md",
+    "docs/DevOps/frontend/REACT_RULES.md",
+    "backend/Readme.md",
+    "Untitled.md",
+    "frontend/public/mascot_base.png",
+    "AGENTS.md",
+    "backend/apps/titanic/_docs/Readme.md"
+  ]
+}

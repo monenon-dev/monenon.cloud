@@ -1,0 +1,96 @@
+# --- 비밀·자격증명 (GitHub에 절대 올리면 안 됨) ---
+.env
+.env.*
+!.env.example
+!.env.sample
+!.env.template
+*.pem
+*.key
+*.p12
+*.pfx
+*.cer
+*.crt
+secrets/
+.secrets/
+credentials/
+*.secret
+**/postman/globals/*.yaml
+**/.postman/**
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+.venv/
+venv/
+ENV/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# --- Node / Next.js ---
+node_modules/
+.next/
+out/
+.turbo/
+.vercel/
+*.tsbuildinfo
+.npm/
+.pnpm-store/
+
+# --- 로그·로컬 런타임 ---
+*.log
+logs/
+*.pid
+*.seed
+*.pid.lock
+
+# --- OS ---
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# --- IDE (개인 설정·로컬 전용; 팀이 공유하는 설정은 필요 시 예외 추가) ---
+.idea/
+*.swp
+*.swo
+*~
+
+# --- 기타 로컬 도구 ---
+*.local
+.cache/
+
+# --- ML 모델 가중치·학습 산출물·데이터셋 ---
+*.pt
+*.pth
+*.onnx
+runs/
+apps/face/archive/

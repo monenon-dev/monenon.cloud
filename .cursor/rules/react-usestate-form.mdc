@@ -1,0 +1,30 @@
+---
+description: React useState 압축 및 FormData 폼 패턴 (REACT_RULES.md)
+globs: frontend/**/*.{tsx,jsx}
+alwaysApply: false
+---
+
+# React state · 폼 규칙
+
+전체 문서: `docs/DevOps/frontend/REACT_RULES.md`
+
+## 필수
+
+- **`useState`를 여러 개 두지 말 것** — 관련 상태는 **단일 객체**로 압축
+- 폼 필드는 `name` + **`FormData`** 로 읽기 (제출 시 `Object.fromEntries`)
+- 로딩·에러·모달 등 UI 메타만 객체 state에 둠
+
+## 제출 핸들러 참조
+
+```tsx
+const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  e.preventDefault();
+  const formData = new FormData(e.currentTarget);
+  const formProps = Object.fromEntries(formData.entries());
+  // ...
+};
+```
+
+## 리팩터 요청 시
+
+사용자가 폼/상태 정리를 요청하면 `REACT_RULES.md`의 Before→After 패턴으로 변경한다.

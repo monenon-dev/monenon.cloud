@@ -1,0 +1,83 @@
+# ===== 비밀·자격증명 (절대 커밋 금지) =====
+.env
+.env.*
+!.env.example
+!.env.sample
+!.env.template
+!*.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.cer
+*.crt
+secrets/
+.secrets/
+credentials/
+*.secret
+
+# ===== Python =====
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+build/
+dist/
+downloads/
+eggs/
+.eggs/
+*.egg-info/
+*.egg
+.venv/
+venv/
+ENV/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# ===== Node / Next.js =====
+node_modules/
+.next/
+out/
+.turbo/
+.vercel/
+*.tsbuildinfo
+.npm/
+.pnpm-store/
+
+# ===== ML 모델 가중치·학습 산출물·데이터셋 =====
+*.pt
+*.pth
+*.onnx
+runs/
+backend/apps/face/archive/
+
+# ===== 로그·로컬 런타임 =====
+*.log
+logs/
+*.pid
+*.seed
+*.pid.lock
+
+# ===== OS =====
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# ===== IDE =====
+.idea/
+*.swp
+*.swo
+*~
+
+# ===== 기타 로컬 도구 =====
+*.local
+.cache/

@@ -1,0 +1,7 @@
+{
+  "hidden": true,
+  "hiddenList": [
+    "backend/alembic",
+    "frontend/node_modules"
+  ]
+}

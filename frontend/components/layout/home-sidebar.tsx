@@ -1,0 +1,142 @@
+"use client";
+
+import Link from "next/link";
+import {
+  Bot,
+  Terminal,
+} from "lucide-react";
+
+import { LINK_NAV, PLATFORM_NAV } from "@/components/layout/platform-sidebar-layout";
+import { lifestyleDashboardSection, routes } from "@/lib/routes";
+
+interface HomeSidebarProps {
+  open: boolean;
+  onClose: () => void;
+  activeView?: "chat" | "logs" | null;
+  onSelectLogs?: () => void;
+}
+
+function navHref(sectionId: string): string {
+  if (sectionId === "user_settings") return routes.lifestyle.settings;
+  if (sectionId === "closet") return routes.lifestyle.closet;
+  if (sectionId === "refrigerator") return routes.lifestyle.refrigerator;
+  if (sectionId === "music") return routes.lifestyle.music;
+  if (sectionId === "messages") return routes.lifestyle.chats;
+  return lifestyleDashboardSection(sectionId);
+}
+
+export function HomeSidebar({
+  open,
+  onClose,
+  activeView = null,
+  onSelectLogs,
+}: HomeSidebarProps) {
+  return (
+    <>
+      {open && (
+        <button
+          type="button"
+          aria-label="sidebar overlay close"
+          className="fixed inset-0 z-30 bg-black/40 lg:hidden"
+          onClick={onClose}
+        />
+      )}
+
+      <aside
+        className={`
+          fixed lg:sticky top-0 left-0 z-40 h-screen shrink-0
+          border-r border-gray-200 dark:border-gray-800
+          bg-white dark:bg-gray-950
+          transition-[width,transform] duration-300 ease-in-out
+          ${open ? "w-64 translate-x-0" : "w-0 -translate-x-full lg:translate-x-0 overflow-hidden"}
+        `}
+      >
+        <div className="flex h-full w-64 flex-col">
+          <div className="flex h-14 items-center border-b border-gray-200 px-4 dark:border-gray-800">
+            <span className="text-sm font-bold text-indigo-600 dark:text-indigo-400">메뉴</span>
+          </div>
+
+          <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-6">
+            <div>
+              <p className="mb-2 px-2 text-xs font-semibold tracking-wider text-gray-500">
+                홈
+              </p>
+              <ul className="space-y-0.5">
+                <li>
+                  <Link
+                    href={routes.lifestyle.chats}
+                    onClick={onClose}
+                    className={navClass(activeView === "chat")}
+                  >
+                    <Bot size={18} />
+                    에이전트 채팅
+                  </Link>
+                </li>
+                {onSelectLogs && (
+                  <li>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onSelectLogs();
+                        onClose();
+                      }}
+                      className={navClass(activeView === "logs")}
+                    >
+                      <Terminal size={18} />
+                      실행 로그
+                    </button>
+                  </li>
+                )}
+              </ul>
+            </div>
+
+            <div>
+              <p className="mb-2 px-2 text-xs font-semibold tracking-wider text-gray-500">관리</p>
+              <ul className="space-y-0.5">
+                {LINK_NAV.map(item => (
+                  <li key={item.href}>
+                    <Link href={item.href} onClick={onClose} className={navClass(false)}>
+                      <item.icon size={18} />
+                      {item.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {PLATFORM_NAV.map((group) => (
+              <div key={group.title}>
+                <p className="mb-2 flex items-center gap-2 px-2 text-xs font-semibold tracking-wider text-gray-500">
+                  <group.icon size={14} />
+                  {group.title}
+                </p>
+                <ul className="space-y-0.5">
+                  {group.items.map((item) => (
+                    <li key={item.id}>
+                      <Link
+                        href={navHref(item.id)}
+                        onClick={onClose}
+                        className={navClass(false)}
+                      >
+                        <item.icon size={18} />
+                        <span className="truncate">{item.label}</span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </nav>
+        </div>
+      </aside>
+    </>
+  );
+}
+
+function navClass(active: boolean) {
+  return `flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium transition-colors ${
+    active
+      ? "bg-indigo-600 text-white shadow-sm"
+      : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-900"
+  }`;
+}

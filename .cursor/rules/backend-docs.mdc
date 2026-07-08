@@ -1,0 +1,25 @@
+---
+description: 백엔드 작업 시 docs/DevOps 규칙 필수 참조
+globs: backend/**/*
+alwaysApply: false
+---
+
+# Backend — docs/ 규칙 필수
+
+`backend/.cursorrules` 와 함께 적용한다.
+
+## 구현 전 (필수 읽기)
+
+1. `docs/DevOps/README.md`
+2. `docs/DevOps/backend/BACKEND_RULES.md`
+
+## 금지
+
+- docs를 읽지 않고 백엔드 코드만 작성하는 것
+- `docs/DevOps/backend/` 와 무관한 대규모 리팩터
+
+## 멘션
+
+```text
+@backend/.cursorrules @docs/DevOps/backend/BACKEND_RULES.md
+```
