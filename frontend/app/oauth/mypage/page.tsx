@@ -55,6 +55,7 @@ function roleLabel(role: string): string {
 
 function avatarUrl(path: string | null, cacheKey: number): string | null {
   if (!path) return null;
+  if (path.startsWith("http://") || path.startsWith("https://")) return path;
   return `${apiBaseUrl}${path}?v=${cacheKey}`;
 }
 

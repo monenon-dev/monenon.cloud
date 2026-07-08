@@ -23,6 +23,8 @@ services:
       - pgvector
       - neo4j
       - redis
+    volumes:
+      - backend_uploads:/app/uploads
     healthcheck:
       test:
         [
@@ -145,3 +147,4 @@ volumes:
   redis_data:
   neo4j_data:
   qdrant_data:
+  backend_uploads:

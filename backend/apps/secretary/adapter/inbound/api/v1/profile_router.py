@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 profile_router = APIRouter(prefix="/auth", tags=["user-profile"])
 
 # main.py StaticFiles("/uploads")가 가리키는 backend/uploads와 경로를 맞춘다.
-UPLOAD_ROOT = Path(__file__).resolve().parents[7] / "uploads" / "profiles"
+UPLOAD_ROOT = Path(__file__).resolve().parents[6] / "uploads" / "profiles"
 ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
 MAX_AVATAR_BYTES = 2 * 1024 * 1024
 EXT_BY_TYPE = {
