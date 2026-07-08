@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import logging
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import httpx
 from fastapi import APIRouter, HTTPException
@@ -32,7 +32,8 @@ _PARSE_PROMPT = """사용자의 자연어 일정 요청을 파싱해서 JSON으�
   "location": "장소 (없으면 빈 문자열)"
 }}
 
-날짜/시간이 불명확하면 합리적으로 추론해. 종료 시간이 없으면 시작+1시간."""
+날짜/시간이 불명확하면 합리적으로 추론해. 종료 시간이 없으면 시작+1시간.
+start_time, end_time, description, location은 반드시 문자열이어야 하며 null을 쓰지 마."""
 
 
 class CalendarAddRequest(BaseModel):
@@ -55,6 +56,43 @@ class CalendarAddResponse(BaseModel):
     message: str = ""
 
 
+def _as_str(value: object, default: str = "") -> str:
+    if value is None:
+        return default
+    if isinstance(value, str):
+        return value.strip()
+    return str(value).strip()
+
+
+def _add_hour(time_str: str) -> str:
+    parsed = datetime.strptime(time_str, "%H:%M")
+    return (parsed + timedelta(hours=1)).strftime("%H:%M")
+
+
+def _normalize_calendar_data(data: dict) -> dict:
+    """Gemini가 null·누락 필드를 반환해도 CalendarEvent 검증이 통과하도록 보정."""
+    normalized = dict(data)
+
+    if not _as_str(normalized.get("start_time")) and _as_str(normalized.get("start")):
+        normalized["start_time"] = _as_str(normalized.get("start"))
+    if not _as_str(normalized.get("end_time")) and _as_str(normalized.get("end")):
+        normalized["end_time"] = _as_str(normalized.get("end"))
+
+    normalized["title"] = _as_str(normalized.get("title"))
+    normalized["date"] = _as_str(normalized.get("date"))
+    normalized["start_time"] = _as_str(normalized.get("start_time"))
+    normalized["end_time"] = _as_str(normalized.get("end_time"))
+    normalized["description"] = _as_str(normalized.get("description"))
+    normalized["location"] = _as_str(normalized.get("location"))
+
+    if not normalized["start_time"]:
+        normalized["start_time"] = "09:00"
+    if not normalized["end_time"]:
+        normalized["end_time"] = _add_hour(normalized["start_time"])
+
+    return normalized
+
+
 @calendar_router.post("/add", response_model=CalendarAddResponse)
 async def add_calendar_event(body: CalendarAddRequest) -> CalendarAddResponse:
     """
@@ -67,7 +105,7 @@ async def add_calendar_event(body: CalendarAddRequest) -> CalendarAddResponse:
         start = raw.find("{")
         end = raw.rfind("}") + 1
         data = json.loads(raw[start:end])
-        event = CalendarEvent(**data)
+        event = CalendarEvent(**_normalize_calendar_data(data))
     except Exception as exc:
         logger.error("[calendar] Gemini 파싱 실패: %s", exc)
         raise HTTPException(status_code=503, detail=f"일정 파싱 실패: {exc}")
