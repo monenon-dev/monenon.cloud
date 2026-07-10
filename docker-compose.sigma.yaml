@@ -1,0 +1,27 @@
+# 2단계 시그마 — Hub 이미지 + Neo 공유 DB + Cloudflare 터널 커넥터
+#
+# 루트 .env 필수:
+#   NEO_HOST=<네오 LAN IP>  (예: 192.168.0.10)
+#   CLOUDFLARE_TUNNEL_TOKEN=<네오와 동일 토큰>
+#
+# 실행: scripts/phase2-sigma.ps1
+# 또는:
+#   docker compose -f docker-compose.yaml -f docker-compose.sigma.yaml pull backend
+#   docker compose -f docker-compose.yaml -f docker-compose.sigma.yaml --profile tunnel up -d backend cloudflared
+
+services:
+  backend:
+    image: ${BACKEND_IMAGE:-whtjgml2002/monenon-backend:latest}
+    pull_policy: always
+    depends_on: !override []
+    environment:
+      DATABASE_URL: postgresql+psycopg://postgres:${POSTGRES_PASSWORD:-monenon2026}@${NEO_HOST:?set NEO_HOST in root .env}:5432/monenon
+      NEO4J_URI: bolt://${NEO_HOST:?set NEO_HOST in root .env}:7687
+      NEO4J_USER: neo4j
+      NEO4J_PASSWORD: ${NEO4J_PASSWORD:-monenon2026}
+      REDIS_URL: redis://${NEO_HOST:?set NEO_HOST in root .env}:6379
+
+  cloudflared:
+    depends_on: !override
+      backend:
+        condition: service_healthy

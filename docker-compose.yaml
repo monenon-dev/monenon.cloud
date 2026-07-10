@@ -1,10 +1,13 @@
 # 로컬 개발:  docker compose up --build backend frontend
 # API 터널:    docker compose --profile tunnel up -d
 #              (루트 .env 에 CLOUDFLARE_TUNNEL_TOKEN 필요 — api.monenon.cloud → backend:8000)
+# 2단계 네오:  scripts/phase2-neo.ps1  (build → push Hub → tunnel up)
+# 2단계 시그마: scripts/phase2-sigma.ps1 (Hub pull → Neo DB → tunnel 커넥터)
 name: monenoncloud
 
 services:
   backend:
+    image: ${BACKEND_IMAGE:-whtjgml2002/monenon-backend:latest}
     build:
       context: ./backend
       dockerfile: dockerfile
