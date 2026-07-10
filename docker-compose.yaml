@@ -1,8 +1,9 @@
 # 로컬 개발:  docker compose up --build backend frontend
 # API 터널:    docker compose --profile tunnel up -d
 #              (루트 .env 에 CLOUDFLARE_TUNNEL_TOKEN 필요 — api.monenon.cloud → backend:8000)
-# 2단계 네오:  scripts/phase2-neo.ps1  (build → push Hub → tunnel up)
-# 2단계 시그마: scripts/phase2-sigma.ps1 (Hub pull → Neo DB → tunnel 커넥터)
+# 강사님 흐름: backend(=fastapi) Dockerfile + requirements.txt → Hub push → 원격 Ubuntu(시그마 SSH)
+# 접속 PC(네오): scripts/docker-build-push.ps1
+# 원격 PC(시그마): scripts/docker-remote-up.ps1
 name: monenoncloud
 
 services:
@@ -10,7 +11,7 @@ services:
     image: ${BACKEND_IMAGE:-whtjgml2002/monenon-backend:latest}
     build:
       context: ./backend
-      dockerfile: dockerfile
+      dockerfile: Dockerfile
     ports:
       - "8000:8000"
     env_file:
@@ -145,7 +146,10 @@ services:
       - qdrant_data:/qdrant/storage
 
 volumes:
+  # 예전 스택(cloudmonenon) n8n 워크플로우 보존 — name 변경 시 새 볼륨 생기지 않도록
   n8n_data:
+    external: true
+    name: cloudmonenon_n8n_data
   pgvector_data:
   redis_data:
   neo4j_data:
