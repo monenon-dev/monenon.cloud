@@ -6,6 +6,27 @@ os: Ubuntu 24.04
 db: PostgreSQL + pgvector (Docker `pgvector` 서비스)
 orm_migration: Alembic
 source_erd: backend/apps/resources/DB.png
+links:
+  - star_craft
+  - silicon_valley
+  - titanic
+  - dumb_and_dumber
+---
+
+# Moneyball — 앱 문서 · Claude Code 프롬프트
+
+머니볼(세이버메트릭스) 교육 도메인. `dumb_and_dumber`와 동일한 헥사고날 스캐폴드.  
+**단일 문서:** 예전 `_docs/CLAUDE.md`는 제거하고 본 파일(`moneyball.casting.md`)만 유지한다.
+
+## 캐릭터
+
+| 캐릭터 | 역할 |
+|--------|------|
+| `beane` (Billy Beane) | GM 스카우트 — 세이버메트릭스 기반 선수·전략 의사결정 |
+| `brand` (Peter Brand) | 애널리스트 — 데이터 모델·OPS/가치 지표 분석 |
+
+**의존성 방향:** `adapter` → `app` → `domain`
+
 ---
 
 # Claude Code 프롬프트 — Moneyball ERD → Alembic (pgvector)
@@ -42,7 +63,7 @@ source_erd: backend/apps/resources/DB.png
 1. `CLAUDE.md`, `.cursorrules`
 2. `vault/backend/BACKEND_RULES.md` (또는 `docs/DevOps/backend/BACKEND_RULES.md`가 있으면 그것)
 3. `vault/backend/ENTITY_RULE.md` — **신규 테이블 PK = `id` int 자동증감**
-4. `backend/apps/moneyball/_docs/CLAUDE.md`
+4. `backend/apps/moneyball/_docs/moneyball.casting.md` — 본 프롬프트(단일 문서)
 5. `backend/apps/resources/DB.png` — ERD 원본
 6. `backend/alembic/env.py`, `backend/alembic/versions/*.py` — 기존 리비전·import 패턴
 7. `docker-compose.yaml`의 `pgvector` 서비스·루트/백엔드 `.env`의 `DATABASE_URL`
@@ -212,7 +233,7 @@ alembic upgrade head
  monenon.cloud Moneyball: Ubuntu 24 + Docker pgvector PostgreSQL에 Alembic으로 ERD 테이블을 생성하라.
 
 필수 선행 읽기: CLAUDE.md, .cursorrules, vault/backend/ENTITY_RULE.md, vault/backend/BACKEND_RULES.md,
-backend/apps/moneyball/_docs/CLAUDE.md, backend/apps/resources/DB.png, backend/alembic/env.py,
+backend/apps/moneyball/_docs/moneyball.casting.md, backend/apps/resources/DB.png, backend/alembic/env.py,
 backend/alembic/versions/*, docker-compose.yaml pgvector, DATABASE_URL (.env / resolved_database_url).
 
 ERD 테이블: stadium, team, player, schedule (컬럼·관계는 DB.png 및 moneyball.casting.md §3).
