@@ -16,6 +16,9 @@ secrets/
 credentials/
 *.secret
 
+# ===== Git 임시·실수 산출물 =====
+/FETCH_HEAD
+
 # ===== Python =====
 __pycache__/
 *.py[cod]
