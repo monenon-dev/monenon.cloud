@@ -1,7 +1,8 @@
-# 로컬 개발:  docker compose up --build backend frontend
-# API 터널:    docker compose --profile tunnel up -d
-#              (루트 .env 에 CLOUDFLARE_TUNNEL_TOKEN 필요 — api.monenon.cloud → backend:8000)
-# 강사님 흐름: backend(=fastapi) Dockerfile + requirements.txt → Hub push → 원격 Ubuntu(시그마 SSH)
+# 백엔드 Docker:  docker compose up --build backend
+# API 터널:       docker compose --profile tunnel up -d
+#                 (루트 .env 에 CLOUDFLARE_TUNNEL_TOKEN 필요 — api.monenon.cloud → backend:8000)
+# 프론트엔드:     Docker 배포 제외 (Vercel / 로컬 npm run dev)
+# 강사님 흐름: backend Dockerfile + requirements.txt → Hub push → 원격 Ubuntu(시그마 SSH)
 # 접속 PC(네오): scripts/docker-build-push.ps1
 # 원격 PC(시그마): scripts/docker-remote-up.ps1
 name: monenoncloud
@@ -41,20 +42,6 @@ services:
       timeout: 5s
       retries: 5
       start_period: 40s
-
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: dockerfile
-      args:
-        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:8000}
-        NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${NEXT_PUBLIC_GOOGLE_CLIENT_ID:-}
-    ports:
-      - "3000:3000"
-    env_file:
-      - ./frontend/.env.local
-    depends_on:
-      - backend
 
   n8n:
     profiles: [tunnel]

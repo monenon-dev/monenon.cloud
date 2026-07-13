@@ -1,25 +1,21 @@
-# 2단계 시그마 — Hub 이미지 + Neo 공유 DB + Cloudflare 터널 커넥터
+# 시그마 remote-server — 백엔드 전용 Docker
+#
+# 한 PC에서 백엔드와 프론트를 같이 개발하다가 분리했기 때문에,
+# 이 remote-server는 백엔드만 구현한다. 프론트엔드는 Docker 배포에서 제외한다.
+# (프론트는 Vercel / 로컬 Next.js)
 #
 # 루트 .env 필수:
-#   NEO_HOST=<네오 LAN IP>  (예: 192.168.0.10)
-#   CLOUDFLARE_TUNNEL_TOKEN=<네오와 동일 토큰>
+#   CLOUDFLARE_TUNNEL_TOKEN=<터널 토큰>
 #
 # 실행: scripts/phase2-sigma.ps1
 # 또는:
 #   docker compose -f docker-compose.yaml -f docker-compose.sigma.yaml pull backend
-#   docker compose -f docker-compose.yaml -f docker-compose.sigma.yaml --profile tunnel up -d backend cloudflared
+#   docker compose -f docker-compose.yaml -f docker-compose.sigma.yaml --profile tunnel up -d pgvector redis neo4j backend cloudflared
 
 services:
   backend:
     image: ${BACKEND_IMAGE:-whtjgml2002/monenon-backend:latest}
     pull_policy: always
-    depends_on: !override []
-    environment:
-      DATABASE_URL: postgresql+psycopg://postgres:${POSTGRES_PASSWORD:-monenon2026}@${NEO_HOST:?set NEO_HOST in root .env}:5432/monenon
-      NEO4J_URI: bolt://${NEO_HOST:?set NEO_HOST in root .env}:7687
-      NEO4J_USER: neo4j
-      NEO4J_PASSWORD: ${NEO4J_PASSWORD:-monenon2026}
-      REDIS_URL: redis://${NEO_HOST:?set NEO_HOST in root .env}:6379
 
   cloudflared:
     depends_on: !override
