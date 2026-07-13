@@ -15,11 +15,11 @@ DEFAULT_SPOKES: list[dict] = [
     {"name": "closet",       "description": "날씨 기반 옷 추천, 코디 큐레이션",           "endpoint": "/platform/closet",       "keywords": ["옷", "코디", "날씨", "패션"]},
     {"name": "music",        "description": "상황·무드 기반 음악 플레이리스트 추천",      "endpoint": "/platform/music",        "keywords": ["음악", "플레이리스트", "노래"]},
     {"name": "refrigerator", "description": "냉장고 재료 관리, 요리·장보기 추천",         "endpoint": "/platform/refrigerator", "keywords": ["냉장고", "재료", "요리", "장보기"]},
-    # 저그(비전) — 레나 vision UI + Face YOLO (star_craft/domain/race_ontology.py)
+    # 저그(비전) — star_craft/zerg (레나 vision UI + Face YOLO)
     {
         "name": "vision",
         "description": "저그(비전 처리) — 컴퓨터 비전·이미지 분석. 레나 vision 수업 UI + Face YOLO 학습·추론",
-        "endpoint": "/lesson/vision",
+        "endpoint": "/star-craft/zerg/vision",
         "keywords": ["비전", "vision", "이미지", "저그", "레나", "YOLO", "얼굴", "객체탐지"],
         "race": "zerg",
     },

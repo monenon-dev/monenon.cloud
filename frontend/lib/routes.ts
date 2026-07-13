@@ -32,7 +32,7 @@ export const routes = {
     titanicHome: "/lesson/titanic-home",
     titanicSmith: "/lesson/titanic-home/smith",
     titanicPassengers: "/lesson/titanic-home/passengers",
-    vision: "/lesson/vision",
+    vision: "/star-craft/zerg/vision",
     siliconValleyAdmin: "/lesson/silicon-valley/admin",
     crawlingNews: "/lesson/crawling/news",
     crawlingBoard: "/lesson/crawling/board",

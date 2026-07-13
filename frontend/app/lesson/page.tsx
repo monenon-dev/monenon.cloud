@@ -33,7 +33,7 @@ export default function LessonHubPage() {
             </li>
             <li className="flex gap-2">
               <span className="text-gray-400">•</span>
-              <Link href="/lesson/vision" className="hover:text-indigo-600 hover:underline">
+              <Link href="/star-craft/zerg/vision" className="hover:text-indigo-600 hover:underline">
                 3. 레나 vision
               </Link>
             </li>

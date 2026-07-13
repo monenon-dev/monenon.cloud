@@ -1,7 +1,7 @@
 """종족(Race) 온톨로지 — 초보자용 메타포 + 툴 카탈로그.
 
 저그 = 비전 처리, 프로토스 = 자동 보고서(LLM), 테란 = 시계열 추론.
-코드 위치는 시블링 앱/프론트에 두고, 허브(star_craft)가 소속을 인덱싱한다.
+비전 툴 코드는 star_craft/zerg 아래에 둔다.
 """
 
 from __future__ import annotations
@@ -35,14 +35,14 @@ ZERG_VISION_TOOLS: tuple[RaceTool, ...] = (
     RaceTool(
         id="lena_vision",
         title="레나 vision",
-        path="frontend/app/lesson/vision",
-        role="수업 UI — 이미지 업로드·미리보기 (/lesson/vision)",
+        path="frontend/app/star-craft/zerg/vision",
+        role="수업 UI — 이미지 업로드·미리보기 (/star-craft/zerg/vision)",
         kind="ui",
     ),
     RaceTool(
         id="face_yolo",
         title="Face YOLO",
-        path="backend/apps/face",
+        path="backend/apps/star_craft/zerg/face",
         role="YOLO 얼굴·객체 학습·추론 (CLI: train/predict)",
         kind="backend",
     ),

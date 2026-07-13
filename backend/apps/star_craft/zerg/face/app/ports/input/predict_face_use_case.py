@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
-from face.app.dtos.predict_command import PredictCommand, PredictionResult
+from star_craft.zerg.face.app.dtos.predict_command import PredictCommand, PredictionResult
 
 
 class PredictFaceUseCase(ABC):

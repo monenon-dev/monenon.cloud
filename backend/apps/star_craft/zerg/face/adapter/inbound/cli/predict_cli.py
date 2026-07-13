@@ -1,7 +1,7 @@
 """얼굴 인식(추론) CLI.
 
 실행 (backend/apps 에서):
-    python -m face.adapter.inbound.cli.predict_cli --image path/to/face.jpg
+    python -m star_craft.zerg.face.adapter.inbound.cli.predict_cli --image path/to/face.jpg
 """
 
 from __future__ import annotations
@@ -9,8 +9,8 @@ from __future__ import annotations
 import argparse
 import logging
 
-from face.app.dtos.predict_command import PredictCommand
-from face.dependencies.providers import get_predict_face_use_case
+from star_craft.zerg.face.app.dtos.predict_command import PredictCommand
+from star_craft.zerg.face.dependencies.providers import get_predict_face_use_case
 
 
 def main() -> None:

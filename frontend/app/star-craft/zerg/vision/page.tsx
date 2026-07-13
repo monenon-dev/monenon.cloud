@@ -32,8 +32,8 @@ export default function LenaVisionPage() {
           <h1 className="mt-2 text-2xl font-bold tracking-tight text-gray-900">4. 레나 vision</h1>
           <p className="mt-3 max-w-2xl text-sm leading-relaxed text-gray-600">
             스타크래프트 온톨로지에서 <strong>저그 = 비전(눈)</strong> 입니다. 이 페이지는 저그 종족의
-            수업 UI이고, 백엔드 추론은 Face YOLO(`backend/apps/face`)와 짝을 이룹니다. 이미지를
-            업로드해 시각적 특징을 탐색하는 실습입니다.
+            수업 UI이고, 백엔드 추론은 Face YOLO(`backend/apps/star_craft/zerg/face`)와 짝을 이룹니다.
+            이미지를 업로드해 시각적 특징을 탐색하는 실습입니다.
           </p>
         </div>
         <div

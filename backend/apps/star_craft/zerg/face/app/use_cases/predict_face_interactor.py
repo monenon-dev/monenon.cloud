@@ -8,13 +8,13 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 
-from face.app.dtos.predict_command import (
+from star_craft.zerg.face.app.dtos.predict_command import (
     FacePrediction,
     PredictCommand,
     PredictionResult,
 )
-from face.app.ports.input.predict_face_use_case import PredictFaceUseCase
-from face.domain.training_config import TrainingConfig
+from star_craft.zerg.face.app.ports.input.predict_face_use_case import PredictFaceUseCase
+from star_craft.zerg.face.domain.training_config import TrainingConfig
 
 logger = logging.getLogger(__name__)
 

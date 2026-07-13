@@ -1,14 +1,14 @@
 """폴더=클래스(YOLO classify) 구조의 얼굴 데이터셋 자원 어댑터.
 
-기본 경로는 apps/face/archive (train/·val/ 하위에 클래스별 폴더).
+기본 경로는 apps/star_craft/zerg/face/archive (train/·val/ 하위에 클래스별 폴더).
 """
 
 from __future__ import annotations
 
 from pathlib import Path
 
-from face.app.dtos.train_command import DatasetInfo
-from face.app.ports.output.face_dataset_port import FaceDatasetPort
+from star_craft.zerg.face.app.dtos.train_command import DatasetInfo
+from star_craft.zerg.face.app.ports.output.face_dataset_port import FaceDatasetPort
 
 _IMG_EXT = {".jpg", ".jpeg", ".png", ".webp", ".bmp"}
 _DEFAULT_ROOT = Path(__file__).resolve().parents[4] / "archive"

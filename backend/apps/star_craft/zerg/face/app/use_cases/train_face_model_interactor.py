@@ -8,10 +8,10 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 
-from face.app.dtos.train_command import TrainCommand, TrainingResult
-from face.app.ports.input.train_face_model_use_case import TrainFaceModelUseCase
-from face.app.ports.output.face_dataset_port import FaceDatasetPort
-from face.domain.training_config import TrainingConfig
+from star_craft.zerg.face.app.dtos.train_command import TrainCommand, TrainingResult
+from star_craft.zerg.face.app.ports.input.train_face_model_use_case import TrainFaceModelUseCase
+from star_craft.zerg.face.app.ports.output.face_dataset_port import FaceDatasetPort
+from star_craft.zerg.face.domain.training_config import TrainingConfig
 
 logger = logging.getLogger(__name__)
 

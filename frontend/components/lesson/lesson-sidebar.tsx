@@ -13,7 +13,7 @@ const TITANIC_SUB: { key: TitanicSubKey; label: string; href: string }[] = [
   { key: "upload", label: "1. 데이터 수집(CSV 업로드)", href: "/lesson/titanic-home" },
   { key: "walter", label: "2. 월터의 자기소개", href: "/lesson/titanic-home/passengers" },
   { key: "smith", label: "3. 스미스 선장 채팅", href: "/lesson/titanic-home/smith" },
-  { key: "vision", label: "4. 레나 vision", href: "/lesson/vision" },
+  { key: "vision", label: "4. 레나 vision", href: "/star-craft/zerg/vision" },
 ];
 
 const CRAWLING_SUB: { key: CrawlingSubKey; label: string; href: string }[] = [
@@ -35,7 +35,7 @@ function resolveCrawlingSub(pathname: string): CrawlingSubKey | null {
 }
 
 function resolveTitanicSub(pathname: string): TitanicSubKey | null {
-  if (pathname.startsWith("/lesson/vision")) return "vision";
+  if (pathname.startsWith("/star-craft/zerg/vision") || pathname.startsWith("/lesson/vision")) return "vision";
   if (pathname.startsWith("/lesson/titanic-home/smith") || pathname.startsWith("/titanic-home/smith")) {
     return "smith";
   }

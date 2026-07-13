@@ -136,7 +136,7 @@ CREATE (:Spoke {name: 'mail',         description: 'Gmail 수신함 관리, 이�
 CREATE (:Spoke {name: 'closet',       description: '날씨 기반 옷 추천, 코디 큐레이션',          endpoint: '/platform/closet',       status: 'active'})
 CREATE (:Spoke {name: 'music',        description: '상황·무드 기반 음악 플레이리스트 추천',      endpoint: '/platform/music',        status: 'active'})
 CREATE (:Spoke {name: 'refrigerator', description: '냉장고 재료 관리, 요리·장보기 추천',         endpoint: '/platform/refrigerator', status: 'active'})
-CREATE (:Spoke {name: 'vision',       description: '저그(비전) — 레나 vision UI + Face YOLO',   endpoint: '/lesson/vision',         status: 'active', race: 'zerg'})
+CREATE (:Spoke {name: 'vision',       description: '저그(비전) — 레나 vision UI + Face YOLO',   endpoint: '/star-craft/zerg/vision', status: 'active', race: 'zerg'})
 
 // 관계: Hub → Spoke (허브가 스포크 조율)
 MATCH (h:Hub {name: 'star_craft'}), (s:Spoke)

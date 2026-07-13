@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
-from face.app.dtos.train_command import DatasetInfo
+from star_craft.zerg.face.app.dtos.train_command import DatasetInfo
 
 
 class FaceDatasetPort(ABC):

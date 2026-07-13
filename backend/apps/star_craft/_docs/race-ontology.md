@@ -5,8 +5,7 @@ app: star_craft
 
 # 종족 온톨로지 (초보자 메타포)
 
-한 PC에서 흩어져 있던 **비전 툴**을 `star_craft` 허브 아래 **저그(비전)** 로 편입한다.  
-코드 경로는 시블링/프론트에 두고, **소속·역할은 허브가 인덱싱**한다.
+비전 툴은 `star_craft` 허브 아래 **저그(비전)** 패키지에 둔다.
 
 ## 암기 한 줄
 
@@ -20,18 +19,26 @@ app: star_craft
 
 ---
 
-## 저그(비전) — 편입된 툴
+## 저그(비전) — 코드 위치
 
 | 툴 | 경로 | 역할 |
 |----|------|------|
-| **레나 vision** | `frontend/app/lesson/vision` | 수업 UI — `/lesson/vision` 이미지 업로드·미리보기 |
-| **Face YOLO** | `backend/apps/face` | YOLO 얼굴·객체 학습·추론 (CLI train/predict) |
+| **레나 vision** | `frontend/app/star-craft/zerg/vision` | 수업 UI — `/star-craft/zerg/vision` |
+| **Face YOLO** | `backend/apps/star_craft/zerg/face` | YOLO 얼굴·객체 학습·추론 (CLI) |
 
 허브 스포크 이름: `vision` (`race: zerg`)  
 시드: `POST /hub/seed`  
 카탈로그 API: `GET /hub/races`
 
 코드 상수: `star_craft/domain/race_ontology.py` (`ZERG_VISION_TOOLS`)
+
+CLI 예:
+
+```bash
+cd backend/apps
+python -m star_craft.zerg.face.adapter.inbound.cli.train_cli --epochs 30
+python -m star_craft.zerg.face.adapter.inbound.cli.predict_cli --image path/to.jpg
+```
 
 ---
 

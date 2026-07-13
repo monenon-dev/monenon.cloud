@@ -1,8 +1,8 @@
 """YOLO Hello World — 사전학습 모델로 이미지에서 객체(사람 등)를 탐지한다.
 
 실행 (backend/ 기준):
-    python apps/face/hello_yolo.py
-    python apps/face/hello_yolo.py --image path/to/img.jpg --model yolo11n.pt
+    python apps/star_craft/zerg/face/hello_yolo.py
+    python apps/star_craft/zerg/face/hello_yolo.py --image path/to/img.jpg --model yolo11n.pt
 
 Docker/헤드리스 환경에서는 창을 띄우지 않고 탐지 결과 이미지를 파일로 저장한다.
 얼굴 전용 탐지는 파인튜닝(또는 face 전용 가중치)이 필요하며, 이 스크립트는

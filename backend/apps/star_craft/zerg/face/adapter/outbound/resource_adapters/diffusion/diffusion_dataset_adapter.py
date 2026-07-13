@@ -6,8 +6,8 @@ prepare()를 구현한다. FaceDatasetPort 계약(같은 DatasetInfo 반환)을 
 
 from __future__ import annotations
 
-from face.app.dtos.train_command import DatasetInfo
-from face.app.ports.output.face_dataset_port import FaceDatasetPort
+from star_craft.zerg.face.app.dtos.train_command import DatasetInfo
+from star_craft.zerg.face.app.ports.output.face_dataset_port import FaceDatasetPort
 
 
 class DiffusionDatasetAdapter(FaceDatasetPort):

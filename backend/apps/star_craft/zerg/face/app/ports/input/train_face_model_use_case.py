@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
-from face.app.dtos.train_command import TrainCommand, TrainingResult
+from star_craft.zerg.face.app.dtos.train_command import TrainCommand, TrainingResult
 
 
 class TrainFaceModelUseCase(ABC):

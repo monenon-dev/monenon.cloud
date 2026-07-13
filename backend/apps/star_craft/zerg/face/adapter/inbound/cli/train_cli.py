@@ -1,7 +1,7 @@
 """얼굴 분류 파인튜닝 CLI.
 
 실행 (backend/apps 에서):
-    python -m face.adapter.inbound.cli.train_cli --epochs 30 --batch 16
+    python -m star_craft.zerg.face.adapter.inbound.cli.train_cli --epochs 30 --batch 16
 """
 
 from __future__ import annotations
@@ -9,13 +9,13 @@ from __future__ import annotations
 import argparse
 import logging
 
-from face.app.dtos.train_command import TrainCommand
-from face.dependencies.providers import get_train_face_model_use_case
+from star_craft.zerg.face.app.dtos.train_command import TrainCommand
+from star_craft.zerg.face.dependencies.providers import get_train_face_model_use_case
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="YOLO 얼굴 분류 파인튜닝")
-    parser.add_argument("--dataset-root", default=None, help="데이터셋 루트 (기본: apps/face/archive)")
+    parser.add_argument("--dataset-root", default=None, help="데이터셋 루트 (기본: apps/star_craft/zerg/face/archive)")
     parser.add_argument(
         "--model",
         default=None,
