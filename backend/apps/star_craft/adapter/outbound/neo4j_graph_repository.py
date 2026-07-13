@@ -27,7 +27,8 @@ class Neo4jGraphRepository(GraphRepositoryPort):
                 MERGE (node:Spoke {name: $name})
                 SET node.description = $description,
                     node.endpoint    = $endpoint,
-                    node.status      = $status
+                    node.status      = $status,
+                    node.race        = $race
                 WITH node
                 MATCH (h:Hub {name: 'star_craft'})
                 MERGE (h)-[:ORCHESTRATES]->(node)
@@ -35,6 +36,7 @@ class Neo4jGraphRepository(GraphRepositoryPort):
                 """,
                 name=spoke.name, description=spoke.description,
                 endpoint=spoke.endpoint, status=spoke.status,
+                race=spoke.race,
             )
         logger.info("[star_craft/neo4j] 스포크 등록: %s", spoke.name)
 
@@ -45,11 +47,21 @@ class Neo4jGraphRepository(GraphRepositoryPort):
                 """
                 MATCH (h:Hub {name: 'star_craft'})-[:ORCHESTRATES]->(node:Spoke {status: 'active'})
                 RETURN node.name AS name, node.description AS description,
-                       node.endpoint AS endpoint, node.status AS status
+                       node.endpoint AS endpoint, node.status AS status,
+                       node.race AS race
                 """
             )
             records = await result.data()
-        return [SpokeNode(**r) for r in records]
+        return [
+            SpokeNode(
+                name=r["name"],
+                description=r.get("description") or "",
+                endpoint=r.get("endpoint") or "",
+                status=r.get("status") or "active",
+                race=r.get("race"),
+            )
+            for r in records
+        ]
 
     async def get_spoke_path(self, candidates: list[str]) -> list[SpokeNode]:
         if not candidates:
@@ -61,12 +73,22 @@ class Neo4jGraphRepository(GraphRepositoryPort):
                 MATCH (h:Hub {name: 'star_craft'})-[:ORCHESTRATES]->(node:Spoke)
                 WHERE node.name IN $candidates AND node.status = 'active'
                 RETURN node.name AS name, node.description AS description,
-                       node.endpoint AS endpoint, node.status AS status
+                       node.endpoint AS endpoint, node.status AS status,
+                       node.race AS race
                 """,
                 candidates=candidates,
             )
             records = await result.data()
-        return [SpokeNode(**r) for r in records]
+        return [
+            SpokeNode(
+                name=r["name"],
+                description=r.get("description") or "",
+                endpoint=r.get("endpoint") or "",
+                status=r.get("status") or "active",
+                race=r.get("race"),
+            )
+            for r in records
+        ]
 
     async def deactivate_spoke(self, name: str) -> None:
         driver = get_driver()

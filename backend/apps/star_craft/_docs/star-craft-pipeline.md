@@ -136,6 +136,7 @@ CREATE (:Spoke {name: 'mail',         description: 'Gmail 수신함 관리, 이�
 CREATE (:Spoke {name: 'closet',       description: '날씨 기반 옷 추천, 코디 큐레이션',          endpoint: '/platform/closet',       status: 'active'})
 CREATE (:Spoke {name: 'music',        description: '상황·무드 기반 음악 플레이리스트 추천',      endpoint: '/platform/music',        status: 'active'})
 CREATE (:Spoke {name: 'refrigerator', description: '냉장고 재료 관리, 요리·장보기 추천',         endpoint: '/platform/refrigerator', status: 'active'})
+CREATE (:Spoke {name: 'vision',       description: '저그(비전) — 레나 vision UI + Face YOLO',   endpoint: '/lesson/vision',         status: 'active', race: 'zerg'})
 
 // 관계: Hub → Spoke (허브가 스포크 조율)
 MATCH (h:Hub {name: 'star_craft'}), (s:Spoke)
@@ -175,6 +176,9 @@ CREATE INDEX ix_spoke_contexts_embedding_cosine
 | `POST` | `/hub/seed` | 기본 스포크 초기 등록 (최초 1회) |
 | `GET` | `/hub/spokes` | Neo4j 등록 스포크 목록 조회 |
 | `POST` | `/hub/spokes` | 새 스포크 등록 (Neo4j + pgvector 동시) |
+| `GET` | `/hub/races` | 종족 온톨로지(저그=비전·프로토스=LLM·테란=시계열) + 소속 툴 |
+
+종족 메타포·비전 툴 편입: [race-ontology.md](./race-ontology.md)
 
 ---
 
