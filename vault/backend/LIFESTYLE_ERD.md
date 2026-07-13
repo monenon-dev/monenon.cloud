@@ -1,11 +1,42 @@
 # Lifestyle · Platform ERD
 
-> **적용 범위:** `backend/apps/lifestyle/models/`, `backend/apps/chat/models/`, `backend/apps/admin/`  
+> **적용 범위:** `backend/apps/lifestyle/adapter/outbound/orm/`, `backend/apps/admin/adapter/outbound/orm/`  
 > **관련 규칙:** [`ENTITY_RULE.md`](ENTITY_RULE.md), [`BACKEND_RULES.md`](BACKEND_RULES.md)  
-> **외부 참조:** `users` (`backend/apps/secom/app/models/user_model.py`)  
-> **관리자 상세:** [`ADMIN_ERD.md`](ADMIN_ERD.md) (동일 내용 요약본)
+> **외부 참조:** `users` (`backend/apps/secretary/adapter/outbound/orm/user_model.py`)  
+> **관리자 상세:** [`ADMIN_ERD.md`](ADMIN_ERD.md)  
+> **매핑 철학:** [`moneyball.casting.md`](../../backend/apps/moneyball/_docs/moneyball.casting.md) §4와 동일 — **문서 ERD = 물리 FK**
 
 Mermaid `erDiagram`은 **`||--||` `||--o{` `||--o|`** 만 사용합니다 (`}o--||` 는 Obsidian에서 선이 안 그려짐).
+
+---
+
+## 스키마 매핑 규칙 (필수 — 하네스 결정)
+
+`ENTITY_RULE`: 신규·기존 플랫폼 테이블 PK는 **`id` int 자동증감**만. 복합·문자열 PK 금지.
+
+**채택 모델 (유저 중심 — 임의 변경 금지):**
+
+| 물리 테이블 | PK | 소유·FK | 카디널리티 |
+|-------------|----|---------|-----------|
+| `users` | `id` | — | 허브 |
+| `user_settings` | `id` | `user_id` → `users.id` **UNIQUE** | users 1—1 |
+| `closet` | `id` | `user_id` → `users.id` **UNIQUE** | users 1—1 (취향 프로필) |
+| `music` | `id` | `user_id` → `users.id` **UNIQUE** | users 1—1 (취향 프로필) |
+| `refrigerator` | `id` | `user_id` → `users.id` **UNIQUE** | users 1—1 (취향 프로필) |
+| `closet_items` | `id` | `user_id` → `users.id` | users 1—N (보유 목록) |
+| `music_items` | `id` | `user_id` → `users.id` | users 1—N |
+| `refrigerator_items` | `id` | `user_id` → `users.id` | users 1—N |
+| `chat_sessions` | `id` | `user_id` → `users.id` | users 1—N |
+| `messages` | `id` | `session_id` → `chat_sessions.id` | sessions 1—N |
+| `admins` | `id` | — (users와 FK 없음) | 시드 1행 |
+| `warnings` | `id` | `admin_id` → `admins.id`, `user_id` → `users.id` | 교차 |
+
+- **프로필 vs 목록:** `closet` / `music` / `refrigerator`는 유저당 취향 **1장**. `*_items`는 같은 유저의 **실물·저장 목록**. 둘 다 `users` 직속.
+- **금지:** `closet_id` / `music_id` / `refrigerator_id`를 아이템에 두지 않는다. (헤더가 유저당 1행이라 중간 FK 이득 없음)
+- **다이어그램 = 물리 FK.** UI에서 “옷장 화면”으로 묶여 보여도 ERD 선은 `users → *_items`다.
+- ERD에 없는 컬럼·벡터 차원을 추측으로 추가하지 않는다.
+
+충돌 시 우선순위: **`ENTITY_RULE` → 본 매핑표 → 기존 ORM** (`lifestyle_orm.py`, `chat_orm.py`).
 
 ---
 
@@ -15,7 +46,7 @@ Mermaid `erDiagram`은 **`||--||` `||--o{` `||--o|`** 만 사용합니다 (`}o--
 |------|-------------|------------------|-----------|
 | **개인 영역** | 마이페이지 (`/mypage`) | `users` | 본인 정보 확인·프로필 사진 변경·가입 정보 |
 | **운영 영역** | 회원 관리 (`/admin`) | `users` | 관리자 — 회원 전수 조회·**경고**·탈퇴 |
-| **운영 영역** | 사용자 설정 조회 (`/admin/user-settings`) | `user_settings` | 관리자 — 회원별 AI 모델·말투 등 앱 설정 조회 |
+| **운영 영역** | 사용자 설정 조회 (`/admin/user-settings`) | `user_settings` | 관리자 — 회원별 AI 모델·언어 등 앱 설정 조회 |
 
 동일 `users` 테이블이 **마이페이지(개인)** 와 **회원 관리(운영)** 에서 역할만 다르게 쓰입니다.  
 `user_settings`는 **사용자 설정 조회** 전용이며, 회원 계정·경고와는 분리합니다.
@@ -28,32 +59,29 @@ Mermaid `erDiagram`은 **`||--||` `||--o{` `||--o|`** 만 사용합니다 (`}o--
 |---------|------|-----------|
 | **마이페이지** | 본인 정보·프로필 (`/mypage`) | `users` |
 | **회원 관리** | 관리자 — 조회·경고·탈퇴 (`/admin`) | `users` |
-| **사용자 설정 조회** | 관리자 — AI 모델·언어 등 앱 설정 | `user_settings` |
-| **선호도 설정** | 평소 입는 스타일, 듣는 음악 취향, 못 먹는·알레르기 재료 | `closet`, `music`, `refrigerator` **헤더** (태그·JSON) |
-| **옷장** | 날씨·체감온도에 맞는 **복장 추천** (등록 의류 기준) | `closet` + `closet_items` |
-| **음악** | 날씨·상황에 맞는 **음악 추천** | `music` + `music_items` |
-| **냉장고** | **채팅**으로 음식 추천, **유통기한** 임박 재료 안내 | `refrigerator` + `refrigerator_items` + `chat_sessions` → `messages` |
+| **사용자 설정 조회** | 관리자 — AI 모델·언어 등 앱 설정 | `user_settings` (`user_id`) |
+| **선호도 설정** | 평소 스타일·음악 취향·기피 재료 | `closet`, `music`, `refrigerator` (각 `user_id` UNIQUE) |
+| **옷장** | 날씨·체감온도 복장 추천 | `closet` + `closet_items` (둘 다 `users` 직속) |
+| **음악** | 날씨·상황 음악 추천 | `music` + `music_items` (둘 다 `users` 직속) |
+| **냉장고** | 채팅 음식 추천·유통기한 안내 | `refrigerator` + `refrigerator_items` + `chat_sessions` → `messages` |
 | **관리자 계정** | `/admin/login` (`admin_access_token` 분리) | `admins` → `warnings` ← `users` |
 
 ---
 
 ## 대시보드 카테고리 ↔ ERD
 
-| 카테고리            | 테이블                                                 | 설명                          |
-| --------------- | --------------------------------------------------- | --------------------------- |
-| **관리자**         | `admins`, `warnings`                                | `/admin` 로그인·경고 발송          |
-| **회원·운영**       | `users`                                             | 마이페이지(개인) · 회원 관리(운영)   |
-| **사용자 설정 조회**  | `user_settings`                                     | 관리자 — AI 모델·언어 등 앱 설정     |
-| **선호도 (헤더)**    | `closet`, `music`, `refrigerator`                   | 스타일·장르·기피 재료 등 **취향 프로필**   |
-| **라이프스타일 (상세)** | `closet_items`, `refrigerator_items`, `music_items` | 의류·식재료·저장곡                  |
-| **채팅**          | `chat_sessions` → `messages`                        | 대화 (냉장고·음식 추천 등에 사용)        |
+| 카테고리 | 테이블 | 설명 |
+|----------|--------|------|
+| **관리자** | `admins`, `warnings` | `/admin` 로그인·경고 발송 |
+| **회원·운영** | `users` | 마이페이지(개인) · 회원 관리(운영) |
+| **사용자 설정 조회** | `user_settings` | 관리자 — AI 모델·언어 등 앱 설정 |
+| **취향 프로필** | `closet`, `music`, `refrigerator` | 유저당 1행 — 스타일·장르·기피 재료 |
+| **보유·저장 목록** | `closet_items`, `refrigerator_items`, `music_items` | 유저 직속 N행 — 의류·식재료·저장곡 |
+| **채팅** | `chat_sessions` → `messages` | 대화 (냉장고·음식 추천 등에 사용) |
 
 ---
 
 ## ERD — 회원·앱 설정 (`users` + `user_settings`)
-
-`users`는 **마이페이지(개인)** 와 **회원 관리(운영)** 에 공통으로 쓰입니다.  
-`user_settings`는 **사용자 설정 조회(운영)** 전용 — 회원별 UI 언어·선호 AI 모델을 담습니다.
 
 ```mermaid
 erDiagram
@@ -83,7 +111,7 @@ erDiagram
 
 ## ERD — 관리자 (`admins` · `warnings` · `users`)
 
-`warnings`가 **admins ↔ users 교차 엔티티**입니다. `/admin`에서 회원(`users`) 조회·탈퇴·경고를 처리합니다.
+`warnings`가 **admins ↔ users 교차 엔티티**입니다.
 
 ```mermaid
 erDiagram
@@ -126,20 +154,20 @@ erDiagram
 
 ---
 
-## ERD — 선호도 · 라이프스타일 · 채팅
+## ERD — 라이프스타일 · 채팅 (유저 중심)
 
-`users` 아래 **선호도 헤더** → **기능용 아이템** → 필요 시 **채팅** 흐름입니다.
+모든 취향 프로필·보유 목록·채팅 세션의 부모는 **`users`**.  
+`closet` ↔ `closet_items` 사이에는 **DB FK가 없다** (같은 `user_id`로 조인·화면 묶음만).
 
 ```mermaid
 erDiagram
-    closet ||--|| users : taste_for_outfit
-    music ||--|| users : taste_for_music
-    refrigerator ||--|| users : taste_for_food
+    users ||--|| closet : taste_outfit
+    users ||--|| music : taste_music
+    users ||--|| refrigerator : taste_food
+    users ||--o{ closet_items : owns_clothes
+    users ||--o{ music_items : owns_tracks
+    users ||--o{ refrigerator_items : owns_stock
     users ||--o{ chat_sessions : chats
-
-    closet ||--o{ closet_items : wardrobe
-    music ||--o{ music_items : saved_tracks
-    refrigerator ||--o{ refrigerator_items : stock
     chat_sessions ||--o{ messages : messages
 
     closet {
@@ -219,13 +247,15 @@ erDiagram
     }
 ```
 
-### 헤더 vs 아이템 (같은 기능, 다른 층)
+### 프로필 vs 목록 (같은 유저, 다른 층)
 
-| 기능 | 선호도·프로필 (헤더) | 실행·추천 데이터 (아이템) |
-|------|---------------------|---------------------------|
+| 기능 | 취향 프로필 (`user_id` UNIQUE) | 보유·저장 목록 (`user_id` N) |
+|------|-------------------------------|------------------------------|
 | 옷장 | `closet` — 스타일 태그, 체감온도 | `closet_items` — 보유 의류 → **날씨 맞춤 추천** |
 | 음악 | `music` — 장르·무드 | `music_items` — 저장곡 → **날씨·상황 추천** |
-| 냉장고 | `refrigerator` — 기피·알레르기·요리 성향 | `refrigerator_items` — 재고·유통기한 → **채팅 음식 추천·만료 알림** |
+| 냉장고 | `refrigerator` — 기피·알레르기·요리 성향 | `refrigerator_items` — 재고·유통기한 → **채팅 추천·만료 알림** |
+
+앱에서 추천할 때: **같은 `user_id`로** 프로필 JSON + 아이템 목록을 함께 읽는다.
 
 ---
 
@@ -235,50 +265,51 @@ erDiagram
 
 | 부모 | 자식 | 카디널리티 | 설명 |
 |------|------|-----------|------|
-| `users` | `user_settings` | 1 : 1 | **사용자 설정 조회** — UI 언어, 선호 AI 모델 |
+| `users` | `user_settings` | 1 : 1 | UI 언어, 선호 AI 모델 |
 
-### 선호도 헤더 (`users` 직속, 1:1)
-
-| 테이블 | 제품 의미 |
-|--------|-----------|
-| `closet` | 선호 복장·체감온도 (추천 시 컨텍스트) |
-| `music` | 선호 장르·무드 |
-| `refrigerator` | 못 먹는 것·알레르기·요리 성향 |
-
-### 라이프스타일 상세 (헤더 → N)
+### `users` 직속 — 취향 프로필 (1:1)
 
 | 부모 | 자식 | 카디널리티 | 제품 의미 |
 |------|------|-----------|-----------|
-| `closet` | `closet_items` | 1 : N | 등록 의류, 날씨 추천 소스 |
-| `music` | `music_items` | 1 : N | 상황별 저장곡, 추천 소스 |
-| `refrigerator` | `refrigerator_items` | 1 : N | 유통기한·재고 |
-| `users` | `chat_sessions` | 1 : N | 채팅방 (냉장고 음식 추천 등) |
-| `chat_sessions` | `messages` | 1 : N | 대화 (`session_id` FK) |
+| `users` | `closet` | 1 : 1 | 선호 복장·체감온도 |
+| `users` | `music` | 1 : 1 | 선호 장르·무드 |
+| `users` | `refrigerator` | 1 : 1 | 기피·알레르기·요리 성향 |
 
-### DB FK vs 다이어그램
+### `users` 직속 — 목록·채팅 (1:N)
 
-| 테이블 | 물리 FK | 다이어그램 부모 | 비고 |
-|--------|---------|----------------|------|
-| `user_settings` | `user_id` → `users` | `users` | **사용자 설정 조회** 도메인 |
-| `closet` / `music` / `refrigerator` | `user_id` → `users` | `users` | 선호도 헤더 |
-| `*_items` | `user_id` → `users` | 각 헤더 | 헤더 FK 컬럼 없음 → UI·도메인 계층 |
-| `messages` | `session_id` → `chat_sessions` | `chat_sessions` | 물리 FK 일치 |
-| `admins` | — | (독립 행) | `users`와 직접 FK 없음, 시스템 1명 |
-| `warnings` | `admin_id` → `admins`, `user_id` → `users` | `admins` + `users` | **교차** — 누가 누구에게 경고 |
+| 부모 | 자식 | 카디널리티 | 제품 의미 |
+|------|------|-----------|-----------|
+| `users` | `closet_items` | 1 : N | 등록 의류 |
+| `users` | `music_items` | 1 : N | 상황별 저장곡 |
+| `users` | `refrigerator_items` | 1 : N | 유통기한·재고 |
+| `users` | `chat_sessions` | 1 : N | 채팅방 |
+| `chat_sessions` | `messages` | 1 : N | 대화 (`session_id`) |
+
+### 물리 FK (= 다이어그램)
+
+| 테이블 | 물리 FK | 다이어그램 부모 |
+|--------|---------|-----------------|
+| `user_settings` | `user_id` → `users.id` | `users` |
+| `closet` / `music` / `refrigerator` | `user_id` → `users.id` | `users` |
+| `closet_items` / `music_items` / `refrigerator_items` | `user_id` → `users.id` | `users` |
+| `chat_sessions` | `user_id` → `users.id` | `users` |
+| `messages` | `session_id` → `chat_sessions.id` | `chat_sessions` |
+| `admins` | — | (독립) |
+| `warnings` | `admin_id` → `admins.id`, `user_id` → `users.id` | `admins` + `users` |
 
 ### 관리자
 
 | 부모 | 자식 | 카디널리티 | 설명 |
 |------|------|-----------|------|
 | — | `admins` | 1행 (시드) | `admin@gmail.com`, `/admin/login` |
-| `admins` | `warnings` | 1 : N | 발신 관리자 (`admin_id`) |
-| `users` | `warnings` | 1 : N | 수신 회원 (`user_id`, `role=user`만) |
+| `admins` | `warnings` | 1 : N | 발신 (`admin_id`) |
+| `users` | `warnings` | 1 : N | 수신 (`user_id`) |
 
 ---
 
 ## 테이블 정의
 
-### `users` — 회원 (secom)
+### `users` — 회원 (secretary)
 
 | 컬럼 | 타입 | 제약 | 설명 |
 |------|------|------|------|
@@ -301,7 +332,7 @@ erDiagram
 | `created_at` | timestamptz | server default NOW() | 생성 시각 |
 | `updated_at` | timestamptz | on update | 수정 시각 |
 
-### `closet` — 선호도(복장) + 추천 컨텍스트
+### `closet` — 취향 프로필(복장)
 
 | 컬럼 | 타입 | 제약 | 설명 |
 |------|------|------|------|
@@ -313,12 +344,12 @@ erDiagram
 | `created_at` | timestamptz | server default | 생성 시각 |
 | `updated_at` | timestamptz | on update | 수정 시각 |
 
-### `closet_items` — 보유 의류 (날씨 맞춤 추천)
+### `closet_items` — 보유 의류 (`users` 직속)
 
 | 컬럼 | 타입 | 제약 | 설명 |
 |------|------|------|------|
 | `id` | int | PK, autoincrement | 시스템 내부 PK |
-| `user_id` | int | FK → `users.id`, CASCADE, index | 소유 사용자 |
+| `user_id` | int | FK → `users.id`, CASCADE, index | 소유 사용자 (**closet_id 없음**) |
 | `name` | varchar(64) | NOT NULL | 의류 이름 |
 | `category` | varchar(32) | default `top` | `top`, `bottom`, `outer` 등 |
 | `warmth` | varchar(16) | default `mid` | `light`, `mid`, `heavy` |
@@ -326,7 +357,7 @@ erDiagram
 | `note` | varchar(128) | NULL | 메모 |
 | `created_at` | timestamptz | server default | 생성 시각 |
 
-### `refrigerator` — 선호도(식단·기피) + 채팅 추천 컨텍스트
+### `refrigerator` — 취향 프로필(식단·기피)
 
 | 컬럼 | 타입 | 제약 | 설명 |
 |------|------|------|------|
@@ -337,12 +368,12 @@ erDiagram
 | `created_at` | timestamptz | server default | 생성 시각 |
 | `updated_at` | timestamptz | on update | 수정 시각 |
 
-### `refrigerator_items` — 재고·유통기한
+### `refrigerator_items` — 재고·유통기한 (`users` 직속)
 
 | 컬럼 | 타입 | 제약 | 설명 |
 |------|------|------|------|
 | `id` | int | PK, autoincrement | 시스템 내부 PK |
-| `user_id` | int | FK → `users.id`, CASCADE, index | 소유 사용자 |
+| `user_id` | int | FK → `users.id`, CASCADE, index | 소유 사용자 (**refrigerator_id 없음**) |
 | `name` | varchar(64) | NOT NULL | 식재료 이름 |
 | `quantity` | varchar(32) | NULL | 수량 표기 |
 | `expiry_date` | date | NULL, index | 유통기한 |
@@ -350,7 +381,7 @@ erDiagram
 | `note` | varchar(128) | NULL | 메모 |
 | `created_at` | timestamptz | server default | 생성 시각 |
 
-### `music` — 선호도(장르·무드) + 추천 컨텍스트
+### `music` — 취향 프로필(장르·무드)
 
 | 컬럼 | 타입 | 제약 | 설명 |
 |------|------|------|------|
@@ -361,12 +392,12 @@ erDiagram
 | `created_at` | timestamptz | server default | 생성 시각 |
 | `updated_at` | timestamptz | on update | 수정 시각 |
 
-### `music_items` — 저장 곡 (날씨·상황 추천)
+### `music_items` — 저장 곡 (`users` 직속)
 
 | 컬럼 | 타입 | 제약 | 설명 |
 |------|------|------|------|
 | `id` | int | PK, autoincrement | 시스템 내부 PK |
-| `user_id` | int | FK → `users.id`, CASCADE, index | 소유 사용자 |
+| `user_id` | int | FK → `users.id`, CASCADE, index | 소유 사용자 (**music_id 없음**) |
 | `title` | varchar(128) | NOT NULL | 곡 제목 |
 | `artist` | varchar(64) | NULL | 아티스트 |
 | `scene` | varchar(16) | NOT NULL, default `commute`, index | `commute`, `outing`, `cooking` 등 |
@@ -393,7 +424,7 @@ erDiagram
 | `content` | text | NOT NULL | 메시지 본문 |
 | `created_at` | timestamptz | server default | 생성 시각 |
 
-### `admins` — 시스템 관리자 (admin)
+### `admins` — 시스템 관리자
 
 | 컬럼 | 타입 | 제약 | 설명 |
 |------|------|------|------|
@@ -419,18 +450,21 @@ erDiagram
 
 | 항목 | 구현 |
 |------|------|
-| ORM | `lifestyle/`, `chat/`, `admin/app/models/` |
-| API | `/platform/*`, 채팅 API, `/admin/login`, `/admin/users/*` |
-| 개요 | `GET /platform/overview` (`user_settings` = **사용자 설정 조회**, `users` = **회원·운영**) |
-| 관리자 시드 | `main.py` lifespan → `AdminService.ensure_admin_account()` |
+| ORM | `lifestyle/adapter/outbound/orm/lifestyle_orm.py`, `chat_orm.py` |
+| 회원 | `secretary/adapter/outbound/orm/user_model.py` |
+| 관리자 | `admin/adapter/outbound/orm/` |
+| API | lifestyle·chat·admin 라우터 (`/admin/login`, `/admin/users/*` 등) |
+| 관리자 시드 | lifespan → 관리자 계정 ensure |
+
+ORM은 이미 유저 중심 FK와 일치한다. **스키마 마이그레이션 불필요** (문서·ERD만 정합).
 
 ---
 
 ## Cursor 고정 명령어
 
 ```text
-@docs/DevOps/backend/LIFESTYLE_ERD.md @docs/DevOps/backend/ENTITY_RULE.md
+@vault/backend/LIFESTYLE_ERD.md @vault/backend/ENTITY_RULE.md
 
-users = 마이페이지(개인) + 회원 관리(운영, /admin). user_settings = 사용자 설정 조회(운영).
-선호도 = closet/music/refrigerator 헤더. admin: admins + warnings. warnings는 admin_id+user_id 교차.
+유저 중심: closet/music/refrigerator(1:1)와 *_items(1:N) 모두 user_id → users.
+헤더→아이템 FK 없음. 다이어그램 = 물리 FK. admin: admins + warnings 교차.
 ```

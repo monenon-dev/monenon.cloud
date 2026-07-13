@@ -2,8 +2,8 @@
 
 > **적용 범위:** `backend/apps/admin/`  
 > **관련 규칙:** [`ENTITY_RULE.md`](ENTITY_RULE.md), [`BACKEND_RULES.md`](BACKEND_RULES.md)  
-> **연관 도메인:** 일반 회원 `users` (`backend/apps/secom/app/models/user_model.py`)  
-> **플랫폼 ERD:** [`LIFESTYLE_ERD.md`](LIFESTYLE_ERD.md) — 전체 플랫폼 ERD에 관리자·`warnings` 교차 포함
+> **연관 도메인:** 일반 회원 `users` (`backend/apps/secretary/adapter/outbound/orm/user_model.py`)  
+> **플랫폼 ERD:** [`LIFESTYLE_ERD.md`](LIFESTYLE_ERD.md) — 유저 중심 플랫폼 ERD + 관리자·`warnings` 교차
 
 관리자 모듈은 `backend/apps/admin/` 에 있으며, 일반 `/login`·`users` 관리자 행과 **분리**됩니다.
 
@@ -14,8 +14,8 @@
 | 구분 | 경로 |
 |------|------|
 | 앱 모듈 | `backend/apps/admin/` |
-| ORM | `admin/app/models/admin_account.py`, `warning.py` |
-| API | `admin/app/controllers/` → `main.py`의 `admin_router` |
+| ORM | `admin/adapter/outbound/orm/admin_account.py`, `warning.py` |
+| API | `admin/adapter/inbound/` → `main.py`의 admin 라우터 |
 | UI | `frontend/app/admin/` |
 
 ---
