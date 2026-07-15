@@ -10,7 +10,8 @@ SPOKE_IDS: tuple[SpokeId, ...] = ("stadium", "team", "player", "schedule")
 
 # 스포크별 허용 테이블 (SELECT 가드)
 SPOKE_TABLES: dict[SpokeId, frozenset[str]] = {
-    "stadium": frozenset({"moneyball_stadium"}),
+    # 홈구장 질의는 team.region_name 조인이 필요
+    "stadium": frozenset({"moneyball_stadium", "moneyball_team"}),
     "team": frozenset({"moneyball_team", "moneyball_stadium"}),
     "player": frozenset({"moneyball_player", "moneyball_team"}),
     "schedule": frozenset(

@@ -44,8 +44,9 @@ echo "==> up (no Hub pull) pgvector redis neo4j backend cloudflared"
 
 echo "==> verify moneyball inside container"
 "${COMPOSE[@]}" exec -T backend ls /app/apps/moneyball/adapter/inbound/api/v1/ || true
+# uvicorn 과 동일하게 /app + /app/apps 를 path에 둠 (bare python -c 는 core 를 못 찾음)
 "${COMPOSE[@]}" exec -T backend python -c \
-  "from moneyball.adapter.inbound.api import moneyball_router; print('routes', [r.path for r in moneyball_router.routes])" \
+  "import sys; sys.path[:0]=['/app','/app/apps']; from moneyball.adapter.inbound.api import moneyball_router; print('routes', [getattr(r,'path',r) for r in moneyball_router.routes])" \
   || true
 
 echo "==> status"
