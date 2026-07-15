@@ -2,9 +2,10 @@
 # API 터널:       docker compose --profile tunnel up -d
 #                 (루트 .env 에 CLOUDFLARE_TUNNEL_TOKEN 필요 — api.monenon.cloud → backend:8000)
 # 프론트엔드:     Docker 배포 제외 (Vercel / 로컬 npm run dev)
-# 강사님 흐름: backend Dockerfile + requirements.txt → Hub push → 원격 Ubuntu(시그마 SSH)
+# 강사님 흐름: backend Dockerfile + requirements.txt → Hub push → 시그마 Ubuntu Docker Engine
 # 접속 PC(네오): scripts/docker-build-push.ps1
-# 원격 PC(시그마): scripts/docker-remote-up.ps1
+# 원격 PC(시그마 우분투 Engine): bash scripts/phase2-sigma.sh
+#                (Docker Desktop 불필요 — Windows PowerShell 의 docker 사용 금지)
 name: monenoncloud
 
 services:

@@ -1,13 +1,13 @@
-# 시그마 remote-server — 백엔드 전용 Docker
+# 시그마 remote-server — 백엔드 전용 (Ubuntu Docker Engine)
 #
-# 한 PC에서 백엔드와 프론트를 같이 개발하다가 분리했기 때문에,
-# 이 remote-server는 백엔드만 구현한다. 프론트엔드는 Docker 배포에서 제외한다.
-# (프론트는 Vercel / 로컬 Next.js)
+# Docker Desktop(Windows) 불필요. 시그마 우분투(WSL) Engine에서만 실행.
+# 프론트는 Vercel / 로컬 Next.js — Docker 배포 제외.
 #
 # 루트 .env 필수:
 #   CLOUDFLARE_TUNNEL_TOKEN=<터널 토큰>
 #
-# 실행: scripts/phase2-sigma.ps1
+# 시그마 우분투:
+#   bash scripts/phase2-sigma.sh
 # 또는:
 #   docker compose -f docker-compose.yaml -f docker-compose.sigma.yaml pull backend
 #   docker compose -f docker-compose.yaml -f docker-compose.sigma.yaml --profile tunnel up -d pgvector redis neo4j backend cloudflared

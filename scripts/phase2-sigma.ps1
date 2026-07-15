@@ -1,22 +1,25 @@
-# 시그마 remote-server: Hub pull → 로컬 DB + backend + cloudflared (프론트 Docker 제외)
+# 시그마 — Docker Desktop 불필요.
+# 실제 실행은 시그마 Ubuntu(WSL) Docker Engine (scripts/phase2-sigma.sh).
+#
+# 권장: 시그마 우분투 터미널에서
+#   cd ~/monenon.cloud && bash scripts/phase2-sigma.sh
+#
+# 이 파일을 Windows PowerShell에서 실행하면 WSL로 위임한다.
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
-Set-Location (Join-Path $PSScriptRoot "..")
 
-$rootEnv = Join-Path (Get-Location) ".env"
-if (-not (Test-Path $rootEnv)) {
-    throw "루트 .env 없음. CLOUDFLARE_TUNNEL_TOKEN 을 넣으세요."
-}
+$wslCmd = @'
+set -e
+if [ -d "$HOME/monenon.cloud" ]; then
+  cd "$HOME/monenon.cloud"
+elif [ -d "/mnt/c/Users/hi/Documents/cloud.monenon" ]; then
+  cd /mnt/c/Users/hi/Documents/cloud.monenon
+else
+  echo "프로젝트를 찾을 수 없습니다. 시그마 우분투에서 ~/monenon.cloud 로 clone/복사하세요."
+  exit 1
+fi
+bash scripts/phase2-sigma.sh
+'@
 
-$envContent = Get-Content $rootEnv -Raw
-if ($envContent -notmatch '(?m)^CLOUDFLARE_TUNNEL_TOKEN=\S+') {
-    throw "루트 .env 에 CLOUDFLARE_TUNNEL_TOKEN 이 필요합니다."
-}
-
-Write-Host "==> Sigma: pull backend image"
-docker compose -f docker-compose.yaml -f docker-compose.sigma.yaml pull backend
-
-Write-Host "==> Sigma: pgvector redis neo4j backend + cloudflared up (no frontend)"
-docker compose -f docker-compose.yaml -f docker-compose.sigma.yaml --profile tunnel up -d pgvector redis neo4j backend cloudflared
-
-Write-Host "Done. api.monenon.cloud -> Sigma backend (frontend excluded from Docker)"
+Write-Host "==> Delegating to Sigma WSL Docker Engine (not Docker Desktop)"
+wsl -e bash -lc $wslCmd
