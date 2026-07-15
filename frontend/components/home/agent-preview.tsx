@@ -34,16 +34,10 @@ const TOOL_PATTERNS: ToolPattern[] = [
   { tool: "vector.query", detail: "top_k=8", status: "error" },
 ];
 
-const MAX_VISIBLE = 4;
+const MAX_VISIBLE = 5;
 const ADD_INTERVAL_MS = 4800;
 const TYPE_MS = 42;
 const FADE_OUT_MS = 900;
-/**
- * Fixed height so typing never shifts layout.
- * Shorter on lg+ so hero + cards fit a 100vh snap panel.
- */
-const PANEL_HEIGHT_CLASS =
-  "h-[360px] sm:h-[380px] lg:h-[min(300px,38dvh)] xl:h-[min(340px,40dvh)]";
 
 type LiveToolItem = ToolPattern & {
   id: string;
@@ -98,7 +92,7 @@ export function AgentPreview({ className = "" }: { className?: string }) {
 
   return (
     <div
-      className={`relative flex ${PANEL_HEIGHT_CLASS} flex-col overflow-hidden rounded-2xl border border-white/10 bg-[rgba(18,18,28,0.72)] shadow-[0_0_40px_rgba(99,102,241,0.18)] backdrop-blur-md ${className}`}
+      className={`relative flex flex-col rounded-2xl border border-white/10 bg-[rgba(18,18,28,0.72)] shadow-[0_0_40px_rgba(99,102,241,0.18)] backdrop-blur-md ${className}`}
       aria-label="Moneo agent preview"
     >
       <div className="flex shrink-0 items-center gap-2 border-b border-white/10 px-4 py-3">
@@ -110,10 +104,10 @@ export function AgentPreview({ className = "" }: { className?: string }) {
         </span>
       </div>
 
-      <div className="grid min-h-0 flex-1 grid-cols-1 md:grid-cols-[minmax(0,1.25fr)_minmax(12.5rem,0.95fr)]">
+      <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1.25fr)_minmax(12.5rem,0.95fr)]">
         <div
           ref={chatScrollRef}
-          className="moneo-thin-scrollbar space-y-3 overflow-y-auto overscroll-contain border-b border-white/10 p-4 md:border-b-0 md:border-r"
+          className="space-y-3 border-b border-white/10 p-4 md:border-b-0 md:border-r"
         >
           {CHAT_LINES.slice(0, chat.line).map((msg, i) => (
             <PreviewBubble key={`${msg.role}-${i}`} role={msg.role} text={msg.text} done />
@@ -231,20 +225,17 @@ function ToolStreamPanel() {
   }, [stream.seq]);
 
   return (
-    <div className="flex min-h-0 min-w-[12.5rem] flex-col p-4">
+    <div className="flex min-w-[12.5rem] flex-col p-4">
       <p className="mb-2 shrink-0 font-mono text-[10px] uppercase tracking-[0.2em] text-indigo-300/80">
         tool stream
       </p>
-      <div
-        ref={streamScrollRef}
-        className="moneo-thin-scrollbar relative flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto overscroll-contain"
-      >
+      <div ref={streamScrollRef} className="relative flex flex-col gap-2">
         {stream.items.map((ev) => (
           <div
             key={ev.id}
-            className={`tool-stream-row flex items-start gap-2 overflow-hidden rounded-lg border bg-white/[0.03] px-2.5 font-mono text-[11px] ${
+            className={`tool-stream-row flex items-start gap-2 rounded-lg border bg-white/[0.03] px-2.5 font-mono text-[11px] ${
               ev.exiting
-                ? "tool-stream-row--out pointer-events-none border-transparent py-0 opacity-0"
+                ? "tool-stream-row--out pointer-events-none overflow-hidden border-transparent py-0 opacity-0"
                 : "tool-stream-row--in border-white/5 py-2 opacity-100"
             }`}
           >

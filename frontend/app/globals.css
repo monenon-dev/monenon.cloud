@@ -224,62 +224,18 @@
   }
 }
 
-/* Home — desktop scroll snap (lg+). Mobile keeps free document scroll. */
-@media (min-width: 1024px) {
-  .home-snap-scroller {
-    overflow-y: auto;
-    overscroll-behavior-y: contain;
-    /* proximity: snap near section edges only — no hard pull */
-    scroll-snap-type: y proximity;
-    scroll-behavior: smooth;
-  }
-
-  .home-snap-panel {
-    scroll-snap-align: start;
-    scroll-snap-stop: normal;
-    min-height: 100%;
-    height: 100%;
-    box-sizing: border-box;
-  }
-
-  .home-snap-panel--primary {
-    overflow: hidden;
-  }
-
-  .home-snap-panel--secondary {
-    overflow: hidden;
-  }
-}
-
-@media (max-width: 1023px) {
-  .home-snap-scroller {
-    overflow: visible;
-    scroll-snap-type: none;
-  }
-
-  .home-snap-panel {
-    height: auto;
-    min-height: 0;
-    scroll-snap-align: none;
-    scroll-snap-stop: normal;
-  }
-}
-
 @keyframes tool-stream-in {
   from {
     opacity: 0;
     transform: translateY(-10px);
-    max-height: 0;
   }
   to {
     opacity: 1;
     transform: translateY(0);
-    max-height: 6.5rem;
   }
 }
 
 .tool-stream-row {
-  max-height: 6.5rem;
   transition:
     opacity 0.75s cubic-bezier(0.22, 1, 0.36, 1),
     transform 0.75s cubic-bezier(0.22, 1, 0.36, 1),
