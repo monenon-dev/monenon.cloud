@@ -5,7 +5,7 @@ import type {
   AgentToolName,
 } from "@/lib/agent-history/types";
 
-/** Coherent Agent–Tool–prompt–response–params bundles (do not shuffle fields across scenarios). */
+/** One coherent run — never mix fields across scenarios. */
 type AgentHistoryScenario = {
   agentName: AgentName;
   tool: AgentToolName;
@@ -14,6 +14,10 @@ type AgentHistoryScenario = {
   toolParams: Record<string, string | number | boolean>;
 };
 
+/**
+ * Canonical scenarios. Recent-activity timeline uses these in order (newest first).
+ * Table rows reuse the same sets with varied time/duration/tokens only.
+ */
 const SCENARIOS: AgentHistoryScenario[] = [
   {
     agentName: "Mail Agent",
@@ -64,6 +68,27 @@ const SCENARIOS: AgentHistoryScenario[] = [
     responseSummary: "핵심 액션 3건과 블로커 1건을 요약했습니다.",
     toolParams: { range: "morning", limit: 12 },
   },
+  {
+    agentName: "Report Agent",
+    tool: "docs.search",
+    prompt: "지난주 리포트에 인용할 지표 문서 찾아 줘",
+    responseSummary: "지표 문서 5건을 찾아 리포트 초안에 연결했습니다.",
+    toolParams: { q: "weekly KPI", top_k: 5 },
+  },
+  {
+    agentName: "Mail Agent",
+    tool: "email.draft",
+    prompt: "파트너사에 Kick-off 일정 안내 메일 써 줘",
+    responseSummary: "Kick-off 안내 메일 초안과 제목 후보를 작성했습니다.",
+    toolParams: { to: "partner@example.com", tone: "friendly", length: "medium" },
+  },
+  {
+    agentName: "Doc Agent",
+    tool: "vector.query",
+    prompt: "보안 정책 PDF에서 MFA 관련 조항 찾아 줘",
+    responseSummary: "MFA 관련 조항 청크 3건을 인용과 함께 반환했습니다.",
+    toolParams: { collection: "policies", top_k: 3, min_score: 0.78 },
+  },
 ];
 
 const AGENTS: AgentName[] = [
@@ -73,62 +98,111 @@ const AGENTS: AgentName[] = [
   "Mail Agent",
 ];
 
-/** deterministic 0..1 from integer seed */
 function rand(seed: number): number {
   const x = Math.sin(seed * 12.9898) * 43758.5453;
   return x - Math.floor(x);
 }
 
-function statusFor(i: number): AgentHistoryStatus {
-  const r = rand(i * 17 + 3);
-  if (r < 0.1) return "failed";
-  if (r < 0.2) return "running";
+function statusForIndex(i: number): AgentHistoryStatus {
+  // Fixed pattern: mostly success; predictable failed/running slots
+  if (i === 4 || i === 18) return "failed";
+  if (i === 2 || i === 11 || i === 25) return "running";
   return "success";
 }
 
-function pickScenario(seed: number): AgentHistoryScenario {
-  return SCENARIOS[Math.floor(rand(seed) * SCENARIOS.length)]!;
+function responseFor(
+  scenario: AgentHistoryScenario,
+  status: AgentHistoryStatus
+): string {
+  if (status === "running") {
+    return `${scenario.tool} 실행 중 — 요청을 처리하고 있습니다.`;
+  }
+  if (status === "failed") {
+    return `${scenario.tool} 실패 — 요청을 완료하지 못했습니다.`;
+  }
+  return scenario.responseSummary;
+}
+
+function buildLog(
+  scenario: AgentHistoryScenario,
+  opts: {
+    id: string;
+    timestamp: string;
+    status: AgentHistoryStatus;
+    durationMs: number;
+    tokens: number;
+  }
+): AgentHistoryLog {
+  return {
+    id: opts.id,
+    timestamp: opts.timestamp,
+    agentName: scenario.agentName,
+    tool: scenario.tool,
+    status: opts.status,
+    durationMs: opts.durationMs,
+    tokens: opts.tokens,
+    prompt: scenario.prompt,
+    responseSummary: responseFor(scenario, opts.status),
+    toolParams: { ...scenario.toolParams },
+  };
 }
 
 /**
- * Demo logs (~30). Scenario fields stay coherent; only time/duration/tokens vary.
- * Timestamps are relative to `baseMs`.
+ * Recent-activity feed: fixed order of complete scenarios (newest first).
+ * Field bundles never shuffle.
  */
-function buildMockLogs(baseMs: number, count = 30): AgentHistoryLog[] {
+function buildRecentLogs(baseMs: number): AgentHistoryLog[] {
+  return SCENARIOS.map((scenario, i) => {
+    const status = statusForIndex(i);
+    const minutesAgo = 8 + i * 14;
+    return buildLog(scenario, {
+      id: `recent_${String(i + 1).padStart(2, "0")}`,
+      timestamp: new Date(baseMs - minutesAgo * 60_000).toISOString(),
+      status,
+      durationMs:
+        status === "running"
+          ? 1200 + i * 180
+          : status === "failed"
+            ? 800 + i * 90
+            : 1500 + i * 420,
+      tokens: 200 + i * 95,
+    });
+  });
+}
+
+/** Extra table rows: cycle the same coherent scenarios. */
+function buildExtraLogs(baseMs: number, count: number): AgentHistoryLog[] {
   const logs: AgentHistoryLog[] = [];
   for (let i = 0; i < count; i++) {
-    const scenario = pickScenario(i * 5 + 2);
-    const status = statusFor(i);
-    const minutesAgo = Math.floor(rand(i * 9 + 4) * 280) + i * 7;
-    const timestamp = new Date(baseMs - minutesAgo * 60_000).toISOString();
-    const durationMs =
-      status === "running"
-        ? Math.floor(rand(i * 11) * 4000) + 800
-        : Math.floor(rand(i * 13) * 12000) + 900;
-
-    logs.push({
-      id: `log_${String(i + 1).padStart(3, "0")}`,
-      timestamp,
-      agentName: scenario.agentName,
-      tool: scenario.tool,
-      status,
-      durationMs,
-      tokens: Math.floor(rand(i * 19) * 1800) + 120,
-      prompt: scenario.prompt,
-      responseSummary: scenario.responseSummary,
-      toolParams: { ...scenario.toolParams },
-    });
+    const scenario = SCENARIOS[i % SCENARIOS.length]!;
+    const status = statusForIndex(i + SCENARIOS.length);
+    const minutesAgo = 160 + i * 11 + Math.floor(rand(i * 9) * 20);
+    logs.push(
+      buildLog(scenario, {
+        id: `log_${String(i + 1).padStart(3, "0")}`,
+        timestamp: new Date(baseMs - minutesAgo * 60_000).toISOString(),
+        status,
+        durationMs:
+          status === "running"
+            ? Math.floor(rand(i * 11) * 4000) + 800
+            : Math.floor(rand(i * 13) * 12000) + 900,
+        tokens: Math.floor(rand(i * 19) * 1800) + 120,
+      })
+    );
   }
-  return logs.sort(
-    (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-  );
+  return logs;
 }
 
 const BASE_MS = Date.now();
 
-export const MOCK_AGENT_HISTORY_LOGS: AgentHistoryLog[] = buildMockLogs(BASE_MS, 30);
+const RECENT = buildRecentLogs(BASE_MS);
+const EXTRA = buildExtraLogs(BASE_MS, 20);
 
-/** Swap this for an API client later. */
+/** Newest first; recent activity = first 10 (full scenario set). */
+export const MOCK_AGENT_HISTORY_LOGS: AgentHistoryLog[] = [...RECENT, ...EXTRA].sort(
+  (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+);
+
 export async function fetchAgentHistoryLogs(): Promise<AgentHistoryLog[]> {
   return MOCK_AGENT_HISTORY_LOGS;
 }

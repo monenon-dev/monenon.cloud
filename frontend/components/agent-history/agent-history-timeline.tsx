@@ -81,6 +81,9 @@ export function AgentHistoryTimeline({ logs }: Props) {
                     {statusLabel(log.status)}
                   </span>
                 </div>
+                <p className="mt-1.5 line-clamp-1 text-xs text-[var(--moneo-muted)]">
+                  {log.prompt}
+                </p>
 
                 <div
                   className={`grid transition-[grid-template-rows,opacity] duration-200 ease-out ${
