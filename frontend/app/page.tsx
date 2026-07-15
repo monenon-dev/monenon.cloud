@@ -31,24 +31,6 @@ interface AgentLogItem {
 
 type AuthUser = { nickname: string; role: string };
 
-const RECOMMENDED_TAGS: { label: string; prompt: string; icon: LucideIcon }[] = [
-  {
-    label: "오늘의 업무 브리핑",
-    prompt: "오늘 일정과 할 일 기준으로 업무 브리핑을 작성해 줘",
-    icon: BriefcaseBusiness,
-  },
-  {
-    label: "문서/자료 정리",
-    prompt: "흩어진 문서와 자료를 주제별로 정리해 줘",
-    icon: Files,
-  },
-  {
-    label: "업무 리포트 생성",
-    prompt: "이번 주 업무 진행 상황을 리포트로 정리해 줘",
-    icon: FileBarChart,
-  },
-];
-
 const FEATURE_PROMO_CARDS: {
   icon: LucideIcon;
   title: string;
@@ -230,22 +212,8 @@ export default function MoneoHomePage() {
               <AgentPreview className="w-full" />
             </div>
 
-            <div className="mt-10 flex flex-wrap gap-2" aria-label="추천 작업">
-              {RECOMMENDED_TAGS.map(({ label, prompt, icon: Icon }) => (
-                <button
-                  key={label}
-                  type="button"
-                  onClick={() => navigateToChat(prompt)}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-medium text-indigo-100/90 transition-colors hover:border-indigo-400/40 hover:bg-indigo-500/10"
-                >
-                  <Icon size={14} className="shrink-0 text-indigo-300" aria-hidden />
-                  <span>{label}</span>
-                </button>
-              ))}
-            </div>
-
             <div
-              className="mt-10 grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5"
+              className="mt-12 sm:mt-14 grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5"
               aria-label="기능 소개"
             >
               {FEATURE_PROMO_CARDS.map((card) => {
