@@ -16,6 +16,8 @@ import {
 
 import { AgentPreview } from "@/components/home/agent-preview";
 import { BuiltWithSection } from "@/components/home/built-with-section";
+import { HomeCtaSection } from "@/components/home/home-cta-section";
+import { HomeFooter } from "@/components/home/home-footer";
 import { HomeSidebar } from "@/components/layout/home-sidebar";
 import { clearAuthSession, getAuthSession } from "@/lib/auth-api";
 import { buildChatsUrl, saveChatStarter } from "@/lib/chat-starter";
@@ -165,7 +167,7 @@ export default function MoneoHomePage() {
           </div>
         </header>
 
-        <section className="relative border-b border-white/10 pb-16 sm:pb-20">
+        <section className="relative pb-16 sm:pb-20">
           <div className={`${PAGE_SHELL} py-10 sm:py-14 lg:py-16`}>
             <div className="grid items-center gap-8 lg:grid-cols-[minmax(0,0.45fr)_minmax(0,0.55fr)] lg:gap-10">
               <div className="min-w-0">
@@ -243,6 +245,9 @@ export default function MoneoHomePage() {
             <BuiltWithSection />
           </div>
         </section>
+
+        <HomeCtaSection />
+        <HomeFooter />
       </div>
     </div>
   );
