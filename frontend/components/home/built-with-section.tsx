@@ -48,41 +48,48 @@ export function BuiltWithSection({ className = "" }: { className?: string }) {
       <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-indigo-300/70">
         Built with
       </p>
-      <ul className="mt-4 grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
+      <ul className="mt-4 grid grid-cols-1 gap-2.5 overflow-visible sm:grid-cols-2 lg:grid-cols-4">
         {BUILT_WITH.map((item) => {
           const Icon = item.icon;
           const open = ui.openId === item.title;
           return (
-            <li key={item.title}>
+            <li key={item.title} className="relative overflow-visible">
               <button
                 type="button"
-                className="moneo-glass moneo-glow-hover group relative flex w-full flex-col items-start rounded-xl px-3.5 py-3 text-left"
+                className="moneo-glass relative z-0 flex h-[3.25rem] w-full items-center rounded-xl px-3.5 text-left transition-[box-shadow,border-color] duration-200 hover:border-indigo-400/35 hover:shadow-[0_0_20px_rgba(99,102,241,0.18)]"
                 onMouseEnter={() => setUi({ openId: item.title })}
                 onMouseLeave={() => setUi({ openId: null })}
                 onFocus={() => setUi({ openId: item.title })}
                 onBlur={() => setUi({ openId: null })}
-                aria-expanded={open}
+                aria-describedby={open ? `built-with-tip-${item.title}` : undefined}
               >
-                <span className="inline-flex items-center gap-2">
+                <span className="inline-flex min-w-0 items-center gap-2">
                   <span className="inline-flex size-7 shrink-0 items-center justify-center rounded-lg border border-indigo-400/25 bg-indigo-500/15 text-indigo-300">
                     <Icon size={14} aria-hidden />
                   </span>
-                  <span className="text-xs font-medium leading-snug text-indigo-50/95">
+                  <span className="truncate text-xs font-medium leading-snug text-indigo-50/95">
                     {item.title}
                   </span>
                 </span>
-                <span
-                  className={`grid transition-[grid-template-rows,opacity] duration-300 ease-out ${
-                    open ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
-                  }`}
-                >
-                  <span className="overflow-hidden">
-                    <span className="mt-2 block text-[11px] leading-relaxed text-[var(--moneo-muted)]">
-                      {item.blurb}
-                    </span>
-                  </span>
-                </span>
               </button>
+
+              <div
+                id={`built-with-tip-${item.title}`}
+                role="tooltip"
+                className={`pointer-events-none absolute bottom-[calc(100%+10px)] left-0 right-0 z-30 px-0.5 transition-all duration-200 ease-out ${
+                  open
+                    ? "translate-y-0 opacity-100"
+                    : "translate-y-1.5 opacity-0"
+                }`}
+              >
+                <div className="relative rounded-lg border border-white/12 bg-[#1c1c28] px-3 py-2 text-[11px] leading-relaxed text-[var(--moneo-muted)] shadow-[0_8px_28px_rgba(0,0,0,0.45)]">
+                  {item.blurb}
+                  <span
+                    className="absolute left-5 top-full h-0 w-0 border-x-[6px] border-t-[6px] border-x-transparent border-t-[#1c1c28]"
+                    aria-hidden
+                  />
+                </div>
+              </div>
             </li>
           );
         })}
