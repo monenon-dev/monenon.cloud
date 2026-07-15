@@ -45,24 +45,22 @@ export function BuiltWithSection({ className = "" }: { className?: string }) {
       <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-indigo-300/70">
         Built with
       </p>
-      <ul className="mt-4 grid grid-cols-1 items-stretch gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
+      <ul className="mt-4 grid grid-cols-1 items-stretch gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {BUILT_WITH.map((item) => {
           const Icon = item.icon;
           return (
-            <li key={item.title} className="h-full min-h-0">
-              <div className="moneo-glass flex h-full min-h-[9.5rem] flex-col rounded-xl border border-white/10 px-3.5 py-3 transition-[border-color,background-color] duration-200 hover:border-white/20 hover:bg-white/[0.06]">
-                <div className="inline-flex min-w-0 items-center gap-2">
-                  <span className="inline-flex size-7 shrink-0 items-center justify-center rounded-lg border border-indigo-400/25 bg-indigo-500/15 text-indigo-300">
-                    <Icon size={14} aria-hidden />
-                  </span>
-                  <span className="text-xs font-medium leading-snug text-indigo-50/95">
-                    {item.title}
-                  </span>
+            <li key={item.title} className="flex h-full">
+              <article className="moneo-glass flex h-full w-full min-h-[11.5rem] flex-col rounded-2xl border border-white/10 p-5 transition-[border-color,background-color] duration-200 hover:border-white/18 hover:bg-white/[0.05]">
+                <div className="inline-flex size-9 shrink-0 items-center justify-center rounded-xl border border-indigo-400/25 bg-indigo-500/15 text-indigo-300">
+                  <Icon size={18} aria-hidden />
                 </div>
-                <p className="mt-2.5 flex-1 text-[11px] leading-relaxed text-[var(--moneo-muted)]">
+                <h3 className="mt-3 text-sm font-semibold leading-snug text-white">
+                  {item.title}
+                </h3>
+                <p className="mt-2 flex-1 text-xs leading-relaxed text-[var(--moneo-muted)]">
                   {item.blurb}
                 </p>
-              </div>
+              </article>
             </li>
           );
         })}
