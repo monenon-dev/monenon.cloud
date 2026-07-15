@@ -43,6 +43,9 @@ def heuristic_route(message: str) -> list[dict[str, str]]:
 
     if any(k in text for k in ("경기장", "스타디움", "홈구장", "좌석", "구장")):
         spokes.append("stadium")
+        # 팀명+홈구장 질문은 team 조인이 유리해 team도 함께
+        if _pick_keyword(text):
+            spokes.append("team")
     if any(k in text for k in ("선수", "포지션", "백넘버", "국적", "FW", "MF", "DF", "GK")):
         spokes.append("player")
     if any(k in text for k in ("일정", "경기", "스코어", "홈팀", "원정", "승부", "일정표")):
@@ -69,11 +72,14 @@ def heuristic_sql(spoke: SpokeId, subquery: str) -> str:
 
     if spoke == "stadium":
         return (
-            "SELECT stadium_id, stadium_name, hometeam_id, seat_count, address "
-            "FROM moneyball_stadium "
-            f"WHERE stadium_name ILIKE '{like}' OR hometeam_id ILIKE '{like}' "
-            "OR address ILIKE '{like}' "
-            "ORDER BY stadium_id LIMIT 30"
+            "SELECT s.stadium_id, s.stadium_name, s.hometeam_id, s.seat_count, s.address, "
+            "t.team_name, t.region_name "
+            "FROM moneyball_stadium s "
+            "LEFT JOIN moneyball_team t ON t.team_id = s.hometeam_id "
+            f"WHERE s.stadium_name ILIKE '{like}' OR s.hometeam_id ILIKE '{like}' "
+            f"OR s.address ILIKE '{like}' OR t.region_name ILIKE '{like}' "
+            f"OR t.team_name ILIKE '{like}' "
+            "ORDER BY s.stadium_id LIMIT 30"
         )
     if spoke == "team":
         return (
