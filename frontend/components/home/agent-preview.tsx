@@ -43,7 +43,7 @@ const FADE_OUT_MS = 900;
  * Shorter on lg+ so hero + cards fit a 100vh snap panel.
  */
 const PANEL_HEIGHT_CLASS =
-  "h-[360px] sm:h-[380px] lg:h-[min(250px,30dvh)] xl:h-[min(280px,32dvh)]";
+  "h-[360px] sm:h-[380px] lg:h-[min(300px,38dvh)] xl:h-[min(340px,40dvh)]";
 
 type LiveToolItem = ToolPattern & {
   id: string;

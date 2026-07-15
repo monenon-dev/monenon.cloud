@@ -175,30 +175,30 @@ export default function MoneoHomePage() {
             aria-label="소개"
           >
             <div
-              className={`${PAGE_SHELL} flex h-full min-h-0 flex-col py-8 sm:py-10 lg:justify-between lg:gap-4 lg:py-5 xl:py-6`}
+              className={`${PAGE_SHELL} flex h-full min-h-0 flex-col py-6 sm:py-8 lg:gap-5 lg:py-3 xl:gap-6 xl:py-4`}
             >
-              <div className="grid min-h-0 flex-1 items-center gap-6 lg:grid-cols-[minmax(0,0.42fr)_minmax(0,0.58fr)] lg:gap-8 xl:gap-10">
-                <div className="min-w-0">
+              <div className="grid min-h-0 flex-[1.05] items-start gap-5 lg:grid-cols-[minmax(0,0.42fr)_minmax(0,0.58fr)] lg:gap-8 xl:gap-10">
+                <div className="min-w-0 lg:pt-1">
                   <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-indigo-300/80 lg:text-[11px]">
                     AI agents for work
                   </p>
-                  <h1 className="mt-2 text-3xl font-semibold tracking-tight text-white leading-[1.08] sm:text-4xl lg:mt-2.5 lg:text-[2.5rem] xl:text-[2.85rem]">
+                  <h1 className="mt-2 text-3xl font-semibold tracking-tight text-white leading-[1.08] sm:text-4xl lg:mt-2 lg:text-[2.65rem] xl:text-[3rem]">
                     Moneo
                   </h1>
                   <p className="mt-2.5 max-w-md text-sm leading-relaxed text-[var(--moneo-muted)] sm:text-base lg:mt-3">
                     AI Agents, Orchestrated for Work
                   </p>
-                  <div className="mt-5 flex flex-wrap items-center gap-2.5 lg:mt-6 lg:gap-3">
+                  <div className="mt-5 flex flex-wrap items-center gap-2.5 lg:mt-5 lg:gap-3">
                     <Link
                       href={routes.lifestyle.chats}
-                      className="inline-flex items-center gap-2 rounded-xl bg-indigo-500 px-4 py-2 text-sm font-medium text-white shadow-[0_0_28px_rgba(99,102,241,0.4)] transition-colors hover:bg-indigo-400 lg:px-4 lg:py-2 xl:px-5 xl:py-2.5"
+                      className="inline-flex items-center gap-2 rounded-xl bg-indigo-500 px-4 py-2 text-sm font-medium text-white shadow-[0_0_28px_rgba(99,102,241,0.4)] transition-colors hover:bg-indigo-400 lg:px-5 lg:py-2.5"
                     >
                       <Bot size={18} />
                       에이전트 채팅
                     </Link>
                     <Link
                       href={routes.agent.history}
-                      className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-indigo-100 transition-colors hover:border-indigo-400/30 lg:px-4 lg:py-2 xl:px-5 xl:py-2.5"
+                      className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-indigo-100 transition-colors hover:border-indigo-400/30 lg:px-5 lg:py-2.5"
                     >
                       <Terminal size={18} />
                       Agent 히스토리
@@ -206,28 +206,28 @@ export default function MoneoHomePage() {
                   </div>
                 </div>
 
-                <div className="min-w-0 w-full">
+                <div className="flex min-h-0 w-full items-stretch">
                   <AgentPreview className="w-full" />
                 </div>
               </div>
 
               <div
-                className="mt-8 grid shrink-0 grid-cols-1 gap-3 md:grid-cols-3 md:gap-4 lg:mt-4 xl:mt-5"
+                className="mt-6 grid min-h-0 flex-1 grid-cols-1 gap-3 md:grid-cols-3 md:gap-4 lg:mt-0 lg:gap-4"
                 aria-label="기능 소개"
               >
                 {FEATURE_PROMO_CARDS.map((card) => {
                   const Icon = card.icon;
                   const className =
-                    "moneo-glass moneo-glow-hover group w-full rounded-2xl p-4 text-left lg:p-4 xl:p-5";
+                    "moneo-glass moneo-glow-hover group flex h-full min-h-[8.5rem] w-full flex-col rounded-2xl p-5 text-left lg:min-h-0 lg:p-5 xl:min-h-[9.5rem] xl:p-6";
                   const inner = (
                     <>
-                      <div className="mb-2.5 inline-flex size-9 items-center justify-center rounded-xl border border-indigo-400/25 bg-indigo-500/15 text-indigo-300 lg:mb-3 lg:size-9">
-                        <Icon size={18} aria-hidden />
+                      <div className="mb-3 inline-flex size-10 items-center justify-center rounded-xl border border-indigo-400/25 bg-indigo-500/15 text-indigo-300">
+                        <Icon size={20} aria-hidden />
                       </div>
-                      <h3 className="text-sm font-semibold text-white lg:text-base">
+                      <h3 className="text-base font-semibold text-white">
                         {card.title}
                       </h3>
-                      <p className="mt-1.5 line-clamp-2 text-xs leading-relaxed text-[var(--moneo-muted)] sm:text-sm lg:line-clamp-3">
+                      <p className="mt-2 flex-1 text-sm leading-relaxed text-[var(--moneo-muted)] lg:line-clamp-3">
                         {card.description}
                       </p>
                     </>

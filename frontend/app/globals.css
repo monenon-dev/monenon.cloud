@@ -229,13 +229,14 @@
   .home-snap-scroller {
     overflow-y: auto;
     overscroll-behavior-y: contain;
-    scroll-snap-type: y mandatory;
+    /* proximity: snap near section edges only — no hard pull */
+    scroll-snap-type: y proximity;
     scroll-behavior: smooth;
   }
 
   .home-snap-panel {
     scroll-snap-align: start;
-    scroll-snap-stop: always;
+    scroll-snap-stop: normal;
     min-height: 100%;
     height: 100%;
     box-sizing: border-box;
