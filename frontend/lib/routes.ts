@@ -2,6 +2,9 @@
 export const routes = {
   home: "/",
   addressbook: "/addressbook",
+  agent: {
+    history: "/agent/history",
+  },
   lifestyle: {
     closet: "/lifestyle/closet",
     refrigerator: "/lifestyle/refrigerator",

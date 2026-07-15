@@ -13,7 +13,6 @@ interface HomeSidebarProps {
   open: boolean;
   onClose: () => void;
   activeView?: "chat" | "logs" | null;
-  onSelectLogs?: () => void;
 }
 
 const WORK_CHAT_PROMPTS: Record<string, string> = {
@@ -40,7 +39,6 @@ export function HomeSidebar({
   open,
   onClose,
   activeView = null,
-  onSelectLogs,
 }: HomeSidebarProps) {
   return (
     <>
@@ -83,21 +81,16 @@ export function HomeSidebar({
                     에이전트 채팅
                   </Link>
                 </li>
-                {onSelectLogs && (
-                  <li>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        onSelectLogs();
-                        onClose();
-                      }}
-                      className={navClass(activeView === "logs")}
-                    >
-                      <Terminal size={18} />
-                      Agent 히스토리
-                    </button>
-                  </li>
-                )}
+                <li>
+                  <Link
+                    href={routes.agent.history}
+                    onClick={onClose}
+                    className={navClass(activeView === "logs")}
+                  >
+                    <Terminal size={18} />
+                    Agent 히스토리
+                  </Link>
+                </li>
               </ul>
             </div>
 

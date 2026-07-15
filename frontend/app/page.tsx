@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  RefreshCw,
   Terminal,
   Bot,
   Menu,
@@ -19,15 +18,8 @@ import { AgentPreview } from "@/components/home/agent-preview";
 import { BuiltWithSection } from "@/components/home/built-with-section";
 import { HomeSidebar } from "@/components/layout/home-sidebar";
 import { clearAuthSession, getAuthSession } from "@/lib/auth-api";
-import { getApiBaseUrl } from "@/lib/api-base";
 import { buildChatsUrl, saveChatStarter } from "@/lib/chat-starter";
 import { routes } from "@/lib/routes";
-
-const apiBaseUrl = getApiBaseUrl();
-
-interface AgentLogItem {
-  [key: string]: string | number | boolean | null;
-}
 
 type AuthUser = { nickname: string; role: string };
 
@@ -64,7 +56,6 @@ const FEATURE_PROMO_CARDS: {
 export default function MoneoHomePage() {
   const router = useRouter();
   const [ui, setUi] = useState({
-    showLogs: false,
     sidebarOpen: false,
     authUser: null as AuthUser | null,
   });
@@ -97,8 +88,6 @@ export default function MoneoHomePage() {
       <HomeSidebar
         open={ui.sidebarOpen}
         onClose={() => patchUi({ sidebarOpen: false })}
-        activeView={ui.showLogs ? "logs" : null}
-        onSelectLogs={() => patchUi({ showLogs: true })}
       />
 
       <div className="relative z-10 flex w-full min-w-0 flex-1 flex-col">
@@ -194,18 +183,13 @@ export default function MoneoHomePage() {
                     <Bot size={18} />
                     에이전트 채팅
                   </Link>
-                  <button
-                    type="button"
-                    onClick={() => patchUi({ showLogs: !ui.showLogs })}
-                    className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border text-sm font-medium transition-colors ${
-                      ui.showLogs
-                        ? "border-indigo-400/50 bg-indigo-500/20 text-indigo-100"
-                        : "border-white/10 bg-white/5 text-indigo-100 hover:border-indigo-400/30"
-                    }`}
+                  <Link
+                    href={routes.agent.history}
+                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-white/10 bg-white/5 text-sm font-medium text-indigo-100 transition-colors hover:border-indigo-400/30"
                   >
                     <Terminal size={18} />
                     Agent 히스토리
-                  </button>
+                  </Link>
                 </div>
               </div>
 
@@ -254,12 +238,6 @@ export default function MoneoHomePage() {
             <BuiltWithSection />
           </div>
         </section>
-
-        {ui.showLogs && (
-          <div className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6 sm:pb-12 lg:px-8">
-            <AgentHistoryPanel />
-          </div>
-        )}
       </div>
     </div>
   );
@@ -286,113 +264,5 @@ function NetworkDecor() {
       <circle className="animate-moneo-node" cx="48%" cy="28%" r="3" fill="#818cf8" />
       <circle className="animate-moneo-node" cx="88%" cy="36%" r="3" fill="#a78bfa" />
     </svg>
-  );
-}
-
-function AgentHistoryPanel() {
-  const [state, setState] = useState({
-    logs: [] as AgentLogItem[],
-    isLoading: false,
-  });
-
-  const patch = (p: Partial<typeof state>) =>
-    setState((prev) => ({ ...prev, ...p }));
-
-  const fetchLogs = async () => {
-    patch({ isLoading: true });
-    try {
-      const res = await fetch(`${apiBaseUrl}/agent/logs`);
-      const result = await res.json();
-      patch({ logs: Array.isArray(result) ? result : [] });
-    } catch (err) {
-      console.error("Logs fetch error", err);
-    } finally {
-      patch({ isLoading: false });
-    }
-  };
-
-  useEffect(() => {
-    void fetchLogs();
-  }, []);
-
-  return (
-    <div className="flex w-full max-w-6xl flex-col space-y-4">
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <h2 className="text-sm font-semibold text-white">Agent 작업 히스토리</h2>
-          <p className="mt-1 font-mono text-xs text-indigo-300/80">
-            stream · {state.logs.length} events
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={() => void fetchLogs()}
-          className="p-2 border border-white/10 rounded-lg hover:bg-white/5 transition-colors"
-          aria-label="새로고침"
-        >
-          <RefreshCw size={16} className={state.isLoading ? "animate-spin" : ""} />
-        </button>
-      </div>
-
-      <div className="space-y-3 max-h-[min(70vh,48rem)] overflow-y-auto font-mono pr-1">
-        {state.logs.map((log, idx) => {
-          const ts =
-            log.timestamp ?? log.created_at ?? log.time ?? log.ts ?? null;
-          const tool = log.tool ?? log.name ?? log.action ?? null;
-          const status = log.status ?? log.state ?? "ok";
-          return (
-            <article
-              key={idx}
-              className="moneo-glass rounded-xl p-3 border-white/10"
-            >
-              <div className="mb-2 flex flex-wrap items-center gap-2">
-                <span
-                  className={`size-2 rounded-full ${
-                    String(status).toLowerCase().includes("fail") ||
-                    String(status).toLowerCase().includes("error")
-                      ? "bg-rose-400"
-                      : String(status).toLowerCase().includes("run")
-                        ? "bg-amber-400 animate-pulse"
-                        : "bg-emerald-400"
-                  }`}
-                />
-                <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-300/70">
-                  step #{idx + 1}
-                </span>
-                {ts != null && (
-                  <span className="text-[10px] text-indigo-200/50">{String(ts)}</span>
-                )}
-                {tool != null && (
-                  <span className="rounded border border-indigo-400/25 bg-indigo-500/10 px-1.5 py-0.5 text-[10px] text-indigo-200">
-                    {String(tool)}
-                  </span>
-                )}
-                <span className="text-[10px] text-indigo-200/60">
-                  status={String(status)}
-                </span>
-              </div>
-              <div className="grid grid-cols-1 gap-2 text-xs">
-                {Object.entries(log).map(([key, value]) => (
-                  <div
-                    key={key}
-                    className="flex justify-between gap-4 border-b border-white/5 pb-1"
-                  >
-                    <span className="text-indigo-200/45">{key}</span>
-                    <span className="text-right text-indigo-50/90 font-medium break-all">
-                      {String(value)}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </article>
-          );
-        })}
-        {!state.isLoading && state.logs.length === 0 && (
-          <p className="text-sm text-[var(--moneo-muted)]">
-            아직 기록된 Agent 작업이 없습니다. 채팅을 실행하면 여기에 스트림됩니다.
-          </p>
-        )}
-      </div>
-    </div>
   );
 }
