@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import {
   Box,
   Database,
@@ -39,17 +40,51 @@ const BUILT_WITH: {
   },
 ];
 
+const STAGGER_S = 0.12;
+
 export function BuiltWithSection({ className = "" }: { className?: string }) {
+  const sectionRef = useRef<HTMLElement>(null);
+  const [revealed, setRevealed] = useState(false);
+
+  useEffect(() => {
+    const el = sectionRef.current;
+    if (!el || revealed) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry?.isIntersecting) return;
+        setRevealed(true);
+        observer.disconnect();
+      },
+      { threshold: 0.18, rootMargin: "0px 0px -48px 0px" }
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [revealed]);
+
   return (
-    <section className={`mt-12 sm:mt-14 ${className}`} aria-label="Built with">
+    <section
+      ref={sectionRef}
+      className={`mt-12 sm:mt-14 ${className}`}
+      aria-label="Built with"
+    >
       <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-indigo-300/70">
         Built with
       </p>
       <ul className="mt-4 grid grid-cols-1 items-stretch gap-4 sm:grid-cols-2 lg:grid-cols-4 lg:gap-4">
-        {BUILT_WITH.map((item) => {
+        {BUILT_WITH.map((item, index) => {
           const Icon = item.icon;
           return (
-            <li key={item.title} className="flex h-full">
+            <li
+              key={item.title}
+              className={`built-with-reveal flex h-full ${
+                revealed ? "built-with-reveal--in" : ""
+              }`}
+              style={{
+                transitionDelay: revealed ? `${index * STAGGER_S}s` : "0s",
+              }}
+            >
               <article className="moneo-glass flex h-full w-full min-h-[11.5rem] flex-col rounded-2xl border border-white/10 p-5 transition-[border-color,background-color] duration-200 hover:border-white/18 hover:bg-white/[0.05]">
                 <div className="inline-flex size-9 shrink-0 items-center justify-center rounded-xl border border-indigo-400/25 bg-indigo-500/15 text-indigo-300">
                   <Icon size={18} aria-hidden />
