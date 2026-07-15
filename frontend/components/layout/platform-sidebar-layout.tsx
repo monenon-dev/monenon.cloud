@@ -10,9 +10,9 @@ import {
   Settings,
   MessageSquare,
   Bot,
-  Shirt,
-  Refrigerator,
-  Music2,
+  BriefcaseBusiness,
+  Files,
+  FileBarChart,
   Home,
   Inbox,
   CalendarDays,
@@ -45,20 +45,20 @@ export interface NavGroup {
 
 export const PLATFORM_NAV: NavGroup[] = [
   {
-    title: "개인 맞춤",
-    icon: Users,
+    title: "에이전트 작업",
+    icon: BriefcaseBusiness,
     items: [
-      { id: "user_settings", label: "취향 설정", tableName: "user_settings", icon: Settings },
-      { id: "closet", label: "오늘의 옷장", tableName: "closet", icon: Shirt },
-      { id: "refrigerator", label: "냉장고 관리", tableName: "refrigerator", icon: Refrigerator },
-      { id: "music", label: "음악 추천", tableName: "music", icon: Music2 },
+      { id: "user_settings", label: "에이전트 설정", tableName: "user_settings", icon: Settings },
+      { id: "closet", label: "오늘의 업무 브리핑", tableName: "closet", icon: BriefcaseBusiness },
+      { id: "refrigerator", label: "문서/자료 정리", tableName: "refrigerator", icon: Files },
+      { id: "music", label: "업무 리포트 생성", tableName: "music", icon: FileBarChart },
     ],
   },
   {
     title: "AI 대화",
     icon: Bot,
     items: [
-      { id: "messages", label: "AI 채팅방", tableName: "messages", icon: MessageSquare },
+      { id: "messages", label: "에이전트 채팅방", tableName: "messages", icon: MessageSquare },
     ],
   },
 ];

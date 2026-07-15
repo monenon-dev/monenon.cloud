@@ -16,11 +16,22 @@ interface HomeSidebarProps {
   onSelectLogs?: () => void;
 }
 
+const WORK_CHAT_PROMPTS: Record<string, string> = {
+  closet: "오늘 일정과 할 일 기준으로 업무 브리핑을 작성해 줘",
+  refrigerator: "흩어진 문서와 자료를 주제별로 정리해 줘",
+  music: "이번 주 업무 진행 상황을 리포트로 정리해 줘",
+};
+
+function workChatHref(prompt: string): string {
+  const params = new URLSearchParams({ new: "1", prompt });
+  return `${routes.lifestyle.chats}?${params.toString()}`;
+}
+
 function navHref(sectionId: string): string {
   if (sectionId === "user_settings") return routes.lifestyle.settings;
-  if (sectionId === "closet") return routes.lifestyle.closet;
-  if (sectionId === "refrigerator") return routes.lifestyle.refrigerator;
-  if (sectionId === "music") return routes.lifestyle.music;
+  if (sectionId in WORK_CHAT_PROMPTS) {
+    return workChatHref(WORK_CHAT_PROMPTS[sectionId]);
+  }
   if (sectionId === "messages") return routes.lifestyle.chats;
   return lifestyleDashboardSection(sectionId);
 }
