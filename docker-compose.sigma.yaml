@@ -6,16 +6,18 @@
 # 루트 .env 필수:
 #   CLOUDFLARE_TUNNEL_TOKEN=<터널 토큰>
 #
-# 시그마 우분투:
+# 시그마 우분투 (Hub 이미지):
 #   bash scripts/phase2-sigma.sh
-# 또는:
-#   docker compose -f docker-compose.yaml -f docker-compose.sigma.yaml pull backend
-#   docker compose -f docker-compose.yaml -f docker-compose.sigma.yaml --profile tunnel up -d pgvector redis neo4j backend cloudflared
+# 시그마 우분투 (로컬 코드 빌드 — moneyball 등 최신 반영):
+#   bash scripts/phase2-sigma-local.sh
+#
+# pull_policy=missing: 로컬 빌드 후 up 할 때 Hub 옛 이미지로 덮어쓰지 않음.
+# Hub 최신이 필요하면 phase2-sigma.sh 가 명시적으로 pull 함.
 
 services:
   backend:
     image: ${BACKEND_IMAGE:-whtjgml2002/monenon-backend:latest}
-    pull_policy: always
+    pull_policy: missing
 
   cloudflared:
     depends_on: !override
