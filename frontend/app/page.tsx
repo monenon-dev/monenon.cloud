@@ -21,6 +21,10 @@ import { HomeFooter } from "@/components/home/home-footer";
 import { HomeSidebar } from "@/components/layout/home-sidebar";
 import { clearAuthSession, getAuthSession } from "@/lib/auth-api";
 import { buildChatsUrl, saveChatStarter } from "@/lib/chat-starter";
+import {
+  loadMyPagePreferences,
+  needsProfileOnboarding,
+} from "@/lib/mypage-preferences";
 import { routes } from "@/lib/routes";
 
 type AuthUser = { nickname: string; role: string };
@@ -76,9 +80,13 @@ export default function MoneoHomePage() {
   useEffect(() => {
     const session = getAuthSession();
     if (session) {
+      if (needsProfileOnboarding(loadMyPagePreferences(session.user_id))) {
+        router.replace(routes.oauth.onboarding);
+        return;
+      }
       patchUi({ authUser: { nickname: session.nickname, role: session.role } });
     }
-  }, []);
+  }, [router]);
 
   const handleLogout = () => {
     clearAuthSession();

@@ -336,6 +336,14 @@ class AgentChatBody(BaseModel):
         default=None,
         description="마이페이지 말투: friendly | formal | humorous",
     )
+    user_type: str | None = Field(
+        default=None,
+        description="온보딩 업종/역할: 직장인 | 학생 | 프리랜서_창업자",
+    )
+    industry: str | None = Field(
+        default=None,
+        description="직장인 업종: IT개발 | 마케팅 | 영업 | 인사 | 재무회계 | 기획전략 | 기타",
+    )
 
 
 class ChatMessageBody(BaseModel):
@@ -381,12 +389,19 @@ async def agent_chat(body: AgentChatBody, session: AsyncSession = Depends(get_db
     if body.user_id is not None:
         prompt = await augment_prompt_with_user_context(session, body.user_id, prompt)
         logger.info(
-            "[agent_chat] user_id=%s speech_tone=%s prompt_chars=%s",
+            "[agent_chat] user_id=%s speech_tone=%s user_type=%s industry=%s prompt_chars=%s",
             body.user_id,
             body.speech_tone,
+            body.user_type,
+            body.industry,
             len(prompt),
         )
-    prompt = with_agent_system_prompt(prompt, speech_tone=body.speech_tone)
+    prompt = with_agent_system_prompt(
+        prompt,
+        speech_tone=body.speech_tone,
+        user_type=body.user_type,
+        industry=body.industry,
+    )
     try:
         km = get_keymaker()
         chat_model = km.gemini_chat_model_id()

@@ -81,7 +81,7 @@ export default function SignupPage() {
         </div>
 
         <div className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-gray-50/80 dark:bg-gray-900/40 p-6 shadow-sm">
-          <GoogleAuthSection redirectTo="/" />
+          <GoogleAuthSection redirectTo={routes.oauth.onboarding} forceRedirect />
 
           <form onSubmit={handleSubmit} className="space-y-4">
           {ui.error && (

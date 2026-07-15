@@ -7,6 +7,7 @@ import { Loader2 } from "lucide-react";
 
 import { GoogleAuthSection } from "@/components/auth/google-auth-section";
 import { loginWithCredentials, saveAuthSession } from "@/lib/auth-api";
+import { resolvePostAuthRedirect } from "@/lib/mypage-preferences";
 import { routes } from "@/lib/routes";
 
 function LoginForm() {
@@ -25,7 +26,7 @@ function LoginForm() {
   const redirectTo = searchParams.get("next") || "/";
   const successMessage =
     searchParams.get("registered") === "1"
-      ? "회원가입이 완료되었습니다. 로그인해 주세요."
+      ? "회원가입이 완료되었습니다. 로그인한 뒤 업무 상황을 설정해 주세요."
       : null;
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -38,7 +39,8 @@ function LoginForm() {
     try {
       const session = await loginWithCredentials(email, password);
       saveAuthSession(session);
-      router.push(searchParams.get("next") || "/");
+      const intended = searchParams.get("next") || "/";
+      router.push(resolvePostAuthRedirect(session.user_id, intended));
       router.refresh();
     } catch (err) {
       patchUi({

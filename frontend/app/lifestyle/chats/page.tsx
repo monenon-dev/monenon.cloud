@@ -33,8 +33,9 @@ import { getApiBaseUrl } from "@/lib/api-base";
 const apiBaseUrl = getApiBaseUrl();
 
 async function callAgentChat(text: string, userId: number): Promise<GeminiChatMessage> {
-  const { speechTone } = loadMyPagePreferences(userId);
-  const prompt = wrapPromptWithSpeechTone(text, speechTone);
+  const prefs = loadMyPagePreferences(userId);
+  const { speechTone, userType, industry } = prefs;
+  const prompt = wrapPromptWithSpeechTone(text, speechTone, { userType, industry });
   const res = await fetch(`${apiBaseUrl.replace(/\/$/, "")}/agent/chat`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -42,6 +43,8 @@ async function callAgentChat(text: string, userId: number): Promise<GeminiChatMe
       prompt,
       user_id: userId,
       speech_tone: speechTone,
+      user_type: userType,
+      industry,
     }),
   });
   const raw: unknown = await res.json().catch(() => ({}));

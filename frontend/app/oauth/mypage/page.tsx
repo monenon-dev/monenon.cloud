@@ -16,6 +16,7 @@ import { routes } from "@/lib/routes";
 import { getApiBaseUrl } from "@/lib/api-base";
 import { formatApiError } from "@/lib/format-api-error";
 import {
+  isWorkSituationComplete,
   loadMyPagePreferences,
   saveMyPagePreferences,
   type MyPagePreferences,
@@ -78,6 +79,8 @@ export default function MyPage() {
     speechTone: "formal",
     agentName: "Moneo",
     interests: [],
+    userType: null,
+    industry: null,
   });
 
   const patchUi = (patch: Partial<typeof ui>) => setUi((prev) => ({ ...prev, ...patch }));
@@ -141,6 +144,16 @@ export default function MyPage() {
 
   const handleSavePreferences = () => {
     if (!profile) return;
+    if (!isWorkSituationComplete(prefs.userType, prefs.industry)) {
+      patchUi({
+        prefsError:
+          prefs.userType === "직장인"
+            ? "직장인을 선택한 경우 업종을 골라 주세요."
+            : "업무 상황을 선택해 주세요.",
+        prefsSavedMessage: null,
+      });
+      return;
+    }
     patchUi({ prefsSaving: true, prefsSavedMessage: null, prefsError: null });
     try {
       saveMyPagePreferences(profile.id, prefs);

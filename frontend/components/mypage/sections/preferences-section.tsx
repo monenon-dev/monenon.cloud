@@ -14,7 +14,10 @@ import {
 } from "@/components/ui/select";
 import {
   INTEREST_OPTIONS,
+  INDUSTRY_OPTIONS,
   SPEECH_TONE_OPTIONS,
+  USER_TYPE_OPTIONS,
+  type Industry,
   type MyPagePreferences,
   type SpeechTone,
 } from "@/lib/mypage-preferences";
@@ -105,6 +108,66 @@ export function PreferencesSection({
           />
         </section>
       </div>
+
+      <section className={mypageCardClass}>
+        <h3 className="text-base font-semibold text-white">업무 상황</h3>
+        <p className="mt-1 text-sm text-[var(--moneo-muted)]">
+          업종·역할에 맞춰 채팅 브리핑·예시 일정의 맥락이 달라집니다.
+        </p>
+        <div className="mt-4">
+          <Label className="text-sm text-indigo-100/90">어떤 상황이신가요?</Label>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {USER_TYPE_OPTIONS.map((opt) => {
+              const selected = prefs.userType === opt.value;
+              return (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() =>
+                    onChange({
+                      userType: opt.value,
+                      industry: opt.value === "직장인" ? prefs.industry : null,
+                    })
+                  }
+                  aria-pressed={selected}
+                  className={`rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
+                    selected
+                      ? "border-indigo-500 bg-indigo-600 text-white shadow-[0_0_16px_var(--moneo-glow)]"
+                      : "border-[var(--moneo-border)] bg-white/[0.03] text-indigo-100/80 hover:border-indigo-400/40 hover:bg-white/[0.06]"
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+        {prefs.userType === "직장인" ? (
+          <div className="mt-5">
+            <Label className="text-sm text-indigo-100/90">어떤 업무를 하시나요?</Label>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {INDUSTRY_OPTIONS.map((opt) => {
+                const selected = prefs.industry === opt.value;
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => onChange({ industry: opt.value as Industry })}
+                    aria-pressed={selected}
+                    className={`rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
+                      selected
+                        ? "border-indigo-500 bg-indigo-600 text-white shadow-[0_0_16px_var(--moneo-glow)]"
+                        : "border-[var(--moneo-border)] bg-white/[0.03] text-indigo-100/80 hover:border-indigo-400/40 hover:bg-white/[0.06]"
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ) : null}
+      </section>
 
       <section className={mypageCardClass}>
         <h3 className="text-base font-semibold text-white">주요 활용 분야</h3>

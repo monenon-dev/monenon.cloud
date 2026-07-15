@@ -17,6 +17,7 @@ export const routes = {
   oauth: {
     login: "/oauth/login",
     signup: "/oauth/signup",
+    onboarding: "/oauth/onboarding",
     mypage: "/oauth/mypage",
     admin: {
       root: "/oauth/admin",

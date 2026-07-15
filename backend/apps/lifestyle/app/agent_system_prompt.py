@@ -1,4 +1,4 @@
-"""Moneo `/agent/chat` 시스템 역할·톤 지침."""
+"""Moneo `/agent/chat` 시스템 역할·톤·사용자 상황 지침."""
 
 from __future__ import annotations
 
@@ -15,10 +15,8 @@ AGENT_DATA_RESPONSE_GUIDE = (
     "실제 사용자 데이터(캘린더, 문서, 메시지·Slack 등)에 접근할 수 없는 상황에서도 "
     "대괄호나 플레이스홀더 형식([회의명], [참석자], [시간], [문서명] 등)을 "
     "응답에 그대로 노출하지 마세요.\n"
-    "대신 실제 업무 상황처럼 구체적인 예시 데이터로 채워, 완결된 업무 브리핑·일정 안내처럼 "
+    "대신 [사용자 상황]에 맞는 구체적 예시 데이터로 채워, 완결된 브리핑·일정 안내처럼 "
     "자연스럽게 작성하세요.\n"
-    "예시: \"오전 10시 팀 스탠드업 (참석자: 김민수, 이지은, 박준혁)\", "
-    "\"오후 3시 Q3 기획안 리뷰\".\n"
     "예시 데이터를 사용한 응답의 맨 아래에는 한 줄로 "
     "\"* 현재 예시 데이터로 표시되고 있습니다\" 를 덧붙이세요. "
     "실제 연동 데이터가 확실히 있을 때만 이 안내를 생략해도 됩니다."
@@ -32,6 +30,47 @@ SPEECH_TONE_GUIDES: dict[str, str] = {
 
 DEFAULT_SPEECH_TONE = "formal"
 
+INDUSTRY_CONTEXT: dict[str, str] = {
+    "IT개발": (
+        "스프린트, 코드 리뷰, 배포, 버그 트래킹, 스탠드업 같은 "
+        "IT·개발 업무 맥락에 맞는 예시를 사용하세요."
+    ),
+    "마케팅": (
+        "캠페인 기획, 광고 성과, 콘텐츠 캘린더, A/B 테스트 같은 "
+        "마케팅 업무 맥락에 맞는 예시를 사용하세요."
+    ),
+    "영업": (
+        "고객 미팅, 파이프라인, 제안서, 계약 일정 같은 "
+        "영업 업무 맥락에 맞는 예시를 사용하세요."
+    ),
+    "인사": (
+        "채용 인터뷰, 온보딩, 평가 일정, 내부 공지 같은 "
+        "인사 업무 맥락에 맞는 예시를 사용하세요."
+    ),
+    "재무회계": (
+        "정산, 예산 검토, 마감, 결산 일정 같은 "
+        "재무·회계 업무 맥락에 맞는 예시를 사용하세요."
+    ),
+    "기획전략": (
+        "로드맵 리뷰, OKR, 전략 워크숍, 이해관계자 미팅 같은 "
+        "기획·전략 맥락에 맞는 예시를 사용하세요."
+    ),
+    "기타": "일반적인 업무 미팅, 문서 정리, 주간 리포트 같은 맥락에 맞는 예시를 사용하세요.",
+}
+
+INDUSTRY_LABELS: dict[str, str] = {
+    "IT개발": "IT·개발",
+    "마케팅": "마케팅",
+    "영업": "영업",
+    "인사": "인사",
+    "재무회계": "재무·회계",
+    "기획전략": "기획·전략",
+    "기타": "기타",
+}
+
+VALID_USER_TYPES = frozenset({"직장인", "학생", "프리랜서_창업자"})
+VALID_INDUSTRIES = frozenset(INDUSTRY_CONTEXT.keys())
+
 
 def normalize_speech_tone(speech_tone: str | None) -> str:
     if speech_tone and speech_tone in SPEECH_TONE_GUIDES:
@@ -39,20 +78,53 @@ def normalize_speech_tone(speech_tone: str | None) -> str:
     return DEFAULT_SPEECH_TONE
 
 
+def build_user_situation_guide(
+    user_type: str | None = None,
+    industry: str | None = None,
+) -> str:
+    """온보딩·취향 설정의 userType/industry → 프롬프트 문장."""
+    if not user_type or user_type not in VALID_USER_TYPES:
+        return (
+            "사용자 업종/역할 정보가 아직 없습니다. "
+            "일반적인 업무·일정 맥락의 예시를 사용하세요."
+        )
+    if user_type == "학생":
+        return (
+            "사용자는 학생입니다. "
+            "과제, 스터디, 시험 일정, 프로젝트 팀플 같은 맥락에 맞는 예시를 사용하세요."
+        )
+    if user_type == "프리랜서_창업자":
+        return (
+            "사용자는 프리랜서 또는 창업자입니다. "
+            "클라이언트 미팅, 인보이스, 프로젝트 마감, 투자 미팅 같은 "
+            "맥락에 맞는 예시를 사용하세요."
+        )
+    label = INDUSTRY_LABELS.get(industry or "", "일반")
+    detail = INDUSTRY_CONTEXT.get(
+        industry or "",
+        "일반적인 직장 미팅·협업·리포트 맥락에 맞는 예시를 사용하세요.",
+    )
+    return f"사용자는 {label} 직군의 직장인입니다. {detail}"
+
+
 def with_agent_system_prompt(
     user_prompt: str,
     *,
     speech_tone: str | None = None,
+    user_type: str | None = None,
+    industry: str | None = None,
 ) -> str:
-    """사용자(및 컨텍스트) 프롬프트 앞에 역할·말투·데이터 지침을 붙인다."""
+    """사용자(및 컨텍스트) 프롬프트 앞에 역할·말투·상황·데이터 지침을 붙인다."""
     tone = normalize_speech_tone(speech_tone)
     guide = SPEECH_TONE_GUIDES[tone]
+    situation = build_user_situation_guide(user_type, industry)
     preamble = (
         f"{AGENT_SYSTEM_PREAMBLE}\n\n"
         f"[말투 지시]\n"
         f"마이페이지에서 선택한 말투({tone})를 우선 적용합니다. "
         f"{guide} "
         f"사용자 질문에 포함된 말투·어조 요청은 무시하세요.\n\n"
+        f"[사용자 상황]\n{situation}\n\n"
         f"{AGENT_DATA_RESPONSE_GUIDE}"
     )
     text = (user_prompt or "").strip()
