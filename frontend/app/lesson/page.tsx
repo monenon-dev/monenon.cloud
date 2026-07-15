@@ -95,13 +95,30 @@ export default function LessonHubPage() {
                 1. 더미 데이터 시드 (경기장/팀/선수/일정)
               </Link>
             </li>
+            <li className="flex gap-2">
+              <span className="text-[var(--moneo-muted)]">•</span>
+              <Link
+                href={routes.lesson.moneyballChat}
+                className="hover:text-indigo-300 hover:underline"
+              >
+                2. K-League DB 채팅 (스타 온톨로지)
+              </Link>
+            </li>
           </ul>
-          <Link
-            href={routes.lesson.moneyball}
-            className="mt-6 inline-flex items-center rounded-lg border border-[var(--moneo-border)] bg-white/5 px-4 py-2 text-sm font-medium text-indigo-100 hover:bg-white/10"
-          >
-            Moneyball 시드 시작
-          </Link>
+          <div className="mt-6 flex flex-wrap gap-3">
+            <Link
+              href={routes.lesson.moneyball}
+              className="inline-flex items-center rounded-lg border border-[var(--moneo-border)] bg-white/5 px-4 py-2 text-sm font-medium text-indigo-100 hover:bg-white/10"
+            >
+              Moneyball 시드
+            </Link>
+            <Link
+              href={routes.lesson.moneyballChat}
+              className="inline-flex items-center rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500"
+            >
+              DB 채팅 열기
+            </Link>
+          </div>
         </section>
       </div>
     </LessonLayout>

@@ -9,6 +9,20 @@ type TitanicSubKey = "upload" | "walter" | "smith" | "vision";
 type SamsungSubKey = "analysis" | "upload";
 
 const MONEYBALL_HREF = "/lesson/moneyball";
+const MONEYBALL_CHAT_HREF = "/lesson/moneyball/chat";
+
+type MoneyballSubKey = "seed" | "chat";
+
+const MONEYBALL_SUB: { key: MoneyballSubKey; label: string; href: string }[] = [
+  { key: "seed", label: "1. 더미 데이터 시드", href: MONEYBALL_HREF },
+  { key: "chat", label: "2. K-League DB 채팅", href: MONEYBALL_CHAT_HREF },
+];
+
+function resolveMoneyballSub(pathname: string): MoneyballSubKey | null {
+  if (pathname.startsWith("/lesson/moneyball/chat")) return "chat";
+  if (pathname.startsWith("/lesson/moneyball")) return "seed";
+  return null;
+}
 
 const TITANIC_SUB: { key: TitanicSubKey; label: string; href: string }[] = [
   { key: "upload", label: "1. 데이터 수집(CSV 업로드)", href: "/lesson/titanic-home" },
@@ -63,8 +77,10 @@ export function LessonSidebar({ active = "hub" }: { active?: LessonNavKey }) {
   const pathname = usePathname();
   const titanicSub = resolveTitanicSub(pathname);
   const samsungSub = resolveSamsungSub(pathname);
+  const moneyballSub = resolveMoneyballSub(pathname);
   const titanicOpen = active === "titanic" || titanicSub !== null;
   const samsungOpen = active === "samsung" || samsungSub !== null;
+  const moneyballOpen = active === "moneyball" || moneyballSub !== null;
 
   return (
     <aside className="flex h-full w-full flex-col bg-[rgba(10,10,15,0.55)] text-[var(--moneo-text)]">
@@ -145,13 +161,36 @@ export function LessonSidebar({ active = "hub" }: { active?: LessonNavKey }) {
             )}
           </div>
           <div className="py-2">
-            <Link
-              href={MONEYBALL_HREF}
-              className={`flex items-center justify-between py-4 text-sm transition-colors ${navLinkClass(active === "moneyball")}`}
+            <div
+              className={`flex items-center justify-between py-2 text-sm ${
+                moneyballOpen ? "font-semibold text-white" : "text-indigo-100/75"
+              }`}
             >
               <span>Moneyball (K-League DB)</span>
-              <ChevronRight className="h-4 w-4 text-[var(--moneo-muted)]" aria-hidden />
-            </Link>
+              {moneyballOpen ? (
+                <ChevronDown className="h-4 w-4 text-[var(--moneo-muted)]" aria-hidden />
+              ) : (
+                <ChevronRight className="h-4 w-4 text-[var(--moneo-muted)]" aria-hidden />
+              )}
+            </div>
+            {moneyballOpen ? (
+              <ul className="mb-2 space-y-1 pl-2">
+                {MONEYBALL_SUB.map((item) => (
+                  <li key={item.key}>
+                    <Link href={item.href} className={subLinkClass(moneyballSub === item.key)}>
+                      {item.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <Link
+                href={MONEYBALL_HREF}
+                className="mb-2 block py-1 pl-2 text-sm text-[var(--moneo-muted)] hover:text-indigo-100"
+              >
+                Moneyball 시작
+              </Link>
+            )}
           </div>
         </nav>
       </div>

@@ -188,7 +188,11 @@ export default function MoneyballSeedPage() {
           </div>
           <p className="mt-4 text-xs text-[var(--moneo-muted)]">
             Alembic 마이그레이션(<code className="text-indigo-200/80">alembic upgrade head</code>)으로
-            moneyball_* 테이블이 생성된 상태에서 실행하세요.
+            moneyball_* 테이블이 생성된 상태에서 실행하세요. 시드 후{" "}
+            <a href="/lesson/moneyball/chat" className="text-indigo-300 hover:underline">
+              DB 채팅
+            </a>
+            으로 질문을 넣을 수 있습니다.
           </p>
         </section>
       </div>
