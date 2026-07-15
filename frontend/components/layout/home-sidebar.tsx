@@ -55,7 +55,7 @@ export function HomeSidebar({
 
       <aside
         className={`
-          fixed lg:sticky top-0 left-0 z-40 h-screen shrink-0
+          fixed lg:sticky top-0 left-0 z-40 h-dvh shrink-0 self-start
           border-r border-white/10
           bg-[rgba(10,10,15,0.95)]
           transition-[width,transform] duration-300 ease-in-out

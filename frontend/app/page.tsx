@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 
 import { AgentPreview } from "@/components/home/agent-preview";
+import { BuiltWithSection } from "@/components/home/built-with-section";
 import { HomeSidebar } from "@/components/layout/home-sidebar";
 import { clearAuthSession, getAuthSession } from "@/lib/auth-api";
 import { getApiBaseUrl } from "@/lib/api-base";
@@ -107,8 +108,8 @@ export default function MoneoHomePage() {
   };
 
   return (
-    <div className="relative min-h-dvh flex moneo-grid-bg text-[var(--moneo-text)]">
-      <div className="moneo-noise pointer-events-none absolute inset-0" aria-hidden />
+    <div className="relative flex min-h-dvh items-start moneo-grid-bg text-[var(--moneo-text)]">
+      <div className="moneo-noise pointer-events-none absolute inset-0 -z-10" aria-hidden />
       <NetworkDecor />
 
       <HomeSidebar
@@ -118,8 +119,8 @@ export default function MoneoHomePage() {
         onSelectLogs={() => patchUi({ showLogs: true })}
       />
 
-      <div className="relative z-10 flex min-w-0 flex-1 flex-col">
-        <header className="shrink-0 border-b border-white/10 bg-[rgba(10,10,15,0.82)] backdrop-blur-md z-20">
+      <div className="relative z-10 flex w-full min-w-0 flex-1 flex-col">
+        <header className="sticky top-0 shrink-0 border-b border-white/10 bg-[rgba(10,10,15,0.82)] backdrop-blur-md z-20">
           <div className="flex h-14 sm:h-16 w-full items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
             <div className="flex items-center gap-3 sm:gap-4">
               <button
@@ -190,7 +191,7 @@ export default function MoneoHomePage() {
           </div>
         </header>
 
-        <section className="relative border-b border-white/10">
+        <section className="relative border-b border-white/10 pb-16 sm:pb-20">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14 lg:py-16">
             <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-12">
               <div className="min-w-0">
@@ -281,6 +282,8 @@ export default function MoneoHomePage() {
                 );
               })}
             </div>
+
+            <BuiltWithSection />
           </div>
         </section>
 
@@ -297,7 +300,7 @@ export default function MoneoHomePage() {
 function NetworkDecor() {
   return (
     <svg
-      className="pointer-events-none absolute inset-0 z-0 h-full w-full opacity-40"
+      className="pointer-events-none absolute inset-0 -z-10 h-full w-full opacity-40"
       aria-hidden
     >
       <defs>
