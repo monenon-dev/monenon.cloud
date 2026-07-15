@@ -38,9 +38,9 @@ export BACKEND_IMAGE="${BACKEND_IMAGE:-monenon-backend:sigma-local}"
 echo "==> build backend image: $BACKEND_IMAGE"
 "${COMPOSE[@]}" build backend
 
-echo "==> up (no Hub pull) pgvector redis neo4j backend cloudflared"
+echo "==> up (no Hub pull) pgvector redis neo4j backend cloudflared pgadmin"
 "${COMPOSE[@]}" --profile tunnel \
-  up -d --pull never --force-recreate pgvector redis neo4j backend cloudflared
+  up -d --pull never --force-recreate pgvector redis neo4j backend cloudflared pgadmin
 
 echo "==> verify moneyball inside container"
 "${COMPOSE[@]}" exec -T backend ls /app/apps/moneyball/adapter/inbound/api/v1/ || true
@@ -55,3 +55,5 @@ echo "==> status"
 echo "Done. Test:"
 echo "  curl -s http://127.0.0.1:8000/openapi.json | grep moneyball"
 echo "  curl -s http://127.0.0.1:8000/api/moneyball/overview"
+echo "  pgAdmin UI: http://127.0.0.1:5050  (admin@monenon.local / monenon2026)"
+echo "  pgAdmin DB: Host=pgvector Port=5432 User=postgres Password=monenon2026 DB=monenon"
