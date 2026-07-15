@@ -21,11 +21,12 @@ class FakerOrchestrator:
         self.model = model
         self.timeout = timeout
 
-    async def chat(self, messages: list[dict]) -> str:
+    async def chat(self, messages: list[dict], *, model: str | None = None) -> str:
+        use_model = model or self.model
         async with httpx.AsyncClient(timeout=self.timeout) as client:
             response = await client.post(
                 f"{self.base_url}/api/chat",
-                json={"model": self.model, "messages": messages, "stream": False},
+                json={"model": use_model, "messages": messages, "stream": False},
             )
             response.raise_for_status()
             return response.json()["message"]["content"]

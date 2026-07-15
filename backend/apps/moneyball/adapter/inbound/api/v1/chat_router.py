@@ -25,14 +25,14 @@ async def moneyball_chat(
     session: AsyncSession = Depends(get_db),
 ) -> MoneyballChatResponse:
     """
-    프론트 질문 → 허브 라우팅 → 스포크 SQL → DB 실행 → 허브 최종 답.
-
-    EXAONE(Ollama) 미기동 시 heuristic 모드로 동일 파이프라인이 동작합니다.
+    프론트 질문 → star_craft 허브 라우팅 → RAG 검색 → 스포크 SQL → DB → 허브(7.8B) RAG 합성.
+    매 요청 journey 로그가 기록됩니다.
     """
     result = await run_star_chat(session, body.message)
     logger.info(
-        "[moneyball] chat mode=%s route=%s",
+        "[moneyball] chat mode=%s route=%s journey_stages=%s",
         result.get("mode"),
         result.get("route"),
+        len(result.get("journey") or []),
     )
     return MoneyballChatResponse.model_validate(result)

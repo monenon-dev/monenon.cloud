@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class MoneyballChatRequest(BaseModel):
@@ -21,6 +21,14 @@ class MoneyballChatStep(BaseModel):
     sql_mode: str | None = None
 
 
+class JourneyEvent(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    request_id: str
+    stage: str
+    ts: str
+
+
 class MoneyballChatResponse(BaseModel):
     ok: bool
     reply: str
@@ -28,5 +36,7 @@ class MoneyballChatResponse(BaseModel):
     spoke_model: str
     route: list[str] = Field(default_factory=list)
     steps: list[MoneyballChatStep] = Field(default_factory=list)
+    journey: list[JourneyEvent] = Field(default_factory=list)
+    rag_hits: list[dict[str, Any]] = Field(default_factory=list)
     mode: str = "heuristic"
     detail: str | None = None

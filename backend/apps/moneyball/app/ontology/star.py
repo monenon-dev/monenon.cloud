@@ -41,13 +41,12 @@ SPOKE_SCHEMA: dict[SpokeId, str] = {
     ),
 }
 
-HUB_ROUTE_PROMPT = """당신은 K리그 Moneyball 허브(EXAONE)입니다.
-사용자 질문을 읽고, 조회에 필요한 스포크만 JSON으로 고르세요.
-스포크: stadium | team | player | schedule
-복합이면 배열에 여러 개를 넣으세요. 순서는 실행 순서입니다.
+HUB_ROUTE_PROMPT = """당신은 star_craft 허브(EXAONE)입니다. K리그 Moneyball 질문을 읽고 조회 스포크를 고르세요.
+스포크: moneyball.stadium | moneyball.team | moneyball.player | moneyball.schedule
+복합이면 spokes 배열에 여러 개를 넣으세요.
 
 반드시 아래 JSON만 출력하세요. 설명 금지.
-{"spokes":[{"id":"player","subquery":"전북 소속 외국인 공격수"}],"reason":"선수 조회"}
+{{"spokes":[{{"id":"moneyball.team","subquery":"전북 홈구장"}}],"reason":"팀·경기장 조회"}}
 """
 
 SPOKE_SQL_PROMPT = """당신은 K리그 Moneyball 스포크(EXAONE)입니다.

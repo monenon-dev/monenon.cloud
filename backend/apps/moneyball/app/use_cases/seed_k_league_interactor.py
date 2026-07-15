@@ -1,4 +1,4 @@
-"""K-League 더미 데이터 시드 — SQL 파일 순차 실행."""
+"""Moneyball K-League 더미 데이터 시드 — SQL 파일 순차 실행 + RAG 인덱스."""
 
 from __future__ import annotations
 
@@ -13,6 +13,9 @@ from moneyball.adapter.outbound.orm.player_orm import MoneyballPlayerOrm
 from moneyball.adapter.outbound.orm.schedule_orm import MoneyballScheduleOrm
 from moneyball.adapter.outbound.orm.stadium_orm import MoneyballStadiumOrm
 from moneyball.adapter.outbound.orm.team_orm import MoneyballTeamOrm
+from moneyball.app.services.rag_retriever import index_moneyball_rag
+from moneyball.app.services.star_craft_hub import ensure_moneyball_spokes
+from moneyball.app.services.chat_journey import ChatJourney
 
 logger = logging.getLogger(__name__)
 
@@ -75,4 +78,13 @@ async def seed_k_league_dummy(session: AsyncSession, *, replace: bool = True) ->
         logger.info("[moneyball] seed applied %s (%s statements)", filename, len(statements))
 
     overview = await get_moneyball_overview(session)
-    return {"ok": True, "files": inserted_files, "counts": overview}
+    rag_counts = await index_moneyball_rag(session)
+    journey = ChatJourney("seed")
+    await ensure_moneyball_spokes(session, journey)
+    return {
+        "ok": True,
+        "files": inserted_files,
+        "counts": overview,
+        "rag_index": rag_counts,
+        "star_craft_spokes": True,
+    }
