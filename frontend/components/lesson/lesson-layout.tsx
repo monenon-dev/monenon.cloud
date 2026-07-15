@@ -11,10 +11,11 @@ export function LessonLayout({
   active?: LessonNavKey;
 }) {
   return (
-    <div className="min-h-dvh bg-white text-gray-900">
+    <div className="relative min-h-dvh moneo-grid-bg text-[var(--moneo-text)]">
+      <div className="moneo-noise pointer-events-none absolute inset-0 -z-10" aria-hidden />
       <LessonHeader active={active} />
       <div className="mx-auto flex min-h-[calc(100dvh-3.5rem)] max-w-6xl">
-        <div className="hidden w-56 shrink-0 md:block lg:w-64">
+        <div className="hidden w-56 shrink-0 border-r border-[var(--moneo-border)] md:block lg:w-64">
           <LessonSidebar active={active} />
         </div>
         <main className="min-w-0 flex-1">{children}</main>
