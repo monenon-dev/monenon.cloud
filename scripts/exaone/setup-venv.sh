@@ -1,31 +1,43 @@
 #!/usr/bin/env bash
 # EXAONE AWQ 추론용 venv 설치 (시그마 Ubuntu)
 #
-#   cd ~/monenon.cloud
+# Python 3.14 에서는 tokenizers/torch 휠이 불안정합니다. 3.12를 쓰세요.
+#
+#   sudo apt install -y python3.12 python3.12-venv
+#   export EXAONE_VENV=~/.venvs/exaone312
 #   bash scripts/exaone/setup-venv.sh
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
-VENV="${EXAONE_VENV:-$HOME/.venvs/exaone}"
+VENV="${EXAONE_VENV:-$HOME/.venvs/exaone312}"
 
 pick_python() {
-  for c in python3.12 python3.11 python3.10 python3; do
+  for c in python3.12 python3.11 python3.10; do
     if command -v "$c" >/dev/null 2>&1; then
       echo "$c"
       return
     fi
   done
-  echo "python3 not found" >&2
+  if command -v python3 >/dev/null 2>&1; then
+    VER="$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')"
+    if [[ "$VER" == "3.14" || "$VER" == "3.13" ]]; then
+      echo "python3 ($VER) 는 EXAONE/torch 에 부적합합니다." >&2
+      echo "설치 후 다시 실행:" >&2
+      echo "  sudo apt install -y python3.12 python3.12-venv" >&2
+      echo "  export EXAONE_VENV=~/.venvs/exaone312" >&2
+      echo "  bash scripts/exaone/setup-venv.sh" >&2
+      exit 1
+    fi
+    echo "python3"
+    return
+  fi
+  echo "python3.12 없음" >&2
   exit 1
 }
 
 PY="$(pick_python)"
 VER="$("$PY" -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')"
-echo "==> python: $PY ($VER)"
-if [[ "$VER" == "3.14" || "$VER" == "3.13" ]]; then
-  echo "경고: torch/autoawq는 보통 3.10~3.12에 더 잘 맞습니다."
-  echo "가능하면: sudo apt install python3.12 python3.12-venv"
-fi
+echo "==> python: $PY ($VER)  venv: $VENV"
 
 mkdir -p "$(dirname "$VENV")"
 if [[ ! -d "$VENV" ]]; then
@@ -36,7 +48,6 @@ fi
 source "$VENV/bin/activate"
 
 python -m pip install -U pip setuptools wheel
-# EXAONE remote code는 transformers 5.x / 최신 generate API와 충돌하기 쉬움 → 4.46 고정
 python -m pip install -U \
   "torch" \
   "transformers==4.46.3" \
@@ -50,7 +61,7 @@ python -m pip install -U \
 echo
 echo "Done. Activate:"
 echo "  source $VENV/bin/activate"
-echo "Smoke test (2.4B):"
-echo "  EXAONE_MODEL_DIR=~/models/EXAONE-3.5-2.4B-Instruct-AWQ python $ROOT/scripts/exaone/run_exaone.py"
-echo "HTTP serve (spoke only until CUDA works):"
-echo "  EXAONE_FORCE_SPOKE=1 python $ROOT/scripts/exaone/serve_exaone.py"
+echo "Serve (spoke only):"
+echo "  export EXAONE_FORCE_SPOKE=1"
+echo "  export EXAONE_SPOKE_DIR=~/models/EXAONE-3.5-2.4B-Instruct-AWQ"
+echo "  python $ROOT/scripts/exaone/serve_exaone.py"
