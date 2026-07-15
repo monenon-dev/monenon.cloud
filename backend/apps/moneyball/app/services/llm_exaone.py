@@ -14,6 +14,9 @@ _JSON_BLOCK = re.compile(r"\{[\s\S]*\}")
 
 
 def get_hub_model() -> str:
+    # 빠른 경로 기본: 2.4B (7.8B 스왑이 체감 지연의 대부분)
+    if fast_path_enabled():
+        return os.getenv("MONEYBALL_HUB_MODEL", "exaone3.5:2.4b")
     return os.getenv("MONEYBALL_HUB_MODEL", "exaone3.5:7.8b")
 
 
@@ -32,6 +35,16 @@ def llm_backend() -> str:
 
 def llm_enabled() -> bool:
     return llm_backend() != "heuristic"
+
+
+def fast_path_enabled() -> bool:
+    """라우팅·SQL 은 heuristic, LLM 은 최종 답 1회만 (기본 ON)."""
+    return os.getenv("MONEYBALL_FAST_PATH", "1").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
 
 
 def extract_json_object(text: str) -> dict[str, Any]:
@@ -86,22 +99,12 @@ def _chat_awq_http(
     return content.strip()
 
 
-def _chat_ollama(
-    messages: list[dict[str, str]],
-    *,
-    model: str,
-    temperature: float,
-) -> str:
-    from lol.ollama import chat as ollama_chat
-
-    return ollama_chat(messages, model=model, temperature=temperature)
-
-
 def chat_exaone(
     messages: list[dict[str, str]],
     *,
     model: str,
     temperature: float = 0.1,
+    num_predict: int | None = None,
 ) -> str:
     """EXAONE에게 메시지 전송 → 응답 텍스트.
 
@@ -115,7 +118,9 @@ def chat_exaone(
     if mode == "awq_http":
         return _chat_awq_http(messages, model=model, temperature=temperature)
     if mode == "ollama":
-        return _chat_ollama(messages, model=model, temperature=temperature)
+        return _chat_ollama(
+            messages, model=model, temperature=temperature, num_predict=num_predict
+        )
 
     # auto
     try:
@@ -123,8 +128,27 @@ def chat_exaone(
     except Exception as awq_exc:
         logger.warning("[moneyball] AWQ HTTP 실패, Ollama 시도: %s", awq_exc)
         try:
-            return _chat_ollama(messages, model=model, temperature=temperature)
+            return _chat_ollama(
+                messages, model=model, temperature=temperature, num_predict=num_predict
+            )
         except Exception as oll_exc:
             raise RuntimeError(
                 f"EXAONE 호출 실패 (awq={awq_exc}; ollama={oll_exc})"
             ) from oll_exc
+
+
+def _chat_ollama(
+    messages: list[dict[str, str]],
+    *,
+    model: str,
+    temperature: float,
+    num_predict: int | None = None,
+) -> str:
+    from lol.ollama import chat as ollama_chat
+
+    return ollama_chat(
+        messages,
+        model=model,
+        temperature=temperature,
+        num_predict=num_predict,
+    )

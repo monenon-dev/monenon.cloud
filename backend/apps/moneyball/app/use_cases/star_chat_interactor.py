@@ -28,6 +28,7 @@ from moneyball.app.services.heuristic import (
 from moneyball.app.services.llm_exaone import (
     chat_exaone,
     extract_json_object,
+    fast_path_enabled,
     get_hub_model,
     get_spoke_model,
     llm_enabled,
@@ -68,7 +69,7 @@ def _ensure_limit(sql: str) -> str:
 
 async def _hub_route(message: str) -> tuple[list[dict[str, str]], str]:
     """returns (spokes, mode_tag)."""
-    if not llm_enabled():
+    if not llm_enabled() or fast_path_enabled():
         return heuristic_route(message), "heuristic"
 
     try:
@@ -78,6 +79,7 @@ async def _hub_route(message: str) -> tuple[list[dict[str, str]], str]:
                 {"role": "user", "content": message},
             ],
             model=get_hub_model(),
+            num_predict=128,
         )
         data = extract_json_object(raw)
         spokes_raw = data.get("spokes") or []
@@ -97,7 +99,7 @@ async def _hub_route(message: str) -> tuple[list[dict[str, str]], str]:
 
 
 async def _spoke_sql(spoke: SpokeId, subquery: str) -> tuple[str, str]:
-    if not llm_enabled():
+    if not llm_enabled() or fast_path_enabled():
         return heuristic_sql(spoke, subquery), "heuristic"
 
     try:
@@ -111,6 +113,7 @@ async def _spoke_sql(spoke: SpokeId, subquery: str) -> tuple[str, str]:
                 {"role": "user", "content": subquery},
             ],
             model=get_spoke_model(),
+            num_predict=256,
         )
         data = extract_json_object(raw)
         sql = str(data.get("sql") or "").strip()
@@ -129,9 +132,10 @@ async def _execute_sql(session: AsyncSession, sql: str) -> list[dict[str, Any]]:
 async def _hub_synthesize(question: str, steps: list[dict[str, Any]]) -> tuple[str, str]:
     evidence_parts: list[str] = []
     for step in steps:
+        # 프롬프트 축소: SQL·전체 덤프 대신 행만
         evidence_parts.append(
-            f"spoke={step.get('spoke')} sql={step.get('sql')} "
-            f"error={step.get('error')} rows={step.get('rows_preview')}"
+            f"[{step.get('spoke')}] n={step.get('row_count')} "
+            f"err={step.get('error')} rows={step.get('rows_preview')}"
         )
     evidence = "\n".join(evidence_parts)
 
@@ -139,14 +143,20 @@ async def _hub_synthesize(question: str, steps: list[dict[str, Any]]) -> tuple[s
         return heuristic_answer(question, steps), "heuristic"
 
     try:
-        prompt = HUB_SYNTH_PROMPT.format(question=question, evidence=evidence)
+        # 빠른 경로: 이미 GPU에 올라간 2.4B로 합성
+        model = get_spoke_model() if fast_path_enabled() else get_hub_model()
+        prompt = (
+            HUB_SYNTH_PROMPT.format(question=question, evidence=evidence)
+            + "\n답은 한국어 2~4문장. 표·코드 금지."
+        )
         answer = chat_exaone(
             [
                 {"role": "system", "content": prompt},
                 {"role": "user", "content": question},
             ],
-            model=get_hub_model(),
+            model=model,
             temperature=0.2,
+            num_predict=160,
         )
         if not answer.strip():
             return heuristic_answer(question, steps), "hub-fallback"
