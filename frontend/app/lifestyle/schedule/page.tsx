@@ -12,7 +12,7 @@ export default function SchedulePage() {
       <div className="w-full max-w-2xl">
         <div className="text-center mb-8">
           <Link href="/" className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">
-            Monenon AI Agent
+            Moneo
           </Link>
           <p className="text-sm text-gray-600 dark:text-gray-400 mt-2 flex items-center justify-center gap-2">
             <CalendarDays className="size-4" aria-hidden />

@@ -7,7 +7,7 @@ type MailRequestBody = {
 };
 
 const DEFAULT_WEBHOOK_URL = "http://localhost:5678/webhook/send-mail";
-const DEFAULT_SUBJECT = "Monenon 메일";
+const DEFAULT_SUBJECT = "Moneo 메일";
 
 export async function POST(request: Request) {
   const webhookUrl = process.env.N8N_MAIL_WEBHOOK_URL?.trim() || DEFAULT_WEBHOOK_URL;

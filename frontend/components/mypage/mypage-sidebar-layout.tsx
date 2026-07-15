@@ -54,7 +54,7 @@ export function MyPageSidebarLayout({
             href="/"
             className="text-sm font-bold text-indigo-600 dark:text-indigo-400 hover:opacity-90"
           >
-            Monenon AI Agent
+            Moneo
           </Link>
           <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">마이페이지</p>
         </div>

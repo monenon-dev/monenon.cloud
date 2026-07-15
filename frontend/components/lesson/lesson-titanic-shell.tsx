@@ -70,7 +70,7 @@ export function LessonTitanicShell({ children }: { children: ReactNode }) {
               href="/"
               className="shrink-0 text-left text-lg font-bold tracking-tight text-indigo-600 hover:opacity-90 transition-opacity"
             >
-              Monenon AI Agent
+              Moneo
             </Link>
           </div>
           <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">

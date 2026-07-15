@@ -25,7 +25,7 @@ export function DashboardSection({
       <section className={mypageCardClass}>
         <p className="text-sm text-gray-500 dark:text-gray-400">활동 요약</p>
         <h2 className="mt-2 text-xl font-semibold">
-          {nickname}님, 오늘도 Monenon과 함께해요
+          {nickname}님, 오늘도 Moneo와 함께해요
         </h2>
         <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
           에이전트 <span className="font-medium text-indigo-600 dark:text-indigo-400">{agentName}</span>

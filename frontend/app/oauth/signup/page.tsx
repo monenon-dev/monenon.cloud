@@ -75,7 +75,7 @@ export default function SignupPage() {
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <Link href="/" className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">
-            Monenon AI Agent
+            Moneo
           </Link>
           <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">새 계정 만들기</p>
         </div>

@@ -203,7 +203,7 @@ export function PlatformSidebarLayout({
             href="/"
             className="text-base font-bold text-indigo-600 dark:text-indigo-400 sm:text-lg"
           >
-            Monenon AI
+            Moneo
           </Link>
           <div className="ml-auto flex items-center gap-2">{headerActions}</div>
         </header>

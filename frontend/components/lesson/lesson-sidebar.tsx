@@ -206,7 +206,7 @@ export function LessonSidebar({ active = "hub" }: { active?: LessonNavKey }) {
       </div>
       <div className="mt-auto border-t border-gray-200 px-6 py-4">
         <Link href="/" className="text-xs text-indigo-600 hover:underline">
-          Monenon AI Agent 홈
+          Moneo 홈
         </Link>
       </div>
     </aside>

@@ -45,20 +45,20 @@ export function HomeSidebar({
       <aside
         className={`
           fixed lg:sticky top-0 left-0 z-40 h-screen shrink-0
-          border-r border-gray-200 dark:border-gray-800
-          bg-white dark:bg-gray-950
+          border-r border-white/10
+          bg-[rgba(10,10,15,0.95)]
           transition-[width,transform] duration-300 ease-in-out
           ${open ? "w-64 translate-x-0" : "w-0 -translate-x-full lg:translate-x-0 overflow-hidden"}
         `}
       >
         <div className="flex h-full w-64 flex-col">
-          <div className="flex h-14 items-center border-b border-gray-200 px-4 dark:border-gray-800">
-            <span className="text-sm font-bold text-indigo-600 dark:text-indigo-400">메뉴</span>
+          <div className="flex h-14 items-center border-b border-white/10 px-4">
+            <span className="text-sm font-bold text-indigo-300">메뉴</span>
           </div>
 
           <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-6">
             <div>
-              <p className="mb-2 px-2 text-xs font-semibold tracking-wider text-gray-500">
+              <p className="mb-2 px-2 text-xs font-semibold tracking-wider text-indigo-200/50">
                 홈
               </p>
               <ul className="space-y-0.5">
@@ -83,7 +83,7 @@ export function HomeSidebar({
                       className={navClass(activeView === "logs")}
                     >
                       <Terminal size={18} />
-                      실행 로그
+                      Agent 히스토리
                     </button>
                   </li>
                 )}
@@ -91,7 +91,7 @@ export function HomeSidebar({
             </div>
 
             <div>
-              <p className="mb-2 px-2 text-xs font-semibold tracking-wider text-gray-500">관리</p>
+              <p className="mb-2 px-2 text-xs font-semibold tracking-wider text-indigo-200/50">관리</p>
               <ul className="space-y-0.5">
                 {LINK_NAV.map(item => (
                   <li key={item.href}>
@@ -106,7 +106,7 @@ export function HomeSidebar({
 
             {PLATFORM_NAV.map((group) => (
               <div key={group.title}>
-                <p className="mb-2 flex items-center gap-2 px-2 text-xs font-semibold tracking-wider text-gray-500">
+                <p className="mb-2 flex items-center gap-2 px-2 text-xs font-semibold tracking-wider text-indigo-200/50">
                   <group.icon size={14} />
                   {group.title}
                 </p>
@@ -136,7 +136,7 @@ export function HomeSidebar({
 function navClass(active: boolean) {
   return `flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium transition-colors ${
     active
-      ? "bg-indigo-600 text-white shadow-sm"
-      : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-900"
+      ? "bg-indigo-500/25 text-indigo-100 border border-indigo-400/30"
+      : "text-indigo-100/75 hover:bg-white/5"
   }`;
 }
