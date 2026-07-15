@@ -53,6 +53,9 @@ const FEATURE_PROMO_CARDS: {
   },
 ];
 
+/** Shared content width — keeps layout stable past ~1280–1440px viewports */
+const PAGE_SHELL = "mx-auto w-full max-w-6xl xl:max-w-7xl px-4 sm:px-6 lg:px-8";
+
 export default function MoneoHomePage() {
   const router = useRouter();
   const [ui, setUi] = useState({
@@ -92,7 +95,7 @@ export default function MoneoHomePage() {
 
       <div className="relative z-10 flex w-full min-w-0 flex-1 flex-col">
         <header className="sticky top-0 shrink-0 border-b border-white/10 bg-[rgba(10,10,15,0.82)] backdrop-blur-md z-20">
-          <div className="flex h-14 sm:h-16 w-full items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
+          <div className={`${PAGE_SHELL} flex h-14 sm:h-16 items-center justify-between gap-4`}>
             <div className="flex items-center gap-3 sm:gap-4">
               <button
                 type="button"
@@ -163,8 +166,8 @@ export default function MoneoHomePage() {
         </header>
 
         <section className="relative border-b border-white/10 pb-16 sm:pb-20">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14 lg:py-16">
-            <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-12">
+          <div className={`${PAGE_SHELL} py-10 sm:py-14 lg:py-16`}>
+            <div className="grid items-center gap-8 lg:grid-cols-[minmax(0,0.45fr)_minmax(0,0.55fr)] lg:gap-10">
               <div className="min-w-0">
                 <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-indigo-300/80">
                   AI agents for work
@@ -193,11 +196,13 @@ export default function MoneoHomePage() {
                 </div>
               </div>
 
-              <AgentPreview className="w-full" />
+              <div className="min-w-0 w-full">
+                <AgentPreview className="w-full" />
+              </div>
             </div>
 
             <div
-              className="mt-12 sm:mt-14 grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5"
+              className="mt-12 sm:mt-14 grid grid-cols-1 gap-4 md:grid-cols-3 md:gap-5"
               aria-label="기능 소개"
             >
               {FEATURE_PROMO_CARDS.map((card) => {

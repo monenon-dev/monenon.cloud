@@ -210,12 +210,12 @@
   to {
     opacity: 1;
     transform: translateY(0);
-    max-height: 5rem;
+    max-height: 6.5rem;
   }
 }
 
 .tool-stream-row {
-  max-height: 5rem;
+  max-height: 6.5rem;
   transition:
     opacity 0.75s cubic-bezier(0.22, 1, 0.36, 1),
     transform 0.75s cubic-bezier(0.22, 1, 0.36, 1),

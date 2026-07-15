@@ -45,7 +45,7 @@ export function BuiltWithSection({ className = "" }: { className?: string }) {
       <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-indigo-300/70">
         Built with
       </p>
-      <ul className="mt-4 grid grid-cols-1 items-stretch gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <ul className="mt-4 grid grid-cols-1 items-stretch gap-4 sm:grid-cols-2 lg:grid-cols-4 lg:gap-4">
         {BUILT_WITH.map((item) => {
           const Icon = item.icon;
           return (

@@ -106,10 +106,10 @@ export function AgentPreview({ className = "" }: { className?: string }) {
         </span>
       </div>
 
-      <div className="grid min-h-0 flex-1 md:grid-cols-5">
+      <div className="grid min-h-0 flex-1 grid-cols-1 md:grid-cols-[minmax(0,1.25fr)_minmax(12.5rem,0.95fr)]">
         <div
           ref={chatScrollRef}
-          className="moneo-thin-scrollbar space-y-3 overflow-y-auto overscroll-contain border-b border-white/10 p-4 md:col-span-3 md:border-b-0 md:border-r"
+          className="moneo-thin-scrollbar space-y-3 overflow-y-auto overscroll-contain border-b border-white/10 p-4 md:border-b-0 md:border-r"
         >
           {CHAT_LINES.slice(0, chat.line).map((msg, i) => (
             <PreviewBubble key={`${msg.role}-${i}`} role={msg.role} text={msg.text} done />
@@ -222,12 +222,12 @@ function ToolStreamPanel() {
   useEffect(() => {
     const el = streamScrollRef.current;
     if (!el) return;
-    // Newest tools are prepended — keep the head in view
+    // Only on new spawn — scrolling every typed char was janky and looked like stalls
     el.scrollTo({ top: 0, behavior: "smooth" });
-  }, [stream.items]);
+  }, [stream.seq]);
 
   return (
-    <div className="flex min-h-0 flex-col p-4 md:col-span-2">
+    <div className="flex min-h-0 min-w-[12.5rem] flex-col p-4">
       <p className="mb-2 shrink-0 font-mono text-[10px] uppercase tracking-[0.2em] text-indigo-300/80">
         tool stream
       </p>
@@ -266,8 +266,10 @@ function ToolStreamPanel() {
             </span>
             <div className="min-w-0 flex-1">
               <p className="text-indigo-100/50">{ev.t}</p>
-              <p className="truncate text-indigo-100">{ev.tool}</p>
-              <p className="truncate text-indigo-200/60">
+              <p className="truncate text-indigo-100" title={ev.tool}>
+                {ev.tool}
+              </p>
+              <p className="break-all text-indigo-200/60">
                 {ev.detail.slice(0, ev.typed)}
                 {ev.typed < ev.detail.length ? (
                   <span className="ml-0.5 inline-block h-3 w-1 animate-pulse bg-indigo-300/70 align-middle" />
