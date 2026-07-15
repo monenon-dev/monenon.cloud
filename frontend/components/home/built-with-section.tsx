@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import {
   Box,
   Database,
@@ -41,54 +40,28 @@ const BUILT_WITH: {
 ];
 
 export function BuiltWithSection({ className = "" }: { className?: string }) {
-  const [ui, setUi] = useState({ openId: null as string | null });
-
   return (
     <section className={`mt-12 sm:mt-14 ${className}`} aria-label="Built with">
       <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-indigo-300/70">
         Built with
       </p>
-      <ul className="mt-4 grid grid-cols-1 gap-2.5 overflow-visible sm:grid-cols-2 lg:grid-cols-4">
+      <ul className="mt-4 grid grid-cols-1 items-stretch gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
         {BUILT_WITH.map((item) => {
           const Icon = item.icon;
-          const open = ui.openId === item.title;
           return (
-            <li key={item.title} className="relative overflow-visible">
-              <button
-                type="button"
-                className="moneo-glass relative z-0 flex h-[3.25rem] w-full items-center rounded-xl px-3.5 text-left transition-[box-shadow,border-color] duration-200 hover:border-indigo-400/35 hover:shadow-[0_0_20px_rgba(99,102,241,0.18)]"
-                onMouseEnter={() => setUi({ openId: item.title })}
-                onMouseLeave={() => setUi({ openId: null })}
-                onFocus={() => setUi({ openId: item.title })}
-                onBlur={() => setUi({ openId: null })}
-                aria-describedby={open ? `built-with-tip-${item.title}` : undefined}
-              >
-                <span className="inline-flex min-w-0 items-center gap-2">
+            <li key={item.title} className="h-full min-h-0">
+              <div className="moneo-glass flex h-full min-h-[9.5rem] flex-col rounded-xl border border-white/10 px-3.5 py-3 transition-[border-color,background-color] duration-200 hover:border-white/20 hover:bg-white/[0.06]">
+                <div className="inline-flex min-w-0 items-center gap-2">
                   <span className="inline-flex size-7 shrink-0 items-center justify-center rounded-lg border border-indigo-400/25 bg-indigo-500/15 text-indigo-300">
                     <Icon size={14} aria-hidden />
                   </span>
-                  <span className="truncate text-xs font-medium leading-snug text-indigo-50/95">
+                  <span className="text-xs font-medium leading-snug text-indigo-50/95">
                     {item.title}
                   </span>
-                </span>
-              </button>
-
-              <div
-                id={`built-with-tip-${item.title}`}
-                role="tooltip"
-                className={`pointer-events-none absolute bottom-[calc(100%+10px)] left-0 right-0 z-30 px-0.5 transition-all duration-200 ease-out ${
-                  open
-                    ? "translate-y-0 opacity-100"
-                    : "translate-y-1.5 opacity-0"
-                }`}
-              >
-                <div className="relative rounded-lg border border-white/12 bg-[#1c1c28] px-3 py-2 text-[11px] leading-relaxed text-[var(--moneo-muted)] shadow-[0_8px_28px_rgba(0,0,0,0.45)]">
-                  {item.blurb}
-                  <span
-                    className="absolute left-5 top-full h-0 w-0 border-x-[6px] border-t-[6px] border-x-transparent border-t-[#1c1c28]"
-                    aria-hidden
-                  />
                 </div>
+                <p className="mt-2.5 flex-1 text-[11px] leading-relaxed text-[var(--moneo-muted)]">
+                  {item.blurb}
+                </p>
               </div>
             </li>
           );
