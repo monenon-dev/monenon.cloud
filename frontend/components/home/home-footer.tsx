@@ -2,11 +2,11 @@ import Link from "next/link";
 
 const SHELL = "mx-auto w-full max-w-6xl xl:max-w-7xl px-4 sm:px-6 lg:px-8";
 
-export function HomeFooter() {
+export function HomeFooter({ compact = false }: { compact?: boolean }) {
   return (
     <footer className="border-t border-white/[0.08]" aria-label="사이트 푸터">
-      <div className={`${SHELL} py-6 sm:py-8`}>
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+      <div className={`${SHELL} ${compact ? "py-4 sm:py-5" : "py-6 sm:py-8"}`}>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between sm:gap-3">
           <div className="min-w-0">
             <Link
               href="/"
@@ -14,7 +14,7 @@ export function HomeFooter() {
             >
               Moneo
             </Link>
-            <p className="mt-1 max-w-sm text-xs leading-relaxed text-[var(--moneo-muted)] sm:text-sm">
+            <p className="mt-1 max-w-sm text-xs leading-relaxed text-[var(--moneo-muted)]">
               AI Agents, Orchestrated for Work
             </p>
           </div>

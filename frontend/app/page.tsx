@@ -86,7 +86,7 @@ export default function MoneoHomePage() {
   };
 
   return (
-    <div className="relative flex min-h-dvh items-start moneo-grid-bg text-[var(--moneo-text)]">
+    <div className="relative flex min-h-dvh items-start moneo-grid-bg text-[var(--moneo-text)] lg:h-dvh lg:overflow-hidden">
       <div className="moneo-noise pointer-events-none absolute inset-0 -z-10" aria-hidden />
       <NetworkDecor />
 
@@ -95,9 +95,9 @@ export default function MoneoHomePage() {
         onClose={() => patchUi({ sidebarOpen: false })}
       />
 
-      <div className="relative z-10 flex w-full min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 shrink-0 border-b border-white/10 bg-[rgba(10,10,15,0.82)] backdrop-blur-md z-20">
-          <div className={`${PAGE_SHELL} flex h-14 sm:h-16 items-center justify-between gap-4`}>
+      <div className="relative z-10 flex w-full min-w-0 flex-1 flex-col lg:h-full lg:min-h-0 lg:overflow-hidden">
+        <header className="sticky top-0 z-20 shrink-0 border-b border-white/10 bg-[rgba(10,10,15,0.82)] backdrop-blur-md lg:static">
+          <div className={`${PAGE_SHELL} flex h-14 items-center justify-between gap-4 sm:h-16`}>
             <div className="flex items-center gap-3 sm:gap-4">
               <button
                 type="button"
@@ -110,7 +110,7 @@ export default function MoneoHomePage() {
               </button>
               <Link
                 href="/"
-                className="shrink-0 text-left text-lg sm:text-xl font-semibold tracking-tight text-white hover:opacity-90 transition-opacity"
+                className="shrink-0 text-left text-lg font-semibold tracking-tight text-white transition-opacity hover:opacity-90 sm:text-xl"
               >
                 Moneo
               </Link>
@@ -121,14 +121,14 @@ export default function MoneoHomePage() {
                 <>
                   <Link
                     href={routes.oauth.mypage}
-                    className="text-sm font-medium text-indigo-300 px-1 sm:px-2 hover:underline truncate max-w-[80px] sm:max-w-none"
+                    className="max-w-[80px] truncate px-1 text-sm font-medium text-indigo-300 hover:underline sm:max-w-none sm:px-2"
                   >
                     {ui.authUser.nickname}
                   </Link>
                   <button
                     type="button"
                     onClick={handleLogout}
-                    className="inline-flex items-center px-2.5 sm:px-3 py-2 text-xs sm:text-sm font-medium rounded-lg border border-white/10 bg-white/5 text-indigo-100 hover:bg-white/10 transition-colors"
+                    className="inline-flex items-center rounded-lg border border-white/10 bg-white/5 px-2.5 py-2 text-xs font-medium text-indigo-100 transition-colors hover:bg-white/10 sm:px-3 sm:text-sm"
                   >
                     로그아웃
                   </button>
@@ -137,19 +137,19 @@ export default function MoneoHomePage() {
                 <>
                   <Link
                     href={routes.oauth.login}
-                    className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-2 text-xs sm:text-sm font-medium rounded-lg border border-white/10 bg-white/5 text-indigo-100 hover:bg-white/10 transition-colors"
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2.5 py-2 text-xs font-medium text-indigo-100 transition-colors hover:bg-white/10 sm:px-3 sm:text-sm"
                   >
                     로그인
-                    <span className="hidden sm:inline-flex rounded border border-amber-400/30 bg-amber-400/10 px-1.5 py-0.5 text-[10px] font-medium text-amber-200/90">
+                    <span className="hidden rounded border border-amber-400/30 bg-amber-400/10 px-1.5 py-0.5 text-[10px] font-medium text-amber-200/90 sm:inline-flex">
                       수업중
                     </span>
                   </Link>
                   <Link
                     href={routes.oauth.signup}
-                    className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-2 text-xs sm:text-sm font-medium rounded-lg bg-indigo-500 text-white shadow-[0_0_20px_rgba(99,102,241,0.35)] hover:bg-indigo-400 transition-colors"
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-500 px-2.5 py-2 text-xs font-medium text-white shadow-[0_0_20px_rgba(99,102,241,0.35)] transition-colors hover:bg-indigo-400 sm:px-3 sm:text-sm"
                   >
                     회원가입
-                    <span className="sm:hidden rounded border border-white/20 bg-white/10 px-1 py-0.5 text-[10px] font-medium text-white/90">
+                    <span className="rounded border border-white/20 bg-white/10 px-1 py-0.5 text-[10px] font-medium text-white/90 sm:hidden">
                       수업
                     </span>
                   </Link>
@@ -158,7 +158,7 @@ export default function MoneoHomePage() {
               {ui.authUser ? (
                 <Link
                   href="/lesson"
-                  className="hidden sm:inline-flex items-center rounded border border-amber-400/30 bg-amber-400/10 px-2 py-1 text-[10px] font-medium text-amber-200/90 hover:bg-amber-400/15"
+                  className="hidden items-center rounded border border-amber-400/30 bg-amber-400/10 px-2 py-1 text-[10px] font-medium text-amber-200/90 hover:bg-amber-400/15 sm:inline-flex"
                 >
                   수업중
                 </Link>
@@ -167,87 +167,109 @@ export default function MoneoHomePage() {
           </div>
         </header>
 
-        <section className="relative pb-16 sm:pb-20">
-          <div className={`${PAGE_SHELL} py-10 sm:py-14 lg:py-16`}>
-            <div className="grid items-center gap-8 lg:grid-cols-[minmax(0,0.45fr)_minmax(0,0.55fr)] lg:gap-10">
-              <div className="min-w-0">
-                <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-indigo-300/80">
-                  AI agents for work
-                </p>
-                <h1 className="mt-3 text-4xl sm:text-5xl lg:text-[3.25rem] font-semibold tracking-tight text-white leading-[1.08]">
-                  Moneo
-                </h1>
-                <p className="mt-4 max-w-md text-base sm:text-lg text-[var(--moneo-muted)] leading-relaxed">
-                  AI Agents, Orchestrated for Work
-                </p>
-                <div className="mt-8 flex flex-wrap items-center gap-3">
-                  <Link
-                    href={routes.lifestyle.chats}
-                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-500 text-white text-sm font-medium shadow-[0_0_28px_rgba(99,102,241,0.4)] hover:bg-indigo-400 transition-colors"
-                  >
-                    <Bot size={18} />
-                    에이전트 채팅
-                  </Link>
-                  <Link
-                    href={routes.agent.history}
-                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-white/10 bg-white/5 text-sm font-medium text-indigo-100 transition-colors hover:border-indigo-400/30"
-                  >
-                    <Terminal size={18} />
-                    Agent 히스토리
-                  </Link>
+        {/* Desktop: snap scroller below header. Mobile: normal document flow. */}
+        <div className="home-snap-scroller min-h-0 flex-1">
+          {/* Section 1 — hero + preview + feature cards */}
+          <section
+            className="home-snap-panel home-snap-panel--primary relative"
+            aria-label="소개"
+          >
+            <div
+              className={`${PAGE_SHELL} flex h-full min-h-0 flex-col py-8 sm:py-10 lg:justify-between lg:gap-4 lg:py-5 xl:py-6`}
+            >
+              <div className="grid min-h-0 flex-1 items-center gap-6 lg:grid-cols-[minmax(0,0.42fr)_minmax(0,0.58fr)] lg:gap-8 xl:gap-10">
+                <div className="min-w-0">
+                  <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-indigo-300/80 lg:text-[11px]">
+                    AI agents for work
+                  </p>
+                  <h1 className="mt-2 text-3xl font-semibold tracking-tight text-white leading-[1.08] sm:text-4xl lg:mt-2.5 lg:text-[2.5rem] xl:text-[2.85rem]">
+                    Moneo
+                  </h1>
+                  <p className="mt-2.5 max-w-md text-sm leading-relaxed text-[var(--moneo-muted)] sm:text-base lg:mt-3">
+                    AI Agents, Orchestrated for Work
+                  </p>
+                  <div className="mt-5 flex flex-wrap items-center gap-2.5 lg:mt-6 lg:gap-3">
+                    <Link
+                      href={routes.lifestyle.chats}
+                      className="inline-flex items-center gap-2 rounded-xl bg-indigo-500 px-4 py-2 text-sm font-medium text-white shadow-[0_0_28px_rgba(99,102,241,0.4)] transition-colors hover:bg-indigo-400 lg:px-4 lg:py-2 xl:px-5 xl:py-2.5"
+                    >
+                      <Bot size={18} />
+                      에이전트 채팅
+                    </Link>
+                    <Link
+                      href={routes.agent.history}
+                      className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-indigo-100 transition-colors hover:border-indigo-400/30 lg:px-4 lg:py-2 xl:px-5 xl:py-2.5"
+                    >
+                      <Terminal size={18} />
+                      Agent 히스토리
+                    </Link>
+                  </div>
+                </div>
+
+                <div className="min-w-0 w-full">
+                  <AgentPreview className="w-full" />
                 </div>
               </div>
 
-              <div className="min-w-0 w-full">
-                <AgentPreview className="w-full" />
+              <div
+                className="mt-8 grid shrink-0 grid-cols-1 gap-3 md:grid-cols-3 md:gap-4 lg:mt-4 xl:mt-5"
+                aria-label="기능 소개"
+              >
+                {FEATURE_PROMO_CARDS.map((card) => {
+                  const Icon = card.icon;
+                  const className =
+                    "moneo-glass moneo-glow-hover group w-full rounded-2xl p-4 text-left lg:p-4 xl:p-5";
+                  const inner = (
+                    <>
+                      <div className="mb-2.5 inline-flex size-9 items-center justify-center rounded-xl border border-indigo-400/25 bg-indigo-500/15 text-indigo-300 lg:mb-3 lg:size-9">
+                        <Icon size={18} aria-hidden />
+                      </div>
+                      <h3 className="text-sm font-semibold text-white lg:text-base">
+                        {card.title}
+                      </h3>
+                      <p className="mt-1.5 line-clamp-2 text-xs leading-relaxed text-[var(--moneo-muted)] sm:text-sm lg:line-clamp-3">
+                        {card.description}
+                      </p>
+                    </>
+                  );
+                  if (card.href) {
+                    return (
+                      <Link key={card.title} href={card.href} className={className}>
+                        {inner}
+                      </Link>
+                    );
+                  }
+                  return (
+                    <button
+                      key={card.title}
+                      type="button"
+                      onClick={() => card.prompt && navigateToChat(card.prompt)}
+                      className={className}
+                    >
+                      {inner}
+                    </button>
+                  );
+                })}
               </div>
             </div>
+          </section>
 
+          {/* Section 2 — Built With + CTA + Footer */}
+          <section
+            className="home-snap-panel home-snap-panel--secondary relative flex flex-col"
+            aria-label="기술 스택과 시작하기"
+          >
             <div
-              className="mt-12 sm:mt-14 grid grid-cols-1 gap-4 md:grid-cols-3 md:gap-5"
-              aria-label="기능 소개"
+              className={`${PAGE_SHELL} flex min-h-0 flex-1 flex-col justify-center gap-4 py-10 sm:py-12 lg:gap-3 lg:py-5 xl:py-6`}
             >
-              {FEATURE_PROMO_CARDS.map((card) => {
-                const Icon = card.icon;
-                const className =
-                  "moneo-glass moneo-glow-hover group w-full rounded-2xl p-6 text-left";
-                const inner = (
-                  <>
-                    <div className="mb-4 inline-flex size-10 items-center justify-center rounded-xl border border-indigo-400/25 bg-indigo-500/15 text-indigo-300">
-                      <Icon size={20} aria-hidden />
-                    </div>
-                    <h3 className="text-base font-semibold text-white">{card.title}</h3>
-                    <p className="mt-2 text-sm leading-relaxed text-[var(--moneo-muted)]">
-                      {card.description}
-                    </p>
-                  </>
-                );
-                if (card.href) {
-                  return (
-                    <Link key={card.title} href={card.href} className={className}>
-                      {inner}
-                    </Link>
-                  );
-                }
-                return (
-                  <button
-                    key={card.title}
-                    type="button"
-                    onClick={() => card.prompt && navigateToChat(card.prompt)}
-                    className={className}
-                  >
-                    {inner}
-                  </button>
-                );
-              })}
+              <BuiltWithSection compact className="lg:shrink-0" />
             </div>
-
-            <BuiltWithSection />
-          </div>
-        </section>
-
-        <HomeCtaSection />
-        <HomeFooter />
+            <div className="mt-auto shrink-0">
+              <HomeCtaSection compact />
+              <HomeFooter compact />
+            </div>
+          </section>
+        </div>
       </div>
     </div>
   );

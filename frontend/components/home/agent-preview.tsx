@@ -38,8 +38,12 @@ const MAX_VISIBLE = 4;
 const ADD_INTERVAL_MS = 4800;
 const TYPE_MS = 42;
 const FADE_OUT_MS = 900;
-/** Fixed panel height so typing animation never shifts hero / cards below */
-const PANEL_HEIGHT_CLASS = "h-[420px]";
+/**
+ * Fixed height so typing never shifts layout.
+ * Shorter on lg+ so hero + cards fit a 100vh snap panel.
+ */
+const PANEL_HEIGHT_CLASS =
+  "h-[360px] sm:h-[380px] lg:h-[min(250px,30dvh)] xl:h-[min(280px,32dvh)]";
 
 type LiveToolItem = ToolPattern & {
   id: string;
