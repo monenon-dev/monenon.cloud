@@ -100,8 +100,11 @@ from titanic.adapter.inbound.api.v1 import titanic_router
 try:
     import moneyball.adapter.outbound.orm  # noqa: F401 — moneyball 테이블 metadata
     from moneyball.adapter.inbound.api import moneyball_router
-except ModuleNotFoundError:
+except ModuleNotFoundError as exc:
     moneyball_router = None
+    logging.getLogger(__name__).warning(
+        "moneyball router disabled (ModuleNotFoundError): %s", exc
+    )
 # Titanic CSV 자동 시드는 사용자가 업로드할 때만 실행
 UPLOAD_DIR = Path(__file__).resolve().parent / "uploads"
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
