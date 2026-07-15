@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Bot, CheckCircle2, Loader2, Wrench } from "lucide-react";
+import { Bot, CheckCircle2, Loader2, XCircle } from "lucide-react";
 
 const CHAT_LINES = [
   { role: "user" as const, text: "오늘 오전 스탠드업 브리핑 요약해 줘." },
@@ -15,44 +15,70 @@ const CHAT_LINES = [
   },
 ];
 
-const STREAM_EVENTS = [
-  { t: "09:41:02", tool: "calendar.list", status: "ok" as const, detail: "meetings=4" },
-  { t: "09:41:03", tool: "docs.search", status: "running" as const, detail: "q=Q3 plan" },
-  { t: "09:41:05", tool: "docs.search", status: "ok" as const, detail: "hits=12" },
-  { t: "09:41:06", tool: "report.draft", status: "ok" as const, detail: "tokens=842" },
+type ToolStatus = "running" | "ok" | "error";
+
+type ToolPattern = {
+  tool: string;
+  detail: string;
+  status: ToolStatus;
+};
+
+/** Demo-only patterns — no API */
+const TOOL_PATTERNS: ToolPattern[] = [
+  { tool: "calendar.list", detail: "meetings=4", status: "ok" },
+  { tool: "docs.search", detail: "q=Q3 plan", status: "running" },
+  { tool: "email.draft", detail: "to=team@moneo.ai", status: "ok" },
+  { tool: "report.generate", detail: "tokens=842", status: "ok" },
+  { tool: "slack.digest", detail: "channels=3", status: "running" },
+  { tool: "docs.search", detail: "hits=12", status: "ok" },
+  { tool: "vector.query", detail: "top_k=8", status: "error" },
 ];
 
-export function AgentPreview({ className = "" }: { className?: string }) {
-  const [ui, setUi] = useState({
-    chatChars: 0,
-    chatLine: 0,
-    streamCount: 1,
-  });
+const MAX_VISIBLE = 4;
+const ADD_INTERVAL_MS = 4800;
+const TYPE_MS = 42;
+const FADE_OUT_MS = 900;
 
-  const line = CHAT_LINES[ui.chatLine] ?? CHAT_LINES[0];
-  const visibleText = line.text.slice(0, ui.chatChars);
+type LiveToolItem = ToolPattern & {
+  id: string;
+  t: string;
+  typed: number;
+  exiting: boolean;
+};
+
+function clockStamp(): string {
+  const d = new Date();
+  return [d.getHours(), d.getMinutes(), d.getSeconds()]
+    .map((n) => String(n).padStart(2, "0"))
+    .join(":");
+}
+
+function pickPattern(seq: number): ToolPattern {
+  return TOOL_PATTERNS[seq % TOOL_PATTERNS.length]!;
+}
+
+export function AgentPreview({ className = "" }: { className?: string }) {
+  const [chat, setChat] = useState({ chars: 0, line: 0 });
+
+  const line = CHAT_LINES[chat.line] ?? CHAT_LINES[0];
+  const visibleText = line.text.slice(0, chat.chars);
 
   useEffect(() => {
     const full = line.text;
-    if (ui.chatChars < full.length) {
+    if (chat.chars < full.length) {
       const id = window.setTimeout(() => {
-        setUi((prev) => ({ ...prev, chatChars: prev.chatChars + 1 }));
+        setChat((prev) => ({ ...prev, chars: prev.chars + 1 }));
       }, 28);
       return () => window.clearTimeout(id);
     }
-
     const id = window.setTimeout(() => {
-      setUi((prev) => {
-        const nextLine = (prev.chatLine + 1) % CHAT_LINES.length;
-        const nextStream =
-          nextLine === 0
-            ? 1
-            : Math.min(STREAM_EVENTS.length, prev.streamCount + 1);
-        return { chatLine: nextLine, chatChars: 0, streamCount: nextStream };
-      });
+      setChat((prev) => ({
+        line: (prev.line + 1) % CHAT_LINES.length,
+        chars: 0,
+      }));
     }, 1200);
     return () => window.clearTimeout(id);
-  }, [ui.chatChars, ui.chatLine, line.text]);
+  }, [chat.chars, chat.line, line.text]);
 
   return (
     <div
@@ -70,36 +96,160 @@ export function AgentPreview({ className = "" }: { className?: string }) {
 
       <div className="grid gap-0 md:grid-cols-5">
         <div className="space-y-3 border-b border-white/10 p-4 md:col-span-3 md:border-b-0 md:border-r">
-          {CHAT_LINES.slice(0, ui.chatLine).map((msg, i) => (
+          {CHAT_LINES.slice(0, chat.line).map((msg, i) => (
             <PreviewBubble key={`${msg.role}-${i}`} role={msg.role} text={msg.text} done />
           ))}
-          <PreviewBubble role={line.role} text={visibleText} typing={ui.chatChars < line.text.length} />
+          <PreviewBubble
+            role={line.role}
+            text={visibleText}
+            typing={chat.chars < line.text.length}
+          />
         </div>
 
-        <div className="space-y-2 p-4 md:col-span-2">
-          <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.2em] text-indigo-300/80">
-            tool stream
-          </p>
-          {STREAM_EVENTS.slice(0, ui.streamCount).map((ev) => (
-            <div
-              key={`${ev.t}-${ev.tool}-${ev.status}`}
-              className="flex items-start gap-2 rounded-lg border border-white/5 bg-white/[0.03] px-2.5 py-2 font-mono text-[11px]"
-            >
-              {ev.status === "running" ? (
-                <Loader2 className="mt-0.5 size-3.5 shrink-0 animate-spin text-indigo-400" />
-              ) : ev.status === "ok" ? (
-                <CheckCircle2 className="mt-0.5 size-3.5 shrink-0 text-emerald-400" />
-              ) : (
-                <Wrench className="mt-0.5 size-3.5 shrink-0 text-indigo-300" />
-              )}
-              <div className="min-w-0">
-                <p className="text-indigo-100/50">{ev.t}</p>
-                <p className="truncate text-indigo-100">{ev.tool}</p>
-                <p className="truncate text-indigo-200/60">{ev.detail}</p>
-              </div>
+        <ToolStreamPanel />
+      </div>
+    </div>
+  );
+}
+
+function ToolStreamPanel() {
+  const [stream, setStream] = useState({
+    items: [] as LiveToolItem[],
+    seq: 0,
+  });
+
+  // Spawn next log every few seconds
+  useEffect(() => {
+    const spawn = () => {
+      setStream((prev) => {
+        const pattern = pickPattern(prev.seq);
+        const next: LiveToolItem = {
+          ...pattern,
+          id: `${Date.now()}-${prev.seq}`,
+          t: clockStamp(),
+          typed: 0,
+          exiting: false,
+        };
+        const active = prev.items.filter((i) => !i.exiting);
+        const exiting = prev.items.filter((i) => i.exiting);
+        let activeNext = [next, ...active];
+        let overflow: LiveToolItem[] = [];
+        if (activeNext.length > MAX_VISIBLE) {
+          overflow = activeNext.slice(MAX_VISIBLE).map((item) => ({
+            ...item,
+            exiting: true,
+          }));
+          activeNext = activeNext.slice(0, MAX_VISIBLE);
+        }
+        return {
+          items: [...activeNext, ...overflow, ...exiting],
+          seq: prev.seq + 1,
+        };
+      });
+    };
+
+    spawn();
+    const id = window.setInterval(spawn, ADD_INTERVAL_MS);
+    return () => window.clearInterval(id);
+  }, []);
+
+  // Remove exiting rows after fade
+  useEffect(() => {
+    const exiting = stream.items.filter((i) => i.exiting);
+    if (exiting.length === 0) return;
+    const id = window.setTimeout(() => {
+      setStream((prev) => ({
+        ...prev,
+        items: prev.items.filter((i) => !i.exiting),
+      }));
+    }, FADE_OUT_MS);
+    return () => window.clearTimeout(id);
+  }, [stream.items]);
+
+  // Typewriter; keep spinner longer, then promote running → ok
+  useEffect(() => {
+    const typingItem = stream.items.find(
+      (i) => !i.exiting && i.typed < i.detail.length
+    );
+    if (typingItem) {
+      const id = window.setTimeout(() => {
+        setStream((prev) => ({
+          ...prev,
+          items: prev.items.map((item) => {
+            if (item.id !== typingItem.id || item.exiting) return item;
+            if (item.typed >= item.detail.length) return item;
+            return { ...item, typed: item.typed + 1 };
+          }),
+        }));
+      }, TYPE_MS);
+      return () => window.clearTimeout(id);
+    }
+
+    const toComplete = stream.items.find(
+      (i) =>
+        !i.exiting &&
+        i.status === "running" &&
+        i.typed >= i.detail.length
+    );
+    if (!toComplete) return;
+    const id = window.setTimeout(() => {
+      setStream((prev) => ({
+        ...prev,
+        items: prev.items.map((item) =>
+          item.id === toComplete.id ? { ...item, status: "ok" as const } : item
+        ),
+      }));
+    }, 1400);
+    return () => window.clearTimeout(id);
+  }, [stream.items]);
+
+  return (
+    <div className="flex flex-col gap-2 overflow-hidden p-4 md:col-span-2">
+      <p className="mb-1 font-mono text-[10px] uppercase tracking-[0.2em] text-indigo-300/80">
+        tool stream
+      </p>
+      <div className="relative flex min-h-[220px] flex-col gap-2">
+        {stream.items.map((ev) => (
+          <div
+            key={ev.id}
+            className={`tool-stream-row flex items-start gap-2 overflow-hidden rounded-lg border bg-white/[0.03] px-2.5 font-mono text-[11px] ${
+              ev.exiting
+                ? "tool-stream-row--out pointer-events-none border-transparent py-0 opacity-0"
+                : "tool-stream-row--in border-white/5 py-2 opacity-100"
+            }`}
+          >
+            <span className="relative mt-0.5 size-3.5 shrink-0">
+              <Loader2
+                className={`absolute inset-0 size-3.5 animate-spin text-sky-400 transition-opacity duration-500 ${
+                  ev.status === "running" ? "opacity-100" : "opacity-0"
+                }`}
+                aria-hidden
+              />
+              <XCircle
+                className={`absolute inset-0 size-3.5 text-rose-400 transition-opacity duration-500 ${
+                  ev.status === "error" ? "opacity-100" : "opacity-0"
+                }`}
+                aria-hidden
+              />
+              <CheckCircle2
+                className={`absolute inset-0 size-3.5 text-emerald-400 transition-opacity duration-500 ${
+                  ev.status === "ok" ? "opacity-100" : "opacity-0"
+                }`}
+                aria-hidden
+              />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-indigo-100/50">{ev.t}</p>
+              <p className="truncate text-indigo-100">{ev.tool}</p>
+              <p className="truncate text-indigo-200/60">
+                {ev.detail.slice(0, ev.typed)}
+                {ev.typed < ev.detail.length ? (
+                  <span className="ml-0.5 inline-block h-3 w-1 animate-pulse bg-indigo-300/70 align-middle" />
+                ) : null}
+              </p>
             </div>
-          ))}
-        </div>
+          </div>
+        ))}
       </div>
     </div>
   );

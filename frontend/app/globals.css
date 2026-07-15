@@ -178,6 +178,45 @@
   animation: moneo-node-pulse 3.2s ease-in-out infinite;
 }
 
+@keyframes tool-stream-in {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+    max-height: 0;
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    max-height: 5rem;
+  }
+}
+
+.tool-stream-row {
+  max-height: 5rem;
+  transition:
+    opacity 0.75s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.75s cubic-bezier(0.22, 1, 0.36, 1),
+    max-height 0.75s cubic-bezier(0.22, 1, 0.36, 1),
+    padding 0.75s cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 0.75s ease,
+    margin 0.75s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.tool-stream-row--in {
+  animation: tool-stream-in 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.tool-stream-row--out {
+  max-height: 0 !important;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  transform: translateY(6px);
+}
+
+.animate-tool-stream-in {
+  animation: tool-stream-in 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
 @keyframes secretary-bob {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-6px); }
