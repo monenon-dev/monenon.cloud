@@ -6,7 +6,6 @@ import {
   Menu,
   X,
   LayoutDashboard,
-  Users,
   Settings,
   MessageSquare,
   Bot,
