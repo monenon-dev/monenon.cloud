@@ -31,7 +31,6 @@ function navHref(sectionId: string): string {
   if (sectionId in WORK_CHAT_PROMPTS) {
     return workChatHref(WORK_CHAT_PROMPTS[sectionId]);
   }
-  if (sectionId === "messages") return routes.lifestyle.chats;
   return lifestyleDashboardSection(sectionId);
 }
 

@@ -44,7 +44,6 @@ const SECTION_DESCRIPTIONS: Record<Exclude<PlatformSection, "users">, string> = 
   refrigerator: "식재료·유통기한·날씨·선호 메뉴를 정리합니다.",
   music: "출근·외출·요리 상황별 음악 추천 — /music 페이지",
   chat_sessions: "채팅방 세션 (레거시 URL 호환).",
-  messages: "채팅방·대화 메시지 — Agent Chat 화면과 연결됩니다.",
 };
 
 const VALID_SECTIONS = new Set<PlatformSection>([
@@ -54,7 +53,6 @@ const VALID_SECTIONS = new Set<PlatformSection>([
   "refrigerator",
   "music",
   "chat_sessions",
-  "messages",
 ]);
 
 function DashboardContent() {
@@ -90,6 +88,11 @@ function DashboardContent() {
       router.replace(routes.oauth.admin.root);
       return;
     }
+    // 구 메뉴 "에이전트 채팅방"(messages) → 에이전트 채팅으로 통합
+    if (section === "messages") {
+      router.replace(routes.lifestyle.chats);
+      return;
+    }
     if (section && VALID_SECTIONS.has(section as PlatformSection)) {
       setActiveSection(section as PlatformSection);
     }
@@ -118,9 +121,7 @@ function DashboardContent() {
       : overview?.tables.find((t) => t.key === activeSection);
 
   const activeNavItem = PLATFORM_NAV.flatMap((g) => g.items).find(
-    (i) =>
-      i.id === activeSection ||
-      (activeSection === "chat_sessions" && i.id === "messages")
+    (i) => i.id === activeSection
   );
 
   const headerActions = (
@@ -180,7 +181,7 @@ function DashboardContent() {
             </div>
           </div>
         </div>
-      ) : activeSection === "messages" || activeSection === "chat_sessions" ? (
+      ) : activeSection === "chat_sessions" ? (
         <ChatSessionsTable apiBaseUrl={apiBaseUrl} />
       ) : (
         <FeaturePanel

@@ -7,8 +7,6 @@ import {
   X,
   LayoutDashboard,
   Settings,
-  MessageSquare,
-  Bot,
   BriefcaseBusiness,
   Files,
   FileBarChart,
@@ -26,8 +24,7 @@ export type PlatformSection =
   | "closet"
   | "refrigerator"
   | "music"
-  | "chat_sessions"
-  | "messages";
+  | "chat_sessions";
 
 export interface NavItem {
   id: PlatformSection;
@@ -51,13 +48,6 @@ export const PLATFORM_NAV: NavGroup[] = [
       { id: "closet", label: "오늘의 업무 브리핑", tableName: "closet", icon: BriefcaseBusiness },
       { id: "refrigerator", label: "문서/자료 정리", tableName: "refrigerator", icon: Files },
       { id: "music", label: "업무 리포트 생성", tableName: "music", icon: FileBarChart },
-    ],
-  },
-  {
-    title: "AI 대화",
-    icon: Bot,
-    items: [
-      { id: "messages", label: "에이전트 채팅방", tableName: "messages", icon: MessageSquare },
     ],
   },
 ];
