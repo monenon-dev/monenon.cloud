@@ -55,8 +55,28 @@ out/
 *.pt
 *.pth
 *.onnx
+*.safetensors
+*.gguf
+*.ggml
+*.awq
+*.ckpt
+*.h5
+*.npz*
 runs/
 backend/apps/face/archive/
+
+# EXAONE / HF 로컬 가중치 (scripts/exaone/*.py 는 코드 — 무시하지 않음)
+**/EXAONE-*/
+**/EXAONE_*/
+/models/
+/EXAONE-*/
+
+# Ollama·HF·venv 캐시가 레포 루트에 생겼을 때
+.ollama/
+.cache/huggingface/
+.venvs/
+hf-venv/
+exaone-venv/
 
 # ===== 로그·로컬 런타임 =====
 *.log
