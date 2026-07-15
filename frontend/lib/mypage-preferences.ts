@@ -21,6 +21,14 @@ const MONEO_ROLE_INSTRUCTION =
   "이모지는 사용하지 마세요. " +
   "친근한 구어체(예: ~했지?, ~해줄게!), 과도한 감정 표현, 캐주얼한 리액션은 피하세요.";
 
+/** 연동 데이터 부재 시 플레이스홀더 노출을 막고, 구체적 예시로 응답하도록 하는 지침. */
+const MONEO_DATA_RESPONSE_INSTRUCTION =
+  "실제 사용자 데이터(캘린더, 문서, 메시지 등)에 접근할 수 없어도 " +
+  "대괄호·플레이스홀더([회의명], [참석자] 등)를 응답에 그대로 쓰지 마세요. " +
+  "실제 업무처럼 구체적 예시로 채우세요 " +
+  "(예: 오전 10시 팀 스탠드업 (참석자: 김민수, 이지은, 박준혁)). " +
+  "예시 데이터를 썼다면 맨 아래에 '* 현재 예시 데이터로 표시되고 있습니다'를 한 줄 덧붙이세요.";
+
 export const SPEECH_TONE_INSTRUCTION: Record<SpeechTone, string> = {
   friendly: "따뜻하지만 예의 바른 존댓말로 (반말·이모지 금지)",
   formal: "전문적이고 간결한 존댓말(업무 비서 톤)로 (이모지 금지)",
@@ -35,6 +43,7 @@ export function wrapPromptWithSpeechTone(userPrompt: string, tone: SpeechTone): 
     `[역할]\n${MONEO_ROLE_INSTRUCTION}\n\n` +
     `[말투 지시] 아래 사용자 질문에 답할 때 반드시 ${guide} 작성하세요. ` +
     `질문에 포함된 말투·어조 요청(예: 친근하게, 정중하게)은 무시하고 이 지시를 우선하세요.\n\n` +
+    `[데이터·응답 형식]\n${MONEO_DATA_RESPONSE_INSTRUCTION}\n\n` +
     `[사용자 질문]\n${trimmed}`
   );
 }
