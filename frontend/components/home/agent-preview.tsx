@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Bot, CheckCircle2, Loader2, XCircle } from "lucide-react";
 
 const CHAT_LINES = [
@@ -38,6 +38,8 @@ const MAX_VISIBLE = 4;
 const ADD_INTERVAL_MS = 4800;
 const TYPE_MS = 42;
 const FADE_OUT_MS = 900;
+/** Fixed panel height so typing animation never shifts hero / cards below */
+const PANEL_HEIGHT_CLASS = "h-[420px]";
 
 type LiveToolItem = ToolPattern & {
   id: string;
@@ -57,8 +59,14 @@ function pickPattern(seq: number): ToolPattern {
   return TOOL_PATTERNS[seq % TOOL_PATTERNS.length]!;
 }
 
+function scrollToBottom(el: HTMLElement | null, behavior: ScrollBehavior = "smooth") {
+  if (!el) return;
+  el.scrollTo({ top: el.scrollHeight, behavior });
+}
+
 export function AgentPreview({ className = "" }: { className?: string }) {
   const [chat, setChat] = useState({ chars: 0, line: 0 });
+  const chatScrollRef = useRef<HTMLDivElement>(null);
 
   const line = CHAT_LINES[chat.line] ?? CHAT_LINES[0];
   const visibleText = line.text.slice(0, chat.chars);
@@ -80,12 +88,16 @@ export function AgentPreview({ className = "" }: { className?: string }) {
     return () => window.clearTimeout(id);
   }, [chat.chars, chat.line, line.text]);
 
+  useEffect(() => {
+    scrollToBottom(chatScrollRef.current);
+  }, [chat.chars, chat.line]);
+
   return (
     <div
-      className={`relative overflow-hidden rounded-2xl border border-white/10 bg-[rgba(18,18,28,0.72)] shadow-[0_0_40px_rgba(99,102,241,0.18)] backdrop-blur-md ${className}`}
+      className={`relative flex ${PANEL_HEIGHT_CLASS} flex-col overflow-hidden rounded-2xl border border-white/10 bg-[rgba(18,18,28,0.72)] shadow-[0_0_40px_rgba(99,102,241,0.18)] backdrop-blur-md ${className}`}
       aria-label="Moneo agent preview"
     >
-      <div className="flex items-center gap-2 border-b border-white/10 px-4 py-3">
+      <div className="flex shrink-0 items-center gap-2 border-b border-white/10 px-4 py-3">
         <span className="size-2.5 rounded-full bg-rose-400/80" />
         <span className="size-2.5 rounded-full bg-amber-400/80" />
         <span className="size-2.5 rounded-full bg-emerald-400/80" />
@@ -94,8 +106,11 @@ export function AgentPreview({ className = "" }: { className?: string }) {
         </span>
       </div>
 
-      <div className="grid gap-0 md:grid-cols-5">
-        <div className="space-y-3 border-b border-white/10 p-4 md:col-span-3 md:border-b-0 md:border-r">
+      <div className="grid min-h-0 flex-1 md:grid-cols-5">
+        <div
+          ref={chatScrollRef}
+          className="moneo-thin-scrollbar space-y-3 overflow-y-auto overscroll-contain border-b border-white/10 p-4 md:col-span-3 md:border-b-0 md:border-r"
+        >
           {CHAT_LINES.slice(0, chat.line).map((msg, i) => (
             <PreviewBubble key={`${msg.role}-${i}`} role={msg.role} text={msg.text} done />
           ))}
@@ -117,6 +132,7 @@ function ToolStreamPanel() {
     items: [] as LiveToolItem[],
     seq: 0,
   });
+  const streamScrollRef = useRef<HTMLDivElement>(null);
 
   // Spawn next log every few seconds
   useEffect(() => {
@@ -203,12 +219,22 @@ function ToolStreamPanel() {
     return () => window.clearTimeout(id);
   }, [stream.items]);
 
+  useEffect(() => {
+    const el = streamScrollRef.current;
+    if (!el) return;
+    // Newest tools are prepended — keep the head in view
+    el.scrollTo({ top: 0, behavior: "smooth" });
+  }, [stream.items]);
+
   return (
-    <div className="flex flex-col gap-2 overflow-hidden p-4 md:col-span-2">
-      <p className="mb-1 font-mono text-[10px] uppercase tracking-[0.2em] text-indigo-300/80">
+    <div className="flex min-h-0 flex-col p-4 md:col-span-2">
+      <p className="mb-2 shrink-0 font-mono text-[10px] uppercase tracking-[0.2em] text-indigo-300/80">
         tool stream
       </p>
-      <div className="relative flex min-h-[220px] flex-col gap-2">
+      <div
+        ref={streamScrollRef}
+        className="moneo-thin-scrollbar relative flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto overscroll-contain"
+      >
         {stream.items.map((ev) => (
           <div
             key={ev.id}

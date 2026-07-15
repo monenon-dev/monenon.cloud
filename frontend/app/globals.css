@@ -178,6 +178,29 @@
   animation: moneo-node-pulse 3.2s ease-in-out infinite;
 }
 
+/* Agent preview · thin dark scrollbar (internal scroll only) */
+.moneo-thin-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(99, 102, 241, 0.35) transparent;
+}
+
+.moneo-thin-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.moneo-thin-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.moneo-thin-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(99, 102, 241, 0.35);
+  border-radius: 9999px;
+}
+
+.moneo-thin-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(99, 102, 241, 0.55);
+}
+
 @keyframes tool-stream-in {
   from {
     opacity: 0;
