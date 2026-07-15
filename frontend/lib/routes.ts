@@ -34,6 +34,7 @@ export const routes = {
   lesson: {
     hub: "/lesson",
     titanicHome: "/lesson/titanic-home",
+    moneyball: "/lesson/moneyball",
     titanicSmith: "/lesson/titanic-home/smith",
     titanicPassengers: "/lesson/titanic-home/passengers",
     vision: "/star-craft/zerg/vision",

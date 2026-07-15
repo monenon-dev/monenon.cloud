@@ -97,6 +97,11 @@ except ModuleNotFoundError:
 import titanic.adapter.outbound.orm.passenger_jack_trainer_orm  # noqa: F401 — 승객 metadata
 import titanic.adapter.outbound.orm.passenger_rose_model_orm  # noqa: F401 — 부킹 metadata
 from titanic.adapter.inbound.api.v1 import titanic_router
+try:
+    import moneyball.adapter.outbound.orm  # noqa: F401 — moneyball 테이블 metadata
+    from moneyball.adapter.inbound.api import moneyball_router
+except ModuleNotFoundError:
+    moneyball_router = None
 # Titanic CSV 자동 시드는 사용자가 업로드할 때만 실행
 UPLOAD_DIR = Path(__file__).resolve().parent / "uploads"
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
@@ -297,6 +302,8 @@ if star_craft_router is not None:
 if faker_api_router is not None:
     app.include_router(faker_api_router)
 app.include_router(titanic_router)
+if moneyball_router is not None:
+    app.include_router(moneyball_router)
 
 
 @app.get("/")

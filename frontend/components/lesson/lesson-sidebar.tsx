@@ -4,9 +4,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ChevronDown, ChevronRight } from "lucide-react";
 
-type LessonNavKey = "hub" | "titanic" | "samsung";
+type LessonNavKey = "hub" | "titanic" | "samsung" | "moneyball";
 type TitanicSubKey = "upload" | "walter" | "smith" | "vision";
 type SamsungSubKey = "analysis" | "upload";
+
+const MONEYBALL_HREF = "/lesson/moneyball";
 
 const TITANIC_SUB: { key: TitanicSubKey; label: string; href: string }[] = [
   { key: "upload", label: "1. 데이터 수집(CSV 업로드)", href: "/lesson/titanic-home" },
@@ -141,6 +143,15 @@ export function LessonSidebar({ active = "hub" }: { active?: LessonNavKey }) {
                 삼성전자 분석 시작
               </Link>
             )}
+          </div>
+          <div className="py-2">
+            <Link
+              href={MONEYBALL_HREF}
+              className={`flex items-center justify-between py-4 text-sm transition-colors ${navLinkClass(active === "moneyball")}`}
+            >
+              <span>Moneyball (K-League DB)</span>
+              <ChevronRight className="h-4 w-4 text-[var(--moneo-muted)]" aria-hidden />
+            </Link>
           </div>
         </nav>
       </div>

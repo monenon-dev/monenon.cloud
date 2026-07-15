@@ -82,6 +82,27 @@ export default function LessonHubPage() {
             삼성전자 분석 시작
           </Link>
         </section>
+        <section className="mt-8 rounded-2xl border border-[var(--moneo-border)] bg-[var(--moneo-bg-elevated)] p-6 moneo-glass">
+          <h2 className="text-sm font-bold tracking-widest text-white">Moneyball (K-League DB)</h2>
+          <p className="mt-3 max-w-2xl text-sm leading-relaxed text-[var(--moneo-muted)]">
+            경기장 · 팀 · 선수 · 일정 ERD 실습용 더미 데이터를 PostgreSQL moneyball_* 테이블에
+            적재합니다.
+          </p>
+          <ul className="mt-4 space-y-2 text-sm text-indigo-100/80">
+            <li className="flex gap-2">
+              <span className="text-[var(--moneo-muted)]">•</span>
+              <Link href={routes.lesson.moneyball} className="hover:text-indigo-300 hover:underline">
+                1. 더미 데이터 시드 (경기장/팀/선수/일정)
+              </Link>
+            </li>
+          </ul>
+          <Link
+            href={routes.lesson.moneyball}
+            className="mt-6 inline-flex items-center rounded-lg border border-[var(--moneo-border)] bg-white/5 px-4 py-2 text-sm font-medium text-indigo-100 hover:bg-white/10"
+          >
+            Moneyball 시드 시작
+          </Link>
+        </section>
       </div>
     </LessonLayout>
   );

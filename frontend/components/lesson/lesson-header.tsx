@@ -16,7 +16,7 @@ import {
 import { clearAuthSession, getAuthSession } from "@/lib/auth-api";
 import { routes } from "@/lib/routes";
 
-type LessonNavKey = "hub" | "titanic" | "samsung";
+type LessonNavKey = "hub" | "titanic" | "samsung" | "moneyball";
 
 export function LessonHeader({ active = "hub" }: { active?: LessonNavKey }) {
   const [authUser, setAuthUser] = useState<{ nickname: string } | null>(null);
