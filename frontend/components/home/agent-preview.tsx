@@ -38,6 +38,14 @@ const MAX_VISIBLE = 5;
 const ADD_INTERVAL_MS = 4800;
 const TYPE_MS = 42;
 const FADE_OUT_MS = 900;
+/** One active row: py-2 + 3×11px lines ≈ 4.25rem; gap-2 = 0.5rem */
+const TOOL_ROW_H_REM = 4.25;
+const TOOL_GAP_REM = 0.5;
+/** Locked list box for MAX_VISIBLE rows — never grows/shrinks with item count */
+const STREAM_LIST_HEIGHT = `calc(${MAX_VISIBLE} * ${TOOL_ROW_H_REM}rem + ${MAX_VISIBLE - 1} * ${TOOL_GAP_REM}rem)`;
+const TOOL_ROW_H_CLASS = "h-[4.25rem]";
+/** Label (~1.25rem) + mb-2 (0.5rem) + vertical p-4 (2rem) + list */
+const PREVIEW_BODY_HEIGHT = `calc(${STREAM_LIST_HEIGHT} + 3.75rem)`;
 
 type LiveToolItem = ToolPattern & {
   id: string;
@@ -57,9 +65,18 @@ function pickPattern(seq: number): ToolPattern {
   return TOOL_PATTERNS[seq % TOOL_PATTERNS.length]!;
 }
 
-function scrollToBottom(el: HTMLElement | null, behavior: ScrollBehavior = "smooth") {
+/** Scroll only inside an overflow panel — never the window/document. */
+function scrollPanelTop(el: HTMLElement | null, top: number) {
   if (!el) return;
-  el.scrollTo({ top: el.scrollHeight, behavior });
+  // Not a scrollport → leave alone (smooth scrollTo here can disturb the page)
+  if (el.scrollHeight <= el.clientHeight + 1) return;
+  el.scrollTop = top;
+}
+
+function scrollPanelBottom(el: HTMLElement | null) {
+  if (!el) return;
+  if (el.scrollHeight <= el.clientHeight + 1) return;
+  el.scrollTop = el.scrollHeight;
 }
 
 export function AgentPreview({ className = "" }: { className?: string }) {
@@ -87,12 +104,12 @@ export function AgentPreview({ className = "" }: { className?: string }) {
   }, [chat.chars, chat.line, line.text]);
 
   useEffect(() => {
-    scrollToBottom(chatScrollRef.current);
+    scrollPanelBottom(chatScrollRef.current);
   }, [chat.chars, chat.line]);
 
   return (
     <div
-      className={`relative flex flex-col rounded-2xl border border-white/10 bg-[rgba(18,18,28,0.72)] shadow-[0_0_40px_rgba(99,102,241,0.18)] backdrop-blur-md ${className}`}
+      className={`relative flex flex-col rounded-2xl border border-white/10 bg-[rgba(18,18,28,0.72)] shadow-[0_0_40px_rgba(99,102,241,0.18)] backdrop-blur-md [overflow-anchor:none] ${className}`}
       aria-label="Moneo agent preview"
     >
       <div className="flex shrink-0 items-center gap-2 border-b border-white/10 px-4 py-3">
@@ -104,10 +121,13 @@ export function AgentPreview({ className = "" }: { className?: string }) {
         </span>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1.25fr)_minmax(12.5rem,0.95fr)]">
+      <div
+        className="grid grid-cols-1 md:h-[var(--preview-body-h)] md:grid-cols-[minmax(0,1.25fr)_minmax(12.5rem,0.95fr)] md:overflow-hidden"
+        style={{ ["--preview-body-h" as string]: PREVIEW_BODY_HEIGHT }}
+      >
         <div
           ref={chatScrollRef}
-          className="space-y-3 border-b border-white/10 p-4 md:border-b-0 md:border-r"
+          className="moneo-thin-scrollbar space-y-3 overflow-y-auto overscroll-contain border-b border-white/10 p-4 [overflow-anchor:none] md:min-h-0 md:border-b-0 md:border-r"
         >
           {CHAT_LINES.slice(0, chat.line).map((msg, i) => (
             <PreviewBubble key={`${msg.role}-${i}`} role={msg.role} text={msg.text} done />
@@ -218,25 +238,28 @@ function ToolStreamPanel() {
   }, [stream.items]);
 
   useEffect(() => {
-    const el = streamScrollRef.current;
-    if (!el) return;
-    // Only on new spawn — scrolling every typed char was janky and looked like stalls
-    el.scrollTo({ top: 0, behavior: "smooth" });
+    // Newest logs prepend at top — keep panel pinned without smooth window chaining
+    scrollPanelTop(streamScrollRef.current, 0);
   }, [stream.seq]);
 
   return (
-    <div className="flex min-w-[12.5rem] flex-col p-4">
+    <div className="flex min-w-[12.5rem] shrink-0 flex-col p-4">
       <p className="mb-2 shrink-0 font-mono text-[10px] uppercase tracking-[0.2em] text-indigo-300/80">
         tool stream
       </p>
-      <div ref={streamScrollRef} className="relative flex flex-col gap-2">
+      <div
+        ref={streamScrollRef}
+        className="moneo-thin-scrollbar relative flex flex-col gap-2 overflow-y-auto overscroll-contain [overflow-anchor:none]"
+        style={{ height: STREAM_LIST_HEIGHT, minHeight: STREAM_LIST_HEIGHT }}
+        aria-live="polite"
+      >
         {stream.items.map((ev) => (
           <div
             key={ev.id}
-            className={`tool-stream-row flex items-start gap-2 rounded-lg border bg-white/[0.03] px-2.5 font-mono text-[11px] ${
+            className={`tool-stream-row flex items-start gap-2 rounded-lg border bg-white/[0.03] px-2.5 font-mono text-[11px] leading-snug ${
               ev.exiting
                 ? "tool-stream-row--out pointer-events-none overflow-hidden border-transparent py-0 opacity-0"
-                : "tool-stream-row--in border-white/5 py-2 opacity-100"
+                : `tool-stream-row--in shrink-0 overflow-hidden border-white/5 py-2 opacity-100 ${TOOL_ROW_H_CLASS}`
             }`}
           >
             <span className="relative mt-0.5 size-3.5 shrink-0">
@@ -259,12 +282,12 @@ function ToolStreamPanel() {
                 aria-hidden
               />
             </span>
-            <div className="min-w-0 flex-1">
-              <p className="text-indigo-100/50">{ev.t}</p>
+            <div className="min-w-0 flex-1 overflow-hidden">
+              <p className="truncate text-indigo-100/50">{ev.t}</p>
               <p className="truncate text-indigo-100" title={ev.tool}>
                 {ev.tool}
               </p>
-              <p className="break-all text-indigo-200/60">
+              <p className="truncate text-indigo-200/60">
                 {ev.detail.slice(0, ev.typed)}
                 {ev.typed < ev.detail.length ? (
                   <span className="ml-0.5 inline-block h-3 w-1 animate-pulse bg-indigo-300/70 align-middle" />
