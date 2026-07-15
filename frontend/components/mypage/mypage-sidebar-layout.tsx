@@ -3,25 +3,22 @@
 import Link from "next/link";
 import {
   LayoutDashboard,
-  Palette,
   Settings2,
   UserCircle,
   type LucideIcon,
 } from "lucide-react";
 
-export type MyPageSection = "dashboard" | "preferences" | "theme" | "account";
+export type MyPageSection = "dashboard" | "preferences" | "account";
 
 export const MYPAGE_MENU: { id: MyPageSection; label: string; icon: LucideIcon }[] = [
   { id: "dashboard", label: "대시보드", icon: LayoutDashboard },
   { id: "preferences", label: "취향 설정", icon: Settings2 },
-  { id: "theme", label: "테마 설정", icon: Palette },
   { id: "account", label: "계정 관리", icon: UserCircle },
 ];
 
 export const MYPAGE_SECTION_TITLE: Record<MyPageSection, string> = {
   dashboard: "대시보드",
   preferences: "취향 설정",
-  theme: "테마 설정",
   account: "계정 관리",
 };
 

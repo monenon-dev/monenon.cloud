@@ -98,22 +98,3 @@ export function loadMyPagePreferences(userId: number): MyPagePreferences {
 export function saveMyPagePreferences(userId: number, prefs: MyPagePreferences): void {
   localStorage.setItem(storageKey(userId), JSON.stringify(prefs));
 }
-
-export type ThemeMode = "light" | "dark" | "system";
-
-const THEME_KEY = "monenon_theme";
-
-export function loadThemeMode(): ThemeMode {
-  if (typeof window === "undefined") return "system";
-  const stored = localStorage.getItem(THEME_KEY);
-  if (stored === "light" || stored === "dark" || stored === "system") return stored;
-  return "system";
-}
-
-export function applyThemeMode(mode: ThemeMode): void {
-  const root = document.documentElement;
-  const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-  const isDark = mode === "dark" || (mode === "system" && prefersDark);
-  root.classList.toggle("dark", isDark);
-  localStorage.setItem(THEME_KEY, mode);
-}

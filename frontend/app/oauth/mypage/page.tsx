@@ -7,7 +7,6 @@ import { Loader2 } from "lucide-react";
 import { AccountSection } from "@/components/mypage/sections/account-section";
 import { DashboardSection } from "@/components/mypage/sections/dashboard-section";
 import { PreferencesSection } from "@/components/mypage/sections/preferences-section";
-import { ThemeSection } from "@/components/mypage/sections/theme-section";
 import {
   MyPageSidebarLayout,
   type MyPageSection,
@@ -17,12 +16,9 @@ import { routes } from "@/lib/routes";
 import { getApiBaseUrl } from "@/lib/api-base";
 import { formatApiError } from "@/lib/format-api-error";
 import {
-  applyThemeMode,
   loadMyPagePreferences,
-  loadThemeMode,
   saveMyPagePreferences,
   type MyPagePreferences,
-  type ThemeMode,
 } from "@/lib/mypage-preferences";
 
 const apiBaseUrl = getApiBaseUrl();
@@ -76,7 +72,6 @@ export default function MyPage() {
     prefsSaving: false,
     prefsSavedMessage: null as string | null,
     prefsError: null as string | null,
-    themeMode: "system" as ThemeMode,
   });
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [prefs, setPrefs] = useState<MyPagePreferences>({
@@ -113,9 +108,6 @@ export default function MyPage() {
       router.replace(routes.oauth.login);
       return;
     }
-    const theme = loadThemeMode();
-    applyThemeMode(theme);
-    patchUi({ themeMode: theme });
     void loadProfile(userId);
   }, [router]);
 
@@ -225,13 +217,6 @@ export default function MyPage() {
           error={ui.prefsError}
           onChange={(patch) => setPrefs((prev) => ({ ...prev, ...patch }))}
           onSave={handleSavePreferences}
-        />
-      )}
-
-      {ui.activeSection === "theme" && (
-        <ThemeSection
-          themeMode={ui.themeMode}
-          onThemeChange={(mode) => patchUi({ themeMode: mode })}
         />
       )}
 
