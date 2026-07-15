@@ -383,6 +383,7 @@ function ChatsPageContent() {
               initialInput={starterPrompt}
               autoSendInitialInput={Boolean(starterPrompt?.trim())}
               messagesEpoch={messagesEpoch}
+              placeholder="업무에 대해 물어보세요 (예: 이번 주 리포트 요약해 줘)"
               onInitialInputHandled={() => {
                 skipLoadSessionRef.current = null;
                 setStarterPrompt(undefined);

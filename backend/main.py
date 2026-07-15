@@ -370,12 +370,14 @@ def chat(body: ChatMessageBody):
 @app.post("/agent/chat")
 async def agent_chat(body: AgentChatBody, session: AsyncSession = Depends(get_db)):
     """프론트 Monenon 채팅 — 응답 우선 모델로 Gemini 호출."""
+    from lifestyle.app.agent_system_prompt import with_agent_system_prompt
     from lifestyle.app.chat_context import augment_prompt_with_user_context
 
     prompt = body.prompt
     if body.user_id is not None:
         prompt = await augment_prompt_with_user_context(session, body.user_id, prompt)
         logger.info("[agent_chat] user_id=%s prompt_chars=%s", body.user_id, len(prompt))
+    prompt = with_agent_system_prompt(prompt)
     try:
         km = get_keymaker()
         chat_model = km.gemini_chat_model_id()

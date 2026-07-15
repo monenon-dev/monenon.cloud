@@ -124,9 +124,9 @@ function parseAssistantReply(
 export function GeminiChatPanel({
   apiBaseUrl = defaultBase,
   chatPath = "/titanic/smith/chat",
-  placeholder = "타이타닉에 대해 질문하세요 (예: 생존자는 몇 명인가요?)",
-  emptyTitle: _emptyTitle = "스미스 선장과 대화를 시작하세요",
-  emptySubtitle: _emptySubtitle = "백엔드 POST /api/titanic/smith/chat 이 연결되어 있으면 응답이 표시됩니다.",
+  placeholder = "업무에 대해 물어보세요 (예: 이번 주 리포트 요약해 줘)",
+  emptyTitle: _emptyTitle = "Moneo와 대화를 시작하세요",
+  emptySubtitle: _emptySubtitle = "일정·문서·리포트 등 업무를 물어보면 에이전트가 답합니다.",
   className = "",
   initialMessages,
   onSendMessage,
