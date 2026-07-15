@@ -16,7 +16,7 @@ import {
 import { clearAuthSession, getAuthSession } from "@/lib/auth-api";
 import { routes } from "@/lib/routes";
 
-type LessonNavKey = "hub" | "titanic" | "crawling" | "samsung";
+type LessonNavKey = "hub" | "titanic" | "samsung";
 
 export function LessonHeader({ active = "hub" }: { active?: LessonNavKey }) {
   const [authUser, setAuthUser] = useState<{ nickname: string } | null>(null);
@@ -51,7 +51,7 @@ export function LessonHeader({ active = "hub" }: { active?: LessonNavKey }) {
             >
               <SheetHeader className="sr-only">
                 <SheetTitle>수업용 메뉴</SheetTitle>
-                <SheetDescription>타이타닉·크롤링 수업 메뉴</SheetDescription>
+                <SheetDescription>타이타닉·삼성전자 분석 수업 메뉴</SheetDescription>
               </SheetHeader>
               <LessonSidebar active={active} />
             </SheetContent>

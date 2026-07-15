@@ -1,5 +1,8 @@
-import { LessonLayout } from "@/components/lesson/lesson-layout";
+import { redirect } from "next/navigation";
 
-export default function CrawlingLayout({ children }: { children: React.ReactNode }) {
-  return <LessonLayout active="crawling">{children}</LessonLayout>;
+import { routes } from "@/lib/routes";
+
+/** 레슨 허브에서 크롤링 메뉴를 제거함 — 기존 URL은 수업 메인으로 보냄 */
+export default function CrawlingLayout({ children: _children }: { children: React.ReactNode }) {
+  redirect(routes.lesson.hub);
 }

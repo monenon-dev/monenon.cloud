@@ -4,8 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ChevronDown, ChevronRight } from "lucide-react";
 
-type LessonNavKey = "hub" | "titanic" | "crawling" | "samsung";
-type CrawlingSubKey = "news" | "board" | "write";
+type LessonNavKey = "hub" | "titanic" | "samsung";
 type TitanicSubKey = "upload" | "walter" | "smith" | "vision";
 type SamsungSubKey = "analysis" | "upload";
 
@@ -16,23 +15,10 @@ const TITANIC_SUB: { key: TitanicSubKey; label: string; href: string }[] = [
   { key: "vision", label: "4. 레나 vision", href: "/star-craft/zerg/vision" },
 ];
 
-const CRAWLING_SUB: { key: CrawlingSubKey; label: string; href: string }[] = [
-  { key: "news", label: "1. 네이버 뉴스", href: "/lesson/crawling/news" },
-  { key: "board", label: "2. 게시판 목록", href: "/lesson/crawling/board" },
-  { key: "write", label: "3. 게시판 글쓰기", href: "/lesson/crawling/write" },
-];
-
 const SAMSUNG_SUB: { key: SamsungSubKey; label: string; href: string }[] = [
   { key: "analysis", label: "1. 삼성전자 분석", href: "/lesson/samsung" },
   { key: "upload", label: "2. 파일 업로드", href: "/lesson/samsung/upload" },
 ];
-
-function resolveCrawlingSub(pathname: string): CrawlingSubKey | null {
-  if (pathname.startsWith("/lesson/crawling/news")) return "news";
-  if (pathname.startsWith("/lesson/crawling/board")) return "board";
-  if (pathname.startsWith("/lesson/crawling/write")) return "write";
-  return null;
-}
 
 function resolveTitanicSub(pathname: string): TitanicSubKey | null {
   if (pathname.startsWith("/star-craft/zerg/vision") || pathname.startsWith("/lesson/vision")) return "vision";
@@ -73,11 +59,9 @@ function subLinkClass(active: boolean) {
 
 export function LessonSidebar({ active = "hub" }: { active?: LessonNavKey }) {
   const pathname = usePathname();
-  const crawlingSub = resolveCrawlingSub(pathname);
   const titanicSub = resolveTitanicSub(pathname);
   const samsungSub = resolveSamsungSub(pathname);
   const titanicOpen = active === "titanic" || titanicSub !== null;
-  const crawlingOpen = active === "crawling" || crawlingSub !== null;
   const samsungOpen = active === "samsung" || samsungSub !== null;
 
   return (
@@ -125,41 +109,6 @@ export function LessonSidebar({ active = "hub" }: { active?: LessonNavKey }) {
               </Link>
             )}
           </div>
-
-          <div className="py-2">
-            <div
-              className={`flex items-center justify-between py-2 text-sm ${
-                crawlingOpen ? "font-semibold text-white" : "text-indigo-100/75"
-              }`}
-            >
-              <span>크롤링</span>
-              {crawlingOpen ? (
-                <ChevronDown className="h-4 w-4 text-[var(--moneo-muted)]" aria-hidden />
-              ) : (
-                <ChevronRight className="h-4 w-4 text-[var(--moneo-muted)]" aria-hidden />
-              )}
-            </div>
-            {crawlingOpen ? (
-              <ul className="mb-2 space-y-1 pl-2">
-                {CRAWLING_SUB.map((item) => (
-                  <li key={item.key}>
-                    <Link href={item.href} className={subLinkClass(crawlingSub === item.key)}>
-                      {item.label}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <Link
-                href="/lesson/crawling/news"
-                className="mb-2 block py-1 pl-2 text-sm text-[var(--moneo-muted)] hover:text-indigo-100"
-              >
-                크롤링 시작
-              </Link>
-            )}
-          </div>
-
-          <hr className="border-[var(--moneo-border)]" />
 
           <div className="py-2">
             <div

@@ -12,7 +12,7 @@ export default function LessonHubPage() {
         </p>
         <h1 className="mt-2 text-2xl font-bold tracking-tight text-white">수업용 메인 페이지</h1>
         <p className="mt-3 max-w-2xl text-sm leading-relaxed text-[var(--moneo-muted)]">
-          다양한 데이터 분석 및 머신러닝 강의 콘텐츠를 제공합니다.
+          타이타닉·삼성전자 분석 강의 콘텐츠를 제공합니다.
         </p>
 
         <section className="mt-12 rounded-2xl border border-[var(--moneo-border)] bg-[var(--moneo-bg-elevated)] p-6 moneo-glass">
@@ -53,39 +53,6 @@ export default function LessonHubPage() {
             className="mt-6 inline-flex items-center rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500"
           >
             타이타닉 수업 시작
-          </Link>
-        </section>
-
-        <section className="mt-8 rounded-2xl border border-[var(--moneo-border)] bg-[var(--moneo-bg-elevated)] p-6 moneo-glass">
-          <h2 className="text-sm font-bold tracking-widest text-white">CRAWLING</h2>
-          <p className="mt-3 max-w-2xl text-sm leading-relaxed text-[var(--moneo-muted)]">
-            네이버 뉴스 크롤링 결과를 카드로 보고, 게시판에서 정리·공유하는 강의입니다.
-          </p>
-          <ul className="mt-4 space-y-2 text-sm text-indigo-100/80">
-            <li className="flex gap-2">
-              <span className="text-[var(--moneo-muted)]">•</span>
-              <Link href="/lesson/crawling/news" className="hover:text-indigo-300 hover:underline">
-                1. 네이버 뉴스 (카드 목록)
-              </Link>
-            </li>
-            <li className="flex gap-2">
-              <span className="text-[var(--moneo-muted)]">•</span>
-              <Link href="/lesson/crawling/board" className="hover:text-indigo-300 hover:underline">
-                2. 게시판 목록
-              </Link>
-            </li>
-            <li className="flex gap-2">
-              <span className="text-[var(--moneo-muted)]">•</span>
-              <Link href="/lesson/crawling/write" className="hover:text-indigo-300 hover:underline">
-                3. 게시판 글쓰기
-              </Link>
-            </li>
-          </ul>
-          <Link
-            href="/lesson/crawling/news"
-            className="mt-6 inline-flex items-center rounded-lg border border-[var(--moneo-border)] bg-white/5 px-4 py-2 text-sm font-medium text-indigo-100 hover:bg-white/10"
-          >
-            크롤링 수업 시작
           </Link>
         </section>
 
