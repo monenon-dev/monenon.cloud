@@ -48,8 +48,12 @@ fi
 source "$VENV/bin/activate"
 
 python -m pip install -U pip setuptools wheel
+
+# 드라이버 CUDA 12.6 (12060) 이면 cu130 torch 는 거부됨 → cu124 권장
+echo "==> install torch (cu124)"
+python -m pip install -U torch --index-url https://download.pytorch.org/whl/cu124
+
 python -m pip install -U \
-  "torch" \
   "transformers==4.46.3" \
   "autoawq>=0.2.7.post3" \
   "accelerate" \
@@ -57,6 +61,8 @@ python -m pip install -U \
   "uvicorn[standard]" \
   "httpx" \
   "safetensors"
+
+python -c "import torch; print('cuda', torch.cuda.is_available(), 'torch', torch.__version__)"
 
 echo
 echo "Done. Activate:"

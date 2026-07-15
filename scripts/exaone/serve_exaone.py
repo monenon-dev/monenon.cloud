@@ -105,6 +105,24 @@ def _model_device() -> torch.device:
         return torch.device("cpu")
 
 
+def _patch_exaone_remote_code(model_dir: Path) -> None:
+    """transformers 5.x: create_causal_mask(inputs_embeds=...) vs EXAONE input_embeds= 불일치 수정."""
+    candidates = [model_dir / "modeling_exaone.py"]
+    cache_root = Path.home() / ".cache" / "huggingface" / "modules" / "transformers_modules"
+    if cache_root.is_dir():
+        candidates.extend(cache_root.rglob("modeling_exaone.py"))
+    for path in candidates:
+        if not path.is_file():
+            continue
+        text = path.read_text(encoding="utf-8")
+        if "input_embeds=" not in text:
+            continue
+        patched = text.replace("input_embeds=", "inputs_embeds=")
+        if patched != text:
+            path.write_text(patched, encoding="utf-8")
+            print(f"[exaone] patched input_embeds→inputs_embeds in {path}")
+
+
 def _ensure_loaded(role: Role) -> Path:
     global _tokenizer, _model, _loaded_role
     role = _resolve_role(role)
@@ -112,21 +130,29 @@ def _ensure_loaded(role: Role) -> Path:
     if _loaded_role == role and _model is not None:
         return model_dir
     _unload()
+    _patch_exaone_remote_code(model_dir)
 
     dtype = torch.float16 if torch.cuda.is_available() else torch.float32
     load_kwargs: dict[str, Any] = {
         "trust_remote_code": True,
-        "torch_dtype": dtype,
         "low_cpu_mem_usage": True,
     }
+    # transformers 4.x: torch_dtype / 5.x: dtype
+    load_kwargs["torch_dtype"] = dtype
+    load_kwargs["dtype"] = dtype
     if torch.cuda.is_available():
         load_kwargs["device_map"] = "auto"
     else:
         # CPU-only: disk offload 금지 (generate 불안정·500 원인)
         load_kwargs["device_map"] = None
 
-    _tokenizer = AutoTokenizer.from_pretrained(str(model_dir), trust_remote_code=True)
-    _model = AutoModelForCausalLM.from_pretrained(str(model_dir), **load_kwargs)
+    try:
+        _tokenizer = AutoTokenizer.from_pretrained(str(model_dir), trust_remote_code=True)
+        _model = AutoModelForCausalLM.from_pretrained(str(model_dir), **load_kwargs)
+    except TypeError:
+        load_kwargs.pop("dtype", None)
+        _tokenizer = AutoTokenizer.from_pretrained(str(model_dir), trust_remote_code=True)
+        _model = AutoModelForCausalLM.from_pretrained(str(model_dir), **load_kwargs)
     if not torch.cuda.is_available():
         _model = _model.to("cpu")
     _model.eval()
