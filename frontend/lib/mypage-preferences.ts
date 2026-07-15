@@ -12,6 +12,8 @@ export const SPEECH_TONE_OPTIONS: { value: SpeechTone; label: string }[] = [
   { value: "humorous", label: "유머러스한 말투" },
 ];
 
+export const SPEECH_TONE_VALUES: SpeechTone[] = ["friendly", "formal", "humorous"];
+
 /** 모든 말투에 공통으로 적용되는 Moneo 업무 어시스턴트 역할·톤 지침. */
 const MONEO_ROLE_INSTRUCTION =
   "당신은 Moneo, 전문적이고 신뢰감 있는 업무용 AI 어시스턴트입니다. " +
@@ -19,7 +21,7 @@ const MONEO_ROLE_INSTRUCTION =
   "이모지는 사용하지 마세요. " +
   "친근한 구어체(예: ~했지?, ~해줄게!), 과도한 감정 표현, 캐주얼한 리액션은 피하세요.";
 
-const SPEECH_TONE_INSTRUCTION: Record<SpeechTone, string> = {
+export const SPEECH_TONE_INSTRUCTION: Record<SpeechTone, string> = {
   friendly: "따뜻하지만 예의 바른 존댓말로 (반말·이모지 금지)",
   formal: "전문적이고 간결한 존댓말(업무 비서 톤)로 (이모지 금지)",
   humorous: "재치 있되 품위 있는 존댓말로 (반말·이모지 최소화)",
@@ -37,25 +39,42 @@ export function wrapPromptWithSpeechTone(userPrompt: string, tone: SpeechTone): 
   );
 }
 
+export function isSpeechTone(value: unknown): value is SpeechTone {
+  return typeof value === "string" && SPEECH_TONE_VALUES.includes(value as SpeechTone);
+}
+
 export const INTEREST_OPTIONS = [
-  "패션·코디",
-  "요리·레시피",
-  "음악",
-  "운동·헬스",
-  "여행",
+  "문서 관리",
+  "일정 관리",
+  "리포트 작성",
+  "커뮤니케이션(메일/슬랙)",
+  "데이터 분석",
+  "프로젝트 관리",
+  "리서치",
   "IT·개발",
-  "독서",
-  "재테크",
 ] as const;
+
+const INTEREST_SET = new Set<string>(INTEREST_OPTIONS);
 
 const DEFAULT_PREFERENCES: MyPagePreferences = {
   speechTone: "formal",
-  agentName: "모네난",
+  agentName: "Moneo",
   interests: [],
 };
 
 function storageKey(userId: number): string {
   return `monenon_mypage_prefs_${userId}`;
+}
+
+function normalizeAgentName(name: string | undefined): string {
+  const trimmed = name?.trim() ?? "";
+  if (!trimmed || trimmed === "모네난") return DEFAULT_PREFERENCES.agentName;
+  return trimmed;
+}
+
+function normalizeInterests(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return DEFAULT_PREFERENCES.interests;
+  return raw.filter((item): item is string => typeof item === "string" && INTEREST_SET.has(item));
 }
 
 export function loadMyPagePreferences(userId: number): MyPagePreferences {
@@ -65,11 +84,11 @@ export function loadMyPagePreferences(userId: number): MyPagePreferences {
     if (!raw) return DEFAULT_PREFERENCES;
     const parsed = JSON.parse(raw) as Partial<MyPagePreferences>;
     return {
-      speechTone: parsed.speechTone ?? DEFAULT_PREFERENCES.speechTone,
-      agentName: parsed.agentName?.trim() || DEFAULT_PREFERENCES.agentName,
-      interests: Array.isArray(parsed.interests)
-        ? parsed.interests.filter((item): item is string => typeof item === "string")
-        : DEFAULT_PREFERENCES.interests,
+      speechTone: isSpeechTone(parsed.speechTone)
+        ? parsed.speechTone
+        : DEFAULT_PREFERENCES.speechTone,
+      agentName: normalizeAgentName(parsed.agentName),
+      interests: normalizeInterests(parsed.interests),
     };
   } catch {
     return DEFAULT_PREFERENCES;

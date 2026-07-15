@@ -26,7 +26,7 @@ export const MYPAGE_SECTION_TITLE: Record<MyPageSection, string> = {
 };
 
 export const mypageCardClass =
-  "rounded-3xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 shadow-sm";
+  "rounded-2xl border border-[var(--moneo-border)] bg-[var(--moneo-bg-elevated)] p-6 moneo-glass";
 
 type MyPageSidebarLayoutProps = {
   activeSection: MyPageSection;
@@ -47,21 +47,23 @@ export function MyPageSidebarLayout({
   children,
 }: MyPageSidebarLayoutProps) {
   return (
-    <div className="min-h-screen flex bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100">
-      <aside className="fixed top-0 left-0 z-30 flex h-screen w-[250px] shrink-0 flex-col border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950">
-        <div className="border-b border-gray-200 dark:border-gray-800 px-5 py-4">
+    <div className="relative flex min-h-screen moneo-grid-bg text-[var(--moneo-text)]">
+      <div className="moneo-noise pointer-events-none absolute inset-0 -z-10" aria-hidden />
+
+      <aside className="fixed top-0 left-0 z-30 flex h-screen w-[250px] shrink-0 flex-col border-r border-[var(--moneo-border)] bg-[rgba(10,10,15,0.92)] backdrop-blur-md">
+        <div className="border-b border-[var(--moneo-border)] px-5 py-4">
           <Link
             href="/"
-            className="text-sm font-bold text-indigo-600 dark:text-indigo-400 hover:opacity-90"
+            className="text-sm font-bold text-indigo-300 hover:text-indigo-200"
           >
             Moneo
           </Link>
-          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">마이페이지</p>
+          <p className="mt-1 text-xs text-[var(--moneo-muted)]">마이페이지</p>
         </div>
 
         {profileSummary && (
-          <div className="flex items-center gap-3 border-b border-gray-200 dark:border-gray-800 px-5 py-4">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+          <div className="flex items-center gap-3 border-b border-[var(--moneo-border)] px-5 py-4">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[var(--moneo-border)] bg-white/5">
               {profileSummary.avatarSrc ? (
                 <img
                   src={profileSummary.avatarSrc}
@@ -69,14 +71,14 @@ export function MyPageSidebarLayout({
                   className="h-full w-full object-cover"
                 />
               ) : (
-                <span className="text-xs font-semibold text-gray-500">
+                <span className="text-xs font-semibold text-[var(--moneo-muted)]">
                   {profileSummary.initials}
                 </span>
               )}
             </div>
             <div className="min-w-0">
-              <p className="truncate text-sm font-semibold">{profileSummary.nickname}</p>
-              <p className="truncate text-xs text-gray-500 dark:text-gray-400">
+              <p className="truncate text-sm font-semibold text-white">{profileSummary.nickname}</p>
+              <p className="truncate text-xs text-[var(--moneo-muted)]">
                 {profileSummary.email}
               </p>
             </div>
@@ -92,8 +94,8 @@ export function MyPageSidebarLayout({
                   onClick={() => onSectionChange(id)}
                   className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition-colors ${
                     activeSection === id
-                      ? "bg-indigo-600 text-white shadow-sm"
-                      : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-900"
+                      ? "bg-indigo-600 text-white shadow-[0_0_20px_var(--moneo-glow)]"
+                      : "text-indigo-100/75 hover:bg-white/[0.04] hover:text-white"
                   }`}
                 >
                   <Icon size={18} className="shrink-0" />
@@ -106,8 +108,8 @@ export function MyPageSidebarLayout({
       </aside>
 
       <div className="ml-[250px] flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-20 border-b border-gray-200 dark:border-gray-800 bg-white/90 dark:bg-gray-950/90 backdrop-blur-md px-8 py-5">
-          <h1 className="text-2xl font-bold tracking-tight">
+        <header className="sticky top-0 z-20 border-b border-[var(--moneo-border)] bg-[rgba(10,10,15,0.85)] backdrop-blur-md px-8 py-5">
+          <h1 className="text-2xl font-bold tracking-tight text-white">
             {MYPAGE_SECTION_TITLE[activeSection]}
           </h1>
         </header>

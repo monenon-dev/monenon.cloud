@@ -332,6 +332,10 @@ def read_weather(city: str | None = None):
 class AgentChatBody(BaseModel):
     prompt: str = Field(..., min_length=1)
     user_id: int | None = Field(default=None, ge=1)
+    speech_tone: str | None = Field(
+        default=None,
+        description="마이페이지 말투: friendly | formal | humorous",
+    )
 
 
 class ChatMessageBody(BaseModel):
@@ -376,8 +380,13 @@ async def agent_chat(body: AgentChatBody, session: AsyncSession = Depends(get_db
     prompt = body.prompt
     if body.user_id is not None:
         prompt = await augment_prompt_with_user_context(session, body.user_id, prompt)
-        logger.info("[agent_chat] user_id=%s prompt_chars=%s", body.user_id, len(prompt))
-    prompt = with_agent_system_prompt(prompt)
+        logger.info(
+            "[agent_chat] user_id=%s speech_tone=%s prompt_chars=%s",
+            body.user_id,
+            body.speech_tone,
+            len(prompt),
+        )
+    prompt = with_agent_system_prompt(prompt, speech_tone=body.speech_tone)
     try:
         km = get_keymaker()
         chat_model = km.gemini_chat_model_id()

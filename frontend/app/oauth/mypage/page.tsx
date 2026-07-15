@@ -80,8 +80,8 @@ export default function MyPage() {
   });
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [prefs, setPrefs] = useState<MyPagePreferences>({
-    speechTone: "friendly",
-    agentName: "모네난",
+    speechTone: "formal",
+    agentName: "Moneo",
     interests: [],
   });
 
@@ -169,16 +169,18 @@ export default function MyPage() {
 
   if (ui.loading) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-gray-50 dark:bg-gray-950">
-        <Loader2 className="animate-spin text-indigo-600" size={36} />
+      <main className="relative flex min-h-screen items-center justify-center moneo-grid-bg text-[var(--moneo-text)]">
+        <div className="moneo-noise pointer-events-none absolute inset-0 -z-10" aria-hidden />
+        <Loader2 className="animate-spin text-indigo-400" size={36} />
       </main>
     );
   }
 
   if (!profile) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-gray-50 dark:bg-gray-950 px-4">
-        <p className="text-sm text-red-600 dark:text-red-400">
+      <main className="relative flex min-h-screen items-center justify-center moneo-grid-bg px-4 text-[var(--moneo-text)]">
+        <div className="moneo-noise pointer-events-none absolute inset-0 -z-10" aria-hidden />
+        <p className="text-sm text-red-300">
           {ui.error ?? "프로필을 불러오지 못했습니다."}
         </p>
       </main>
@@ -200,7 +202,7 @@ export default function MyPage() {
       }}
     >
       {ui.error && ui.activeSection === "account" && (
-        <p className="mb-6 rounded-2xl border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/40 px-4 py-3 text-sm text-red-600 dark:text-red-400">
+        <p className="mb-6 rounded-2xl border border-red-500/40 bg-red-950/40 px-4 py-3 text-sm text-red-300">
           {ui.error}
         </p>
       )}

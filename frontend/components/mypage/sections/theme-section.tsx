@@ -35,20 +35,20 @@ export function ThemeSection({ themeMode, onThemeChange }: ThemeSectionProps) {
             className={`${mypageCardClass} text-left transition-all hover:-translate-y-0.5 ${
               active
                 ? "border-indigo-500 ring-2 ring-indigo-500/30"
-                : "hover:border-indigo-200 dark:hover:border-indigo-800"
+                : "hover:border-indigo-400/40"
             }`}
           >
             <div
               className={`mb-4 inline-flex rounded-2xl p-3 ${
                 active
                   ? "bg-indigo-600 text-white"
-                  : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300"
+                  : "bg-white/[0.06] text-indigo-100/80"
               }`}
             >
               <Icon size={22} />
             </div>
-            <h3 className="text-base font-semibold">{label}</h3>
-            <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">{description}</p>
+            <h3 className="text-base font-semibold text-white">{label}</h3>
+            <p className="mt-2 text-sm text-[var(--moneo-muted)]">{description}</p>
           </button>
         );
       })}

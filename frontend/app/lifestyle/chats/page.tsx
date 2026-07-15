@@ -38,7 +38,11 @@ async function callAgentChat(text: string, userId: number): Promise<GeminiChatMe
   const res = await fetch(`${apiBaseUrl.replace(/\/$/, "")}/agent/chat`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ prompt, user_id: userId }),
+    body: JSON.stringify({
+      prompt,
+      user_id: userId,
+      speech_tone: speechTone,
+    }),
   });
   const raw: unknown = await res.json().catch(() => ({}));
   if (!res.ok) {
