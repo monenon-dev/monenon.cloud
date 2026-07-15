@@ -36,9 +36,10 @@ fi
 source "$VENV/bin/activate"
 
 python -m pip install -U pip setuptools wheel
+# EXAONE remote code는 transformers 5.x / 최신 generate API와 충돌하기 쉬움 → 4.46 고정
 python -m pip install -U \
   "torch" \
-  "transformers>=4.45" \
+  "transformers==4.46.3" \
   "autoawq>=0.2.7.post3" \
   "accelerate" \
   "fastapi" \
@@ -49,7 +50,7 @@ python -m pip install -U \
 echo
 echo "Done. Activate:"
 echo "  source $VENV/bin/activate"
-echo "Smoke test:"
-echo "  python $ROOT/scripts/exaone/run_exaone.py"
-echo "HTTP serve (spoke 2.4B first, safer on 6GB):"
-echo "  EXAONE_DEFAULT_ROLE=spoke python $ROOT/scripts/exaone/serve_exaone.py"
+echo "Smoke test (2.4B):"
+echo "  EXAONE_MODEL_DIR=~/models/EXAONE-3.5-2.4B-Instruct-AWQ python $ROOT/scripts/exaone/run_exaone.py"
+echo "HTTP serve (spoke only until CUDA works):"
+echo "  EXAONE_FORCE_SPOKE=1 python $ROOT/scripts/exaone/serve_exaone.py"
