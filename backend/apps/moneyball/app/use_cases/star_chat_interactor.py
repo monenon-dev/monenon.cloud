@@ -32,9 +32,10 @@ from moneyball.app.services.llm_exaone import (
     get_spoke_model,
     llm_enabled,
 )
+from moneyball.app.services.question_classifier import ExaoneQuestionClassifier
 from moneyball.app.services.rag_retriever import retrieve_rag_chunks
 from moneyball.app.services.sql_guard import UnsafeSqlError, validate_select_sql
-from moneyball.app.services.star_craft_hub import hub_route_moneyball, hub_synthesize_rag
+from moneyball.app.services.star_craft_hub import hub_synthesize_rag
 from star_craft.app.use_cases import hub_model_name
 
 logger = logging.getLogger(__name__)
@@ -96,17 +97,22 @@ def _ensure_limit(sql: str) -> str:
 async def _hub_route(
     session: AsyncSession, message: str, journey: ChatJourney
 ) -> tuple[list[dict[str, str]], str]:
-    if not llm_enabled() or fast_path_enabled():
+    """의사 분류기 포트로 스포크만 결정. 답변 생성은 하지 않는다."""
+    classifier = ExaoneQuestionClassifier(session=session, journey=journey)
+    result = await classifier.classify(message)
+    route = result.as_route()
+    if not route:
         route = heuristic_route(message)
-        journey.log("route.heuristic", spokes=route)
-        return route, "heuristic"
-
-    route, mode, _meta = await hub_route_moneyball(session, message, journey)
-    if route:
-        return route, mode
-    fallback = heuristic_route(message)
-    journey.log("route.fallback", spokes=fallback, reason="star_craft_empty")
-    return fallback, "hub-fallback"
+        journey.log("classifier.empty_route", spokes=route)
+        return route, "hub-fallback"
+    journey.log(
+        "classifier.route",
+        mode=result.mode,
+        intent=result.intent,
+        entities=result.entities,
+        spokes=route,
+    )
+    return route, result.mode
 
 
 async def _spoke_sql(spoke: SpokeId, subquery: str, journey: ChatJourney) -> tuple[str, str]:

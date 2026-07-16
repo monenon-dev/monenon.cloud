@@ -28,12 +28,16 @@ _TEAM_HINTS = (
 )
 
 
-def _pick_keyword(message: str) -> str | None:
+def pick_keyword(message: str) -> str | None:
     for hint in _TEAM_HINTS:
         if hint in message:
             return hint
     m = re.search(r"[가-힣A-Za-z]{2,20}", message)
     return m.group(0) if m else None
+
+
+def _pick_keyword(message: str) -> str | None:
+    return pick_keyword(message)
 
 
 def heuristic_route(message: str) -> list[dict[str, str]]:
