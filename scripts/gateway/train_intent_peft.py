@@ -186,13 +186,12 @@ def main() -> int:
         }
 
     args.output.mkdir(parents=True, exist_ok=True)
-    training_args = TrainingArguments(
+    ta_kwargs = dict(
         output_dir=str(args.output / "runs"),
         num_train_epochs=args.epochs,
         per_device_train_batch_size=args.batch_size,
         per_device_eval_batch_size=args.batch_size,
         learning_rate=args.lr,
-        eval_strategy="epoch",
         save_strategy="epoch",
         load_best_model_at_end=True,
         metric_for_best_model="f1_macro",
@@ -201,16 +200,24 @@ def main() -> int:
         report_to=[],
         fp16=torch.cuda.is_available() and not args.qlora,
     )
+    # transformers 버전별 인자명 호환
+    try:
+        training_args = TrainingArguments(**ta_kwargs, eval_strategy="epoch")
+    except TypeError:
+        training_args = TrainingArguments(**ta_kwargs, evaluation_strategy="epoch")
 
-    trainer = Trainer(
+    trainer_kwargs = dict(
         model=model,
         args=training_args,
         train_dataset=train_ds,
         eval_dataset=val_ds,
-        processing_class=tokenizer,
         data_collator=DataCollatorWithPadding(tokenizer=tokenizer),
         compute_metrics=compute_metrics,
     )
+    try:
+        trainer = Trainer(**trainer_kwargs, processing_class=tokenizer)
+    except TypeError:
+        trainer = Trainer(**trainer_kwargs, tokenizer=tokenizer)
     trainer.train()
     metrics = trainer.evaluate()
     print("eval:", metrics)
