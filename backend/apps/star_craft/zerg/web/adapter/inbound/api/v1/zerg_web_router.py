@@ -2,6 +2,11 @@
 
 from __future__ import annotations
 
+import json
+import logging
+from datetime import datetime, timezone
+from pathlib import Path
+
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
@@ -12,7 +17,37 @@ from star_craft.zerg.web.dependencies.providers import (
     get_zerg_job_config,
 )
 
+logger = logging.getLogger(__name__)
+
 zerg_web_router = APIRouter(prefix="/star-craft/zerg", tags=["star-craft-zerg-web"])
+
+_CRAWLED_DIR = Path(__file__).resolve().parents[7] / "resources" / "crawled"
+
+
+def _extract_keywords(command: str) -> list[str]:
+    """자연어 명령어에서 의미 있는 키워드 추출."""
+    stop = {
+        "이", "가", "을", "를", "은", "는", "에서", "에", "의", "로", "으로",
+        "과", "와", "도", "만", "부터", "까지", "한테", "께서", "에게",
+        "모든", "모두", "다", "해줘", "가져와줘", "가져와", "줘", "해주세요",
+        "추출해줘", "수집해줘", "찾아줘", "보여줘", "알려줘", "정리해줘",
+        "표", "형식", "이", "페이지", "사이트", "웹",
+    }
+    return [
+        w for w in command.split()
+        if len(w) >= 2 and w not in stop
+    ][:10]
+
+
+def _save_crawled(mode: str, url: str, keywords: list[str], payload: dict) -> str:
+    """결과를 resources/crawled/<timestamp>_<mode>.json 으로 저장."""
+    _CRAWLED_DIR.mkdir(parents=True, exist_ok=True)
+    ts = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+    filename = f"{ts}_{mode}.json"
+    data = {"mode": mode, "url": url, "keywords": keywords, "result": payload}
+    (_CRAWLED_DIR / filename).write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+    logger.info("[zerg] 크롤링 결과 저장: %s", filename)
+    return filename
 
 
 class SeedJobRequest(BaseModel):
@@ -100,6 +135,71 @@ async def run_hydralisk_scrape(body: ScrapeRequest) -> dict | JSONResponse:
         ],
         "detail": result.detail,
     }
+    if not result.ok:
+        return JSONResponse(payload, status_code=400)
+    return payload
+
+
+# ── 레슨 크롤링 화면 전용 통합 엔드포인트 ──────────────────────────────────────
+
+class LessonRunRequest(BaseModel):
+    mode: str = Field(default="crawler", pattern="^(crawler|scraper)$")
+    url: str = Field(..., min_length=1)
+    command: str = Field(default="")
+
+
+@zerg_web_router.post("/lesson/run")
+async def lesson_run(body: LessonRunRequest) -> dict | JSONResponse:
+    """레슨 크롤링 화면: URL+자연어 명령어 → Redis seed → 실행 → JSON 저장."""
+    keywords = _extract_keywords(body.command) if body.command.strip() else []
+
+    # 1. Redis에 시드 저장
+    if body.mode == "crawler":
+        await get_zerg_job_config().seed_zerling_job([body.url], keywords)
+        result = await get_zerling_crawl_use_case().crawl(
+            sites=[body.url],
+            keywords=keywords,
+            max_pages=10,
+            max_depth=1,
+        )
+        payload = {
+            "ok": result.ok,
+            "mode": "crawler",
+            "url": body.url,
+            "keywords": keywords,
+            "pages": [
+                {
+                    "url": p.url,
+                    "matched_keywords": list(p.matched_keywords),
+                    "depth": p.depth,
+                }
+                for p in result.pages
+            ],
+            "detail": result.detail,
+        }
+    else:
+        await get_zerg_job_config().seed_hydralisk_job([body.url], keywords)
+        result = await get_hydralisk_scrape_use_case().scrape(
+            sites=[body.url],
+            keywords=keywords,
+            max_pages=5,
+        )
+        payload = {
+            "ok": result.ok,
+            "mode": "scraper",
+            "url": body.url,
+            "keywords": keywords,
+            "snippets": [
+                {"url": s.url, "keyword": s.keyword, "excerpt": s.excerpt}
+                for s in result.snippets
+            ],
+            "detail": result.detail,
+        }
+
+    # 2. resources/crawled/ 에 JSON 저장
+    filename = _save_crawled(body.mode, body.url, keywords, payload)
+    payload["saved_file"] = filename
+
     if not result.ok:
         return JSONResponse(payload, status_code=400)
     return payload
