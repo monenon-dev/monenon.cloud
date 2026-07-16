@@ -1,8 +1,13 @@
+# Gateway / EXAONE QLoRA 학습 전용 (FastAPI backend/requirements.txt 에 넣지 말 것)
+# 런타임 서빙은 Ollama GGUF 또는 별도 추론 스택 유지.
+
 transformers>=4.44.0
 datasets>=2.20.0
 accelerate>=0.33.0
 peft>=0.12.0
 torch>=2.2.0
 scikit-learn>=1.4.0
-# QLoRA(4bit) 쓸 때만 — RTX 3050에서 큰 encoder용
 bitsandbytes>=0.43.0
+safetensors>=0.4.0
+sentencepiece>=0.2.0
+# AWQ/autoawq 는 학습 경로에 사용하지 않음 (추론 전용)

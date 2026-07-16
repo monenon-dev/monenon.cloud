@@ -6,28 +6,22 @@
 
 라벨은 scripts/gateway/label_map.json allowlist만 허용 (하네스).
 
-예시 (시그마, RTX 3050):
+주의 — EXAONE AWQ 체크포인트는 이 스크립트(및 QLoRA)에 쓰지 말 것.
+  검사: python scripts/gateway/check_base_model_for_qlora.py <model_dir>
+  EXAONE 7.8B 역할 어댑터: scripts/gateway/train_exaone_role_qlora.py
+
+예시 (시그마, RTX 3050) — 소형 encoder (권장, VRAM 여유):
   cd ~/monenon.cloud
   python3 -m venv .venv-gateway-train
   source .venv-gateway-train/bin/activate
   pip install -r scripts/gateway/requirements-train.txt
 
-  # 소형 encoder LoRA (권장, VRAM 여유)
   python scripts/gateway/train_intent_peft.py \\
     --train scripts/gateway/data/train.jsonl \\
     --val scripts/gateway/data/val.jsonl \\
     --output artifacts/gateway-intent-lora \\
     --model klue/roberta-small \\
     --epochs 4
-
-  # 더 큰 베이스에 4bit QLoRA
-  python scripts/gateway/train_intent_peft.py \\
-    --train scripts/gateway/data/train.jsonl \\
-    --val scripts/gateway/data/val.jsonl \\
-    --output artifacts/gateway-intent-qlora \\
-    --model klue/roberta-base \\
-    --qlora \\
-    --epochs 3
 """
 
 from __future__ import annotations
