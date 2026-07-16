@@ -150,55 +150,59 @@ class LessonRunRequest(BaseModel):
 
 @zerg_web_router.post("/lesson/run")
 async def lesson_run(body: LessonRunRequest) -> dict | JSONResponse:
-    """레슨 크롤링 화면: URL+자연어 명령어 → Redis seed → 실행 → JSON 저장."""
+    """레슨 크롤링 화면: URL+자연어 명령어 → 실행 → JSON 저장 (Redis 불필요)."""
     keywords = _extract_keywords(body.command) if body.command.strip() else []
 
-    # 1. Redis에 시드 저장
-    if body.mode == "crawler":
-        await get_zerg_job_config().seed_zerling_job([body.url], keywords)
-        result = await get_zerling_crawl_use_case().crawl(
-            sites=[body.url],
-            keywords=keywords,
-            max_pages=10,
-            max_depth=1,
-        )
-        payload = {
-            "ok": result.ok,
-            "mode": "crawler",
-            "url": body.url,
-            "keywords": keywords,
-            "pages": [
-                {
-                    "url": p.url,
-                    "matched_keywords": list(p.matched_keywords),
-                    "depth": p.depth,
-                }
-                for p in result.pages
-            ],
-            "detail": result.detail,
-        }
-    else:
-        await get_zerg_job_config().seed_hydralisk_job([body.url], keywords)
-        result = await get_hydralisk_scrape_use_case().scrape(
-            sites=[body.url],
-            keywords=keywords,
-            max_pages=5,
-        )
-        payload = {
-            "ok": result.ok,
-            "mode": "scraper",
-            "url": body.url,
-            "keywords": keywords,
-            "snippets": [
-                {"url": s.url, "keyword": s.keyword, "excerpt": s.excerpt}
-                for s in result.snippets
-            ],
-            "detail": result.detail,
-        }
+    try:
+        if body.mode == "crawler":
+            result = await get_zerling_crawl_use_case().crawl(
+                sites=[body.url],
+                keywords=keywords,
+                max_pages=10,
+                max_depth=1,
+            )
+            payload = {
+                "ok": result.ok,
+                "mode": "crawler",
+                "url": body.url,
+                "keywords": keywords,
+                "pages": [
+                    {
+                        "url": p.url,
+                        "matched_keywords": list(p.matched_keywords),
+                        "depth": p.depth,
+                    }
+                    for p in result.pages
+                ],
+                "detail": result.detail,
+            }
+        else:
+            result = await get_hydralisk_scrape_use_case().scrape(
+                sites=[body.url],
+                keywords=keywords,
+                max_pages=5,
+            )
+            payload = {
+                "ok": result.ok,
+                "mode": "scraper",
+                "url": body.url,
+                "keywords": keywords,
+                "snippets": [
+                    {"url": s.url, "keyword": s.keyword, "excerpt": s.excerpt}
+                    for s in result.snippets
+                ],
+                "detail": result.detail,
+            }
+    except Exception as exc:
+        logger.exception("[lesson/run] 실행 오류")
+        return JSONResponse({"ok": False, "error": str(exc)}, status_code=500)
 
-    # 2. resources/crawled/ 에 JSON 저장
-    filename = _save_crawled(body.mode, body.url, keywords, payload)
-    payload["saved_file"] = filename
+    # resources/crawled/ 에 JSON 저장 (실패해도 결과는 반환)
+    try:
+        filename = _save_crawled(body.mode, body.url, keywords, payload)
+        payload["saved_file"] = filename
+    except Exception:
+        logger.warning("[lesson/run] 파일 저장 실패 — 결과는 반환")
 
     if not result.ok:
         return JSONResponse(payload, status_code=400)

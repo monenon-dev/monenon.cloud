@@ -40,7 +40,15 @@ export async function POST(request: Request) {
     );
   }
 
-  const data = (await res.json()) as Record<string, unknown>;
+  let data: Record<string, unknown>;
+  try {
+    data = (await res.json()) as Record<string, unknown>;
+  } catch {
+    return NextResponse.json(
+      { error: `백엔드 오류 (HTTP ${res.status})` },
+      { status: res.status || 500 }
+    );
+  }
 
   if (!res.ok) {
     return NextResponse.json(
