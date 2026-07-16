@@ -39,19 +39,21 @@
 ### 읽는 순서
 
 1. **`backend/_docs/BACKEND_RULES.md`** — 백엔드·FastAPI 규칙 (필수)
-2. 작업과 관련된 **`backend/_docs/`** ERD·ENTITY 문서 — 필요 시만
-3. 프론트는 **`frontend/_docs/REACT_RULES.md`**
+2. **`backend/_docs/docker-rules.md`** — Docker·DB·백엔드 **생성 전** 존재 체크·승인 (필수)
+3. 작업과 관련된 **`backend/_docs/`** ERD·ENTITY 문서 — 필요 시만
+4. 프론트는 **`frontend/_docs/REACT_RULES.md`**
 
 ### 적용 규칙
 
 - `backend/_docs/` 와 기존 `backend/apps` 코드가 충돌하면 **`backend/_docs` → 기존 코드 스타일** 순으로 따른다.
 - docs에 없는 새 패턴이 필요하면, 코드만 넣지 말고 **규칙을 `_docs`에 추가할지 사용자에게 확인**한다.
 - 프론트 작업 시에는 `frontend/_docs/REACT_RULES.md` 를 따른다 (백엔드 규칙으로 프론트를 대체하지 않음).
+- Docker·DB·백엔드 “생성/올려” 요청은 **`docker-rules.md`**: 기존이 있으면 체크·보고 후 **승인 없이는 새로 만들지 않는다.**
 
 ### Cursor 멘션 (권장)
 
 ```text
-@backend/.cursorrules @backend/_docs/BACKEND_RULES.md
+@backend/.cursorrules @backend/_docs/BACKEND_RULES.md @backend/_docs/docker-rules.md
 ```
 
 ## 6. 이 프로젝트에 맞게 채울 항목

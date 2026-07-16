@@ -10,6 +10,7 @@
 | [../.cursorrules](../.cursorrules) | Cursor 하네스, `_docs/` 필수 읽기, 산출물 제한 |
 | [./_docs/BACKEND_RULES.md](./_docs/BACKEND_RULES.md) | FastAPI·Python 코딩 규칙 **(구현 전 필수)** |
 | [./_docs/ENTITY_RULE.md](./_docs/ENTITY_RULE.md) | ORM·테이블 추가·수정 시 |
+| [./_docs/docker-rules.md](./_docs/docker-rules.md) | Docker·DB·백엔드 생성 전 존재 체크·승인 |
 
 프론트 작업은 [../frontend/CLAUDE.md](../frontend/CLAUDE.md)를 따른다.
 
