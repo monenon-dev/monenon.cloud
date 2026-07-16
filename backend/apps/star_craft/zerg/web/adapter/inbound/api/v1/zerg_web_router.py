@@ -87,7 +87,7 @@ async def seed_hydralisk(body: SeedJobRequest) -> dict:
     }
 
 
-@zerg_web_router.post("/zerling/crawl")
+@zerg_web_router.post("/zerling/crawl", response_model=None)
 async def run_zerling_crawl(body: CrawlRequest) -> dict | JSONResponse:
     """Redis(또는 body override) 시드로 링크 크롤."""
     result = await get_zerling_crawl_use_case().crawl(
@@ -116,7 +116,7 @@ async def run_zerling_crawl(body: CrawlRequest) -> dict | JSONResponse:
     return payload
 
 
-@zerg_web_router.post("/hydralisk/scrape")
+@zerg_web_router.post("/hydralisk/scrape", response_model=None)
 async def run_hydralisk_scrape(body: ScrapeRequest) -> dict | JSONResponse:
     """Redis(또는 body override) URL에서 키워드 스니펫 스크랩."""
     result = await get_hydralisk_scrape_use_case().scrape(
@@ -148,7 +148,7 @@ class LessonRunRequest(BaseModel):
     command: str = Field(default="")
 
 
-@zerg_web_router.post("/lesson/run")
+@zerg_web_router.post("/lesson/run", response_model=None)
 async def lesson_run(body: LessonRunRequest) -> dict | JSONResponse:
     """레슨 크롤링 화면: URL+자연어 명령어 → 실행 → JSON 저장 (Redis 불필요)."""
     keywords = _extract_keywords(body.command) if body.command.strip() else []
