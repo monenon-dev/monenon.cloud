@@ -1,4 +1,4 @@
-"""라이프스타일 설정·선호 대시보드/개요 API."""
+"""라이프스타일 설정 API."""
 
 from __future__ import annotations
 
@@ -10,13 +10,12 @@ from pydantic import BaseModel
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from lifestyle.adapter.outbound.orm.registry import CHAT_MODEL_MAP, CHAT_TABLE_META
+from lifestyle.adapter.outbound.orm.registry import CHAT_MODEL_MAP, CHAT_TABLE_META, LIFESTYLE_MODEL_MAP, LIFESTYLE_TABLE_META
 from lifestyle.adapter.outbound.orm.chat_orm import ChatSession, Message, MessageRole
 from core.matrix.grid_oracle_database_manager import get_db
 from lifestyle.app.composition.providers import get_lifestyle_pg_repository
 from lifestyle.adapter.outbound.pg.lifestyle_pg_repository import LifestylePgRepository
 from lifestyle.adapter.inbound.api.schemas.settings_schema import PatchUserSettingsBody, UserSettingOut
-from lifestyle.adapter.outbound.orm.registry import LIFESTYLE_MODEL_MAP, LIFESTYLE_TABLE_META
 from admin.adapter.outbound.orm.registry import ADMIN_MODEL_MAP, ADMIN_TABLE_META
 from secretary.adapter.outbound.orm.user_model import User
 
@@ -61,14 +60,17 @@ MODEL_MAP = {
 @settings_router.get("/user-settings", response_model=UserSettingOut)
 async def get_user_settings(
     user_id: int,
-    session: AsyncSession = Depends(get_db),
     repo: LifestylePgRepository = Depends(get_lifestyle_pg_repository),
 ) -> UserSettingOut:
     row = await repo.get_or_create_user_setting(user_id)
-    closet = await repo.get_or_create_closet(user_id)
-    refrigerator = await repo.get_or_create_refrigerator(user_id)
-    music = await repo.get_or_create_music(user_id)
-    return repo.setting_to_out(row, closet, refrigerator, music)
+    return UserSettingOut(
+        id=row.id,
+        user_id=row.user_id,
+        language=row.language,
+        preferred_model=row.preferred_model,
+        created_at=row.created_at,
+        updated_at=row.updated_at,
+    )
 
 
 @settings_router.patch("/user-settings", response_model=UserSettingOut)
@@ -78,37 +80,24 @@ async def patch_user_settings(
     repo: LifestylePgRepository = Depends(get_lifestyle_pg_repository),
 ) -> UserSettingOut:
     row = await repo.get_or_create_user_setting(body.user_id)
-    closet = await repo.get_or_create_closet(body.user_id)
-    refrigerator = await repo.get_or_create_refrigerator(body.user_id)
-    music = await repo.get_or_create_music(body.user_id)
 
     if body.language is not None:
         row.language = body.language.strip() or "ko"
     if body.preferred_model is not None:
         row.preferred_model = body.preferred_model.strip() or row.preferred_model
-    if body.lifestyle is not None:
-        fashion = body.lifestyle.fashion
-        food = body.lifestyle.food
-        music_prefs = body.lifestyle.music
-        closet.gender_preset = fashion.gender_preset
-        closet.style_tags = fashion.style_tags
-        closet.temperature_sensitivity = fashion.temperature_sensitivity
-        closet.updated_at = datetime.now(timezone.utc)
-        refrigerator.avoided_ingredients = food.avoided_ingredients
-        refrigerator.cooking_preference_tags = food.cooking_preference_tags
-        refrigerator.updated_at = datetime.now(timezone.utc)
-        music.genre_tags = music_prefs.genre_tags
-        music.mood_tags = music_prefs.mood_tags
-        music.updated_at = datetime.now(timezone.utc)
 
     row.updated_at = datetime.now(timezone.utc)
     await session.flush()
     await session.refresh(row)
-    await session.refresh(closet)
-    await session.refresh(refrigerator)
-    await session.refresh(music)
     logger.info("[LifestyleController] user_settings 저장 — user_id=%s", body.user_id)
-    return repo.setting_to_out(row, closet, refrigerator, music)
+    return UserSettingOut(
+        id=row.id,
+        user_id=row.user_id,
+        language=row.language,
+        preferred_model=row.preferred_model,
+        created_at=row.created_at,
+        updated_at=row.updated_at,
+    )
 
 
 @settings_router.get("/overview", response_model=PlatformOverview)
@@ -145,9 +134,6 @@ async def seed_demo_data(
         return {"ok": False, "detail": "users 테이블에 사용자가 없습니다. 먼저 회원가입하세요."}
 
     await repo.get_or_create_user_setting(user.id)
-    await repo.get_or_create_closet(user.id)
-    await repo.get_or_create_refrigerator(user.id)
-    await repo.get_or_create_music(user.id)
 
     session_count = await session.execute(
         select(func.count()).select_from(ChatSession).where(ChatSession.user_id == user.id)
