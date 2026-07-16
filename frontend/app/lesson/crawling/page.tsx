@@ -1,7 +1,5 @@
 import { redirect } from "next/navigation";
 
-import { routes } from "@/lib/routes";
-
 export default function CrawlingIndexPage() {
-  redirect(routes.lesson.hub);
+  redirect("/lesson/crawling/news");
 }
