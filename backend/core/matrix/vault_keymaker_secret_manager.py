@@ -99,6 +99,13 @@ class Keymaker:
         self.load_environment()
         return (os.getenv("OPENWEATHER_CITY") or "Seoul").strip()
 
+    def redis_url(self) -> str:
+        """Redis URL (`REDIS_URL`, Docker 기본 redis://redis:6379)."""
+        self.load_environment()
+        return (
+            os.getenv("REDIS_URL") or "redis://redis:6379/0"
+        ).strip()
+
     def ensure_gemini_sdk_configured(self) -> None:
         """`google.generativeai.configure(api_key=…)` 멱등 적용."""
         if self._gemini_sdk_configured:

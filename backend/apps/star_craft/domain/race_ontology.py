@@ -46,6 +46,20 @@ ZERG_VISION_TOOLS: tuple[RaceTool, ...] = (
         role="YOLO 얼굴·객체 학습·추론 (CLI: train/predict)",
         kind="backend",
     ),
+    RaceTool(
+        id="zerling_crawler",
+        title="Zerling Crawler",
+        path="backend/apps/star_craft/zerg/web",
+        role="Redis 시드·키워드 링크 크롤 POST /star-craft/zerg/zerling/crawl",
+        kind="backend",
+    ),
+    RaceTool(
+        id="hydralisk_scraper",
+        title="Hydralisk Scraper",
+        path="backend/apps/star_craft/zerg/web",
+        role="Redis 대상·키워드 본문 스크랩 POST /star-craft/zerg/hydralisk/scrape",
+        kind="backend",
+    ),
 )
 
 RACE_ONTOLOGY: tuple[Race, ...] = (
