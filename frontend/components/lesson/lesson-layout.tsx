@@ -1,7 +1,7 @@
 import { LessonHeader } from "@/components/lesson/lesson-header";
 import { LessonSidebar } from "@/components/lesson/lesson-sidebar";
 
-type LessonNavKey = "hub" | "titanic" | "samsung" | "moneyball";
+type LessonNavKey = "hub" | "titanic" | "samsung" | "moneyball" | "crawling";
 
 export function LessonLayout({
   children,
