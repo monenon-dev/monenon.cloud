@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { JetBrains_Mono, Space_Grotesk } from "next/font/google";
-import { Analytics } from "@vercel/analytics/next";
 import { ClearAdminSessionOutsideAdmin } from "@/components/auth/clear-admin-outside-admin";
 import { UserWarningNotifier } from "@/components/auth/user-warning-notifier";
 import "./globals.css";
@@ -20,6 +19,13 @@ export const metadata: Metadata = {
   description:
     "Moneo — AI agent platform for briefings, document ops, and work reports.",
   generator: "Moneo",
+  icons: {
+    icon: [
+      { url: "/icon.svg", type: "image/svg+xml" },
+      { url: "/icon-dark-32x32.png", sizes: "32x32", type: "image/png" },
+    ],
+    apple: "/apple-icon.png",
+  },
 };
 
 export default function RootLayout({
@@ -38,7 +44,6 @@ export default function RootLayout({
         <ClearAdminSessionOutsideAdmin />
         <UserWarningNotifier />
         {children}
-        {process.env.VERCEL === "1" && <Analytics />}
       </body>
     </html>
   );
