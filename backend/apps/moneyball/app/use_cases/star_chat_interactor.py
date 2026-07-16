@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import os
 import re
 from datetime import date, datetime
 from decimal import Decimal
@@ -40,6 +41,30 @@ logger = logging.getLogger(__name__)
 
 _MAX_ROWS = 30
 _PREVIEW_ROWS = 12
+_NO_EVIDENCE_REPLY = "DB에 해당 데이터가 없습니다."
+
+
+def _rag_min_score() -> float:
+    try:
+        return float(os.getenv("MONEYBALL_RAG_MIN_SCORE", "0.35"))
+    except ValueError:
+        return 0.35
+
+
+def _evidence_row_count(steps: list[dict[str, Any]]) -> int:
+    return sum(int(s.get("row_count") or 0) for s in steps)
+
+
+def _strong_rag_hits(rag_chunks: list[dict]) -> list[dict]:
+    min_score = _rag_min_score()
+    return [c for c in rag_chunks if float(c.get("score") or 0) >= min_score]
+
+
+def _is_grounded(steps: list[dict[str, Any]], rag_chunks: list[dict]) -> bool:
+    """하네스 판정: SQL 행이 있거나, 유사도 임계값 이상 RAG만 근거로 인정."""
+    if _evidence_row_count(steps) > 0:
+        return True
+    return len(_strong_rag_hits(rag_chunks)) > 0
 
 
 def _jsonable(value: Any) -> Any:
@@ -138,7 +163,7 @@ async def _hub_synthesize(
     rag_chunks: list[dict],
     journey: ChatJourney,
 ) -> tuple[str, str]:
-    rag_texts = [c["content"] for c in rag_chunks]
+    rag_texts = [c["content"] for c in _strong_rag_hits(rag_chunks)]
     sql_evidence = _sql_evidence(steps)
 
     if not llm_enabled():
@@ -201,6 +226,8 @@ async def run_star_chat(session: AsyncSession, message: str) -> dict[str, Any]:
             "steps": [],
             "journey": journey.to_list(),
             "mode": "none",
+            "grounded": False,
+            "evidence_row_count": 0,
         }
 
     rag_chunks = await retrieve_rag_chunks(session, question, top_k=6)
@@ -244,7 +271,44 @@ async def run_star_chat(session: AsyncSession, message: str) -> dict[str, Any]:
 
         steps.append(step)
 
-    reply, synth_mode = await _hub_synthesize(session, question, steps, rag_chunks, journey)
+    row_count = _evidence_row_count(steps)
+    strong_rag = _strong_rag_hits(rag_chunks)
+    grounded = _is_grounded(steps, rag_chunks)
+    journey.log(
+        "harness.grounding",
+        grounded=grounded,
+        evidence_row_count=row_count,
+        strong_rag_count=len(strong_rag),
+        rag_min_score=_rag_min_score(),
+    )
+
+    if not grounded:
+        # 환각 차단: 근거 없으면 EXAONE 합성 호출 금지
+        journey.log("synth.skipped_no_evidence", reply=_NO_EVIDENCE_REPLY)
+        journey.log(
+            "response",
+            ok=True,
+            mode="no_evidence",
+            grounded=False,
+            route=[s["spoke"] for s in steps],
+        )
+        return {
+            "ok": True,
+            "reply": _NO_EVIDENCE_REPLY,
+            "hub_model": hub_model_name(),
+            "spoke_model": get_spoke_model(),
+            "route": [s["spoke"] for s in steps],
+            "steps": steps,
+            "journey": journey.to_list(),
+            "mode": "no_evidence",
+            "rag_hits": rag_chunks,
+            "grounded": False,
+            "evidence_row_count": row_count,
+        }
+
+    reply, synth_mode = await _hub_synthesize(
+        session, question, steps, strong_rag, journey
+    )
     modes.add(synth_mode)
 
     if "star_craft-rag" in modes or "ollama-hub" in modes:
@@ -254,7 +318,13 @@ async def run_star_chat(session: AsyncSession, message: str) -> dict[str, Any]:
     else:
         mode = "mixed"
 
-    journey.log("response", ok=True, mode=mode, route=[s["spoke"] for s in steps])
+    journey.log(
+        "response",
+        ok=True,
+        mode=mode,
+        grounded=True,
+        route=[s["spoke"] for s in steps],
+    )
 
     return {
         "ok": True,
@@ -266,4 +336,6 @@ async def run_star_chat(session: AsyncSession, message: str) -> dict[str, Any]:
         "journey": journey.to_list(),
         "mode": mode,
         "rag_hits": rag_chunks,
+        "grounded": True,
+        "evidence_row_count": row_count,
     }

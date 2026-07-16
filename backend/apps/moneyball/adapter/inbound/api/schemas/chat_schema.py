@@ -38,5 +38,7 @@ class MoneyballChatResponse(BaseModel):
     steps: list[MoneyballChatStep] = Field(default_factory=list)
     journey: list[JourneyEvent] = Field(default_factory=list)
     rag_hits: list[dict[str, Any]] = Field(default_factory=list)
+    grounded: bool = False
+    evidence_row_count: int = 0
     mode: str = "heuristic"
     detail: str | None = None
