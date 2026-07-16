@@ -21,7 +21,11 @@ def get_hub_model() -> str:
 
 
 def get_spoke_model() -> str:
-    return os.getenv("MONEYBALL_SPOKE_MODEL", "exaone3.5:2.4b")
+    # 디스크 절약: 스포크도 허브와 동일 7.8B 가중치 재사용 가능 (역할은 프롬프트로 분리)
+    return os.getenv(
+        "MONEYBALL_SPOKE_MODEL",
+        os.getenv("MONEYBALL_HUB_MODEL", "exaone3.5:7.8b"),
+    )
 
 
 def get_exaone_http_url() -> str:

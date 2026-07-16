@@ -24,17 +24,23 @@ class IntentRouteResponse(BaseModel):
     handler: str
     scores: dict[str, float]
     reason: str
+    backend: str = "exaone"
 
 
 @gateway_router.post("/intent", response_model=IntentRouteResponse)
 async def route_intent(body: IntentRouteRequest) -> IntentRouteResponse:
     """
     시맨틱 인텐트 입구 필터.
-    EXAONE을 호출하지 않고 nomic-embed 프로토타입 유사도로만 라벨링한다.
+    기본: 기존 EXAONE 7.8B를 INGRESS_CLASSIFIER 역할로만 호출 (추가 다운로드 없음).
+    GATEWAY_INTENT_BACKEND=nomic 이면 임베딩 프로토타입.
     """
+    import os
+
     result = await intent_router.route(body.query)
+    backend = os.getenv("GATEWAY_INTENT_BACKEND", "exaone")
     logger.info(
-        "[gateway] intent=%s conf=%.3f handler=%s reason=%s",
+        "[gateway] backend=%s intent=%s conf=%.3f handler=%s reason=%s",
+        backend,
         result.intent,
         result.confidence,
         result.handler,
@@ -46,4 +52,5 @@ async def route_intent(body: IntentRouteRequest) -> IntentRouteResponse:
         handler=result.handler,
         scores=result.scores,
         reason=result.reason,
+        backend=backend,
     )

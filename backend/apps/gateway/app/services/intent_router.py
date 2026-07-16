@@ -1,4 +1,8 @@
-"""nomic-embed 프로토타입 유사도 인텐트 라우터 — EXAONE을 busy하지 않음."""
+"""입구 인텐트 라우터 팩토리.
+
+기본: EXAONE 7.8B 논리 역할 INGRESS_CLASSIFIER (추가 모델 불필요).
+선택: GATEWAY_INTENT_BACKEND=nomic → 임베딩 프로토타입 (nomic-embed 필요).
+"""
 
 from __future__ import annotations
 
@@ -50,10 +54,7 @@ def pick_intent(
 
 
 class NomicPrototypeIntentRouter(IntentRouterPort):
-    """
-    Ollama nomic-embed-text로 질문·프로토타입 임베딩 후 코사인 유사도 라우팅.
-    생성 모델(EXAONE)을 호출하지 않는다.
-    """
+    """nomic-embed 프로토타입 유사도. 별도 임베딩 모델이 있을 때만."""
 
     def __init__(self) -> None:
         self._proto_vectors: dict[IngressIntent, list[list[float]]] | None = None
@@ -118,5 +119,18 @@ class NomicPrototypeIntentRouter(IntentRouterPort):
         )
 
 
-# 프로세스 내 싱글톤 (프로토타입 임베딩 캐시)
-intent_router = NomicPrototypeIntentRouter()
+def get_intent_router() -> IntentRouterPort:
+    """
+    GATEWAY_INTENT_BACKEND:
+      - exaone (기본): 기존 7.8B, 역할=INGRESS_CLASSIFIER만
+      - nomic: 임베딩 프로토타입 (추가 pull 필요)
+    """
+    backend = os.getenv("GATEWAY_INTENT_BACKEND", "exaone").strip().lower()
+    if backend == "nomic":
+        return NomicPrototypeIntentRouter()
+    from gateway.app.services.exaone_intent_router import ExaoneIngressIntentRouter
+
+    return ExaoneIngressIntentRouter()
+
+
+intent_router = get_intent_router()
