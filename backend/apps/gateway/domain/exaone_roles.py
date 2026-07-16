@@ -1,8 +1,9 @@
-"""동일 EXAONE 가중치 · 논리 역할 분리 (디스크 절약용).
+"""동일 로컬 Hub 가중치 · 논리 역할 분리 (PoC 디스크 절약).
 
-물리 모델은 Ollama `exaone3.5:7.8b` 하나.
+물리 모델은 Ollama `qwen2.5:1.5b-instruct` 하나 (PoC).
 역할은 포트·시스템 프롬프트·하네스 출력 제약으로만 구분한다.
 한 번의 호출에 Hub+Spoke+답변을 섞지 않는다.
+시맨틱 라우터(INGRESS_CLASSIFIER)에 QLoRA는 필수가 아니다.
 """
 
 from __future__ import annotations

@@ -14,17 +14,19 @@ _JSON_BLOCK = re.compile(r"\{[\s\S]*\}")
 
 
 def get_hub_model() -> str:
-    # 빠른 경로 기본: 2.4B (7.8B 스왑이 체감 지연의 대부분)
-    if fast_path_enabled():
-        return os.getenv("MONEYBALL_HUB_MODEL", "exaone3.5:2.4b")
-    return os.getenv("MONEYBALL_HUB_MODEL", "exaone3.5:7.8b")
+    from lol.config import get_poc_hub_model
+
+    # 빠른 경로여도 PoC는 단일 소형 모델 유지
+    return os.getenv("MONEYBALL_HUB_MODEL", get_poc_hub_model())
 
 
 def get_spoke_model() -> str:
-    # 디스크 절약: 스포크도 허브와 동일 7.8B 가중치 재사용 가능 (역할은 프롬프트로 분리)
+    from lol.config import get_poc_hub_model
+
+    # PoC: hub/spoke 동일 가중치 (역할은 프롬프트로 분리)
     return os.getenv(
         "MONEYBALL_SPOKE_MODEL",
-        os.getenv("MONEYBALL_HUB_MODEL", "exaone3.5:7.8b"),
+        os.getenv("MONEYBALL_HUB_MODEL", get_poc_hub_model()),
     )
 
 
@@ -59,13 +61,8 @@ def extract_json_object(text: str) -> dict[str, Any]:
 
 
 def _role_for_model(model: str) -> str:
-    name = model.lower()
-    if "2.4" in name or "spoke" in name:
-        return "spoke"
-    if "7.8" in name or "7b" in name or "hub" in name:
-        return "hub"
-    # Moneyball defaults: hub=7.8b, spoke=2.4b
-    if model == get_spoke_model():
+    # PoC: hub/spoke 동일 모델 — 역할은 호출 컨텍스트로 구분
+    if model == get_spoke_model() and model != get_hub_model():
         return "spoke"
     return "hub"
 

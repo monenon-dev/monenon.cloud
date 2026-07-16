@@ -1,4 +1,8 @@
-"""EXAONE 7.8B = 입구 시맨틱 분류기 역할만 (추가 모델 다운로드 없음)."""
+"""로컬 Hub LLM = 입구 시맨틱 분류기 역할만 (PoC: Qwen2.5-1.5B, QLoRA 불필요).
+
+시맨틱 라우터는 프롬프트+allowlist 하네스로 충분하다.
+QLoRA는 라벨 정확도가 부족할 때만 선택적으로 추가한다.
+"""
 
 from __future__ import annotations
 
@@ -33,9 +37,11 @@ Hub 라우팅·Spoke SQL·최종 답변을 절대 하지 마세요. 설명 문�
 
 
 def _hub_model() -> str:
+    from lol.config import get_poc_hub_model
+
     return os.getenv(
-        "GATEWAY_EXAONE_MODEL",
-        os.getenv("MONEYBALL_HUB_MODEL", os.getenv("STAR_CRAFT_HUB_MODEL", "exaone3.5:7.8b")),
+        "GATEWAY_HUB_MODEL",
+        os.getenv("GATEWAY_EXAONE_MODEL", get_poc_hub_model()),
     )
 
 
@@ -71,7 +77,7 @@ def _parse_intent_payload(raw: str) -> tuple[IngressIntent, float, str] | None:
 
 
 def _keyword_fallback(query: str) -> IntentRouteResult:
-    """EXAONE 실패 시 최소 키워드 가드 (추가 모델 없음)."""
+    """로컬 LLM 실패 시 최소 키워드 가드 (추가 모델 없음)."""
     text = query
     if any(k in text for k in ("로그인", "회원가입", "비밀번호", "로그아웃", "인증", "구글 로그인")):
         intent = IngressIntent.SECURITY
@@ -96,8 +102,8 @@ def _keyword_fallback(query: str) -> IntentRouteResult:
 
 class ExaoneIngressIntentRouter(IntentRouterPort):
     """
-    동일 EXAONE 7.8B 가중치 + INGRESS_CLASSIFIER 역할만.
-    출력 allowlist·confidence 하네스로 역할 혼합을 막는다.
+    동일 PoC Hub 가중치(Qwen2.5-1.5B) + INGRESS_CLASSIFIER 역할만.
+    QLoRA 없이 프롬프트·allowlist·confidence 하네스로 역할 혼합을 막는다.
     """
 
     async def route(self, query: str) -> IntentRouteResult:

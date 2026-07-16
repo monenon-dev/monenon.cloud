@@ -7,10 +7,9 @@
 | 문서 | 내용 |
 |------|------|
 | [../CLAUDE.md](../CLAUDE.md) | 구현 전 사고, 단순성, 정밀한 수정, 목표 중심 실행 |
-| [../.cursorrules](../.cursorrules) | Cursor 하네스, `docs/` 필수 읽기, 산출물 제한 |
-| [../docs/DevOps/README.md](../docs/DevOps/README.md) | 규칙 색인 |
-| [../docs/DevOps/backend/BACKEND_RULES.md](../docs/DevOps/backend/BACKEND_RULES.md) | FastAPI·Python 코딩 규칙 **(구현 전 필수)** |
-| [../docs/DevOps/backend/ENTITY_RULE.md](../docs/DevOps/backend/ENTITY_RULE.md) | ORM·테이블 추가·수정 시 |
+| [../.cursorrules](../.cursorrules) | Cursor 하네스, `_docs/` 필수 읽기, 산출물 제한 |
+| [./_docs/BACKEND_RULES.md](./_docs/BACKEND_RULES.md) | FastAPI·Python 코딩 규칙 **(구현 전 필수)** |
+| [./_docs/ENTITY_RULE.md](./_docs/ENTITY_RULE.md) | ORM·테이블 추가·수정 시 |
 
 프론트 작업은 [../frontend/CLAUDE.md](../frontend/CLAUDE.md)를 따른다.
 
@@ -86,13 +85,13 @@ backend/apps/
 1. `backend/apps/<앱>/` 패키지 생성
 2. `backend/main.py`에 라우터·ORM metadata 등록
 3. 필요하면 `<앱>/_docs/CLAUDE.md` 작성 (Titanic 패턴 참고)
-4. [BACKEND_RULES.md](../docs/DevOps/backend/BACKEND_RULES.md)와 기존 앱 패턴을 먼저 읽는다
+4. [BACKEND_RULES.md](./_docs/BACKEND_RULES.md)와 기존 앱 패턴을 먼저 읽는다
 
 ---
 
 ## 백엔드 구현 체크리스트
 
-1. [BACKEND_RULES.md](../docs/DevOps/backend/BACKEND_RULES.md) 확인
+1. [BACKEND_RULES.md](./_docs/BACKEND_RULES.md) 확인
 2. 수정 대상 앱의 **기존** 라우터·use case·pg repository 패턴 읽기
 3. `AsyncSession` + `Depends(get_db)` 유지
 4. 요청/응답 Pydantic 스키마, `detail` 한국어
@@ -102,7 +101,7 @@ backend/apps/
 ### Cursor 멘션 (권장)
 
 ```text
-@CLAUDE.md @backend/CLAUDE.md @docs/DevOps/backend/BACKEND_RULES.md
+@CLAUDE.md @backend/CLAUDE.md @backend/_docs/BACKEND_RULES.md
 ```
 
 Titanic 작업 시 추가:

@@ -7,7 +7,10 @@ import os
 import httpx
 
 _OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://host.docker.internal:11434")
-_EXAONE_MODEL = os.getenv("OLLAMA_MODEL", "exaone3.5:2.4b")
+_EXAONE_MODEL = os.getenv(
+    "OLLAMA_MODEL",
+    os.getenv("POC_HUB_MODEL", "qwen2.5:1.5b-instruct"),
+)
 
 
 class FakerOrchestrator:

@@ -24,14 +24,14 @@ class IntentRouteResponse(BaseModel):
     handler: str
     scores: dict[str, float]
     reason: str
-    backend: str = "exaone"
+    backend: str = "local"
 
 
 async def _route_intent_impl(query: str) -> IntentRouteResponse:
     import os
 
     result = await intent_router.route(query)
-    backend = os.getenv("GATEWAY_INTENT_BACKEND", "exaone")
+    backend = os.getenv("GATEWAY_INTENT_BACKEND", "local")
     logger.info(
         "[gateway] backend=%s intent=%s conf=%.3f handler=%s reason=%s",
         backend,
@@ -55,10 +55,14 @@ async def gateway_health() -> dict:
     """라우터 등록 확인용."""
     import os
 
+    from lol.config import get_poc_hub_model
+
     return {
         "ok": True,
-        "backend": os.getenv("GATEWAY_INTENT_BACKEND", "exaone"),
+        "backend": os.getenv("GATEWAY_INTENT_BACKEND", "local"),
+        "hub_model": get_poc_hub_model(),
         "intent_path": "/api/gateway/intent",
+        "qlora_required_for_router": False,
     }
 
 
@@ -66,7 +70,7 @@ async def gateway_health() -> dict:
 async def route_intent_post(body: IntentRouteRequest) -> IntentRouteResponse:
     """
     시맨틱 인텐트 입구 필터 (POST).
-    기본: EXAONE 7.8B INGRESS_CLASSIFIER 역할만.
+    PoC: Qwen2.5-1.5B를 INGRESS_CLASSIFIER 역할로만 호출 (QLoRA 불필요).
     """
     return await _route_intent_impl(body.query)
 

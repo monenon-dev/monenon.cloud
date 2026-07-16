@@ -8,8 +8,7 @@
 |------|------|
 | [../CLAUDE.md](../CLAUDE.md) | 구현 전 사고, 단순성, 정밀한 수정, 목표 중심 실행 |
 | [../.cursorrules](../.cursorrules) | Cursor 하네스, 산출물 제한 |
-| [../docs/DevOps/README.md](../docs/DevOps/README.md) | 규칙 색인 |
-| [../docs/DevOps/frontend/REACT_RULES.md](../docs/DevOps/frontend/REACT_RULES.md) | React·Next.js 코딩 규칙 **(구현 전 필수)** |
+| [./_docs/REACT_RULES.md](./_docs/REACT_RULES.md) | React·Next.js 코딩 규칙 **(구현 전 필수)** |
 
 백엔드 API·도메인은 [../backend/CLAUDE.md](../backend/CLAUDE.md)를 따른다.  
 Titanic 화면·경로는 [../backend/apps/titanic/_docs/CLAUDE.md](../backend/apps/titanic/_docs/CLAUDE.md) API 규약과 맞춘다.
@@ -61,7 +60,7 @@ Titanic 화면·경로는 [../backend/apps/titanic/_docs/CLAUDE.md](../backend/a
 
 ## 프론트 구현 체크리스트
 
-1. [REACT_RULES.md](../docs/DevOps/frontend/REACT_RULES.md) 확인 (`useState` 객체 묶기, `FormData` 패턴)
+1. [REACT_RULES.md](./_docs/REACT_RULES.md) 확인 (`useState` 객체 묶기, `FormData` 패턴)
 2. 기존 컴포넌트·`lib/*` 스타일 따르기
 3. `NEXT_PUBLIC_API_BASE_URL` 미설정 시 `api-base.ts` 로컬 폴백 동작 확인
 4. Docker 프론트 빌드 시 `docker-compose.yaml` `build.args` 전달 확인
@@ -69,7 +68,7 @@ Titanic 화면·경로는 [../backend/apps/titanic/_docs/CLAUDE.md](../backend/a
 ### Cursor 멘션 (권장)
 
 ```text
-@CLAUDE.md @frontend/CLAUDE.md @docs/DevOps/frontend/REACT_RULES.md
+@CLAUDE.md @frontend/CLAUDE.md @frontend/_docs/REACT_RULES.md
 ```
 
 Titanic UI 작업 시 추가:

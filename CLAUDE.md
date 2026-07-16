@@ -12,7 +12,7 @@
 | [backend/apps/titanic/_docs/CLAUDE.md](./backend/apps/titanic/_docs/CLAUDE.md) | Titanic 교육 도메인 (헥사고날) |
 
 Cursor 실행 하네스(멘션, 검증 고리, 산출물 제한)는 [.cursorrules](./.cursorrules) · [CURSOR.md](./CURSOR.md)를 따릅니다.  
-코딩 규칙 본문은 [docs/DevOps/README.md](./docs/DevOps/README.md) 색인을 거친 뒤 적용합니다.
+코딩 규칙 본문은 [backend/_docs/BACKEND_RULES.md](./backend/_docs/BACKEND_RULES.md) · [frontend/_docs/REACT_RULES.md](./frontend/_docs/REACT_RULES.md)를 따른다.
 
 **트레이드오프:** 신중함을 속도보다 우선합니다. 사소한 작업은 상황에 맞게 판단합니다.
 
@@ -118,7 +118,8 @@ cloud.monenon/
 │       ├── titanic/         # 교육·데이터 실습
 │       └── core/            # DB·Keymaker 등 공통
 ├── frontend/                # Next.js App Router
-├── docs/DevOps/             # 코딩 규칙 색인
+├── backend/_docs/           # 백엔드 코딩 규칙·ERD
+├── frontend/_docs/          # 프론트 코딩 규칙
 ├── docker-compose.yaml
 ├── CLAUDE.md                ← 본 문서
 ├── .cursorrules

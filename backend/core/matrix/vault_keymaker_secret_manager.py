@@ -6,6 +6,7 @@ Keymaker — 전역 키·환경(.env)·Gemini SDK 설정을 한 객체에서 관
 from __future__ import annotations
 
 import os
+from dataclasses import dataclass
 from pathlib import Path
 
 import google.generativeai as genai
@@ -14,6 +15,14 @@ from dotenv import load_dotenv
 # Monenon /chat — v1beta에서 지원되는 flash-lite (1.5-flash는 404)
 _GEMINI_DEFAULT_MODEL = "gemini-2.5-flash-lite"
 _GEMINI_FALLBACK_MODEL = "gemini-2.0-flash-lite"
+
+
+@dataclass(frozen=True)
+class GeminiChatProvision:
+    """Keymaker가 인터랙터에 넘기는 Gemini 채팅 설정 (env 키 이름은 숨김)."""
+
+    model_id: str
+    fallback_model_id: str
 
 
 class Keymaker:
@@ -96,6 +105,14 @@ class Keymaker:
             return
         genai.configure(api_key=self.require_gemini_api_key())
         self._gemini_sdk_configured = True
+
+    def provide_gemini_chat(self) -> GeminiChatProvision:
+        """API 키는 SDK에만 주입하고, 모델 ID만 인터랙터에 제공한다."""
+        self.ensure_gemini_sdk_configured()
+        return GeminiChatProvision(
+            model_id=self.gemini_chat_model_id(),
+            fallback_model_id=self.gemini_fallback_model_id(),
+        )
 
     def reset_gemini_sdk_for_tests(self) -> None:
         """테스트용: SDK 설정 플래그만 초기화 (일반 앱 코드에서는 사용하지 않음)."""

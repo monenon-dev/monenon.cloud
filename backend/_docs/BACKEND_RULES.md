@@ -5,7 +5,7 @@
 
 ## 구현 전 필수
 
-1. 이 파일과 `docs/DevOps/README.md`를 확인한다.
+1. 이 파일과 동일 폴더의 ERD·ENTITY 문서를 확인한다.
 2. DB 테이블·ORM 추가·수정 시 [`ENTITY_RULE.md`](ENTITY_RULE.md)를 따른다.
 3. 수정 대상 모듈의 **기존 패턴**(라우터·서비스·모델 분리)을 먼저 읽는다.
 4. 문서·코드가 충돌하면 **이 디렉터리 규칙 → 기존 코드 스타일** 순으로 따른다.
@@ -80,7 +80,7 @@ async def list_items(session: AsyncSession = Depends(get_db)) -> list[ItemOut]:
 ## Cursor 고정 명령어
 
 ```text
-@backend/.cursorrules @docs/DevOps/backend/BACKEND_RULES.md
+@backend/.cursorrules @backend/_docs/BACKEND_RULES.md
 
-docs/DevOps 규칙과 backend/apps 기존 패턴을 따르세요. 요청 범위만 수정하세요.
+backend/_docs 규칙과 backend/apps 기존 패턴을 따르세요. 요청 범위만 수정하세요.
 ```

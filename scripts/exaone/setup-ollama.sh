@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# EXAONE을 Ollama로 설치 (AWQ/transformers 500 우회 — 권장)
+# PoC 로컬 Hub: Qwen2.5-1.5B-Instruct (입구 분류 + RAG hub/spoke 공용)
 #
 #   bash scripts/exaone/setup-ollama.sh
 set -euo pipefail
@@ -15,17 +15,22 @@ if ! curl -sf http://127.0.0.1:11434/api/tags >/dev/null 2>&1; then
   sleep 2
 fi
 
-echo "==> pull spoke (2.4B) then hub (7.8B)"
-ollama pull exaone3.5:2.4b
-ollama pull exaone3.5:7.8b || echo "7.8B pull 실패 가능 — 2.4B만으로도 Moneyball 동작"
+echo "==> pull PoC hub (Qwen2.5-1.5B-Instruct)"
+ollama pull qwen2.5:1.5b-instruct || ollama pull qwen2.5:1.5b
 
 echo "==> smoke"
-ollama run exaone3.5:2.4b "한 줄로 인사해 줘."
+MODEL=$(ollama list | awk '/qwen2\.5:1\.5b/{print $1; exit}')
+ollama run "${MODEL:-qwen2.5:1.5b}" "한 줄로 인사해 줘."
 
 echo
 echo "OK. Moneyball backend/.env 에:"
 echo "  MONEYBALL_LLM_MODE=ollama"
 echo "  OLLAMA_BASE_URL=http://172.17.0.1:11434"
-echo "  MONEYBALL_HUB_MODEL=exaone3.5:7.8b"
-echo "  MONEYBALL_SPOKE_MODEL=exaone3.5:2.4b"
+echo "  POC_HUB_MODEL=qwen2.5:1.5b-instruct"
+echo "  MONEYBALL_HUB_MODEL=qwen2.5:1.5b-instruct"
+echo "  MONEYBALL_SPOKE_MODEL=qwen2.5:1.5b-instruct"
+echo "  GATEWAY_INTENT_BACKEND=local"
+echo "  GATEWAY_HUB_MODEL=qwen2.5:1.5b-instruct"
 echo "그다음 phase2-sigma-local.sh 로 백엔드 재기동"
+echo
+echo "참고: 시맨틱 라우터에 QLoRA는 PoC에서 불필요 (프롬프트+allowlist)."

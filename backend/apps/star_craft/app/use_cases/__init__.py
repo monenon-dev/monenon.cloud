@@ -28,10 +28,9 @@ DEFAULT_SPOKES: list[dict] = [
 
 
 def hub_model_name() -> str:
-    return os.getenv(
-        "STAR_CRAFT_HUB_MODEL",
-        os.getenv("MONEYBALL_HUB_MODEL", "exaone3.5:7.8b"),
-    )
+    from lol.config import get_poc_hub_model
+
+    return get_poc_hub_model()
 
 
 class ContextRoutingUseCase:

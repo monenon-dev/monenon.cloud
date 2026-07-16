@@ -27,7 +27,7 @@ class TerranGeminiResponse(BaseModel):
 @terran_router.post("/vessel/gemini", response_model=TerranGeminiResponse)
 async def terran_vessel_gemini_chat(body: TerranGeminiRequest) -> TerranGeminiResponse | JSONResponse:
     """
-    Gateway gemini 인텐트용 — GEMINI_API_KEY로 답변 생성.
+    Gateway gemini 인텐트용 — Keymaker 제공 Gemini 설정으로 답변 생성.
     RAG/CRUD와 역할 분리.
     """
     result = terran_vessel_gemini.answer(body.query, system_hint=body.system_hint)

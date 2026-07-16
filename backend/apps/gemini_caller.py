@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import google.generativeai as genai
-from core.matrix.vault_keymaker_secret_manager import get_keymaker
+from core.matrix.vault_keymaker_secret_manager import Keymaker, get_keymaker
 
 
 class GeminiQuotaError(RuntimeError):
@@ -42,19 +42,24 @@ def _generate_once(model_name: str, text: str, *, temperature: float = 0.9) -> s
     )
 
 
-def call_gemini(prompt: str, *, model: str | None = None) -> str:
+def call_gemini(
+    prompt: str,
+    *,
+    model: str | None = None,
+    keymaker: Keymaker | None = None,
+) -> str:
     """
     사용자 프롬프트 한 번에 대한 Gemini 텍스트 응답.
-    할당량(429)이면 설정된 fallback 모델로 한 번 더 시도합니다.
+    키·모델은 Keymaker가 제공. 할당량(429)이면 fallback 모델로 한 번 더 시도.
     """
     text = (prompt or "").strip()
     if not text:
         raise ValueError("prompt가 비었습니다.")
 
-    km = get_keymaker()
-    km.ensure_gemini_sdk_configured()
-    primary = (model or km.gemini_default_model_id()).strip()
-    fallback = km.gemini_fallback_model_id()
+    km = keymaker or get_keymaker()
+    provision = km.provide_gemini_chat()
+    primary = (model or provision.model_id).strip()
+    fallback = provision.fallback_model_id
 
     models_to_try: list[str] = [primary]
     if fallback and fallback not in models_to_try:

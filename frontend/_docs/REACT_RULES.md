@@ -106,7 +106,7 @@ patchUi({ error: "비밀번호가 일치하지 않습니다." });
 채팅에 아래처럼 붙이면 이 규칙이 컨텍스트로 들어갑니다.
 
 ```text
-@docs/DevOps/frontend/REACT_RULES.md
+@frontend/_docs/REACT_RULES.md
 ```
 
 ### 2) 복사해서 쓰는 고정 명령어
@@ -114,7 +114,7 @@ patchUi({ error: "비밀번호가 일치하지 않습니다." });
 아래 블록을 그대로 붙여 넣으면, 매번 길게 설명하지 않아도 됩니다.
 
 ```text
-@docs/DevOps/frontend/REACT_RULES.md 를 따르세요.
+@frontend/_docs/REACT_RULES.md 를 따르세요.
 
 - useState는 많이 쓰지 말고, 관련 상태는 하나의 객체로 압축하세요.
 - 폼은 아래 패턴을 참고하세요.
@@ -133,7 +133,7 @@ const handleSignup = async (e: React.FormEvent<HTMLFormElement>) => {
 ### 3) 짧은 한 줄 명령
 
 ```text
-@docs/DevOps/frontend/REACT_RULES.md 기준으로 useState를 객체 하나로 압축하고 FormData 폼 패턴으로 바꿔줘.
+@frontend/_docs/REACT_RULES.md 기준으로 useState를 객체 하나로 압축하고 FormData 폼 패턴으로 바꿔줘.
 ```
 
 ---

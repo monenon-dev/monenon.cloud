@@ -1,13 +1,15 @@
 """테란 Vessel — Gemini API로 일반 대화·추천 응답 생성.
 
 Gateway intent=gemini 일 때 호출된다.
-EXAONE/RAG와 역할을 섞지 않는다 (GEMINI_API_KEY + Keymaker만).
+비밀·모델은 Keymaker가 관리·제공하고, 이 인터랙터는 env를 직접 읽지 않는다.
 """
 
 from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
+
+from core.matrix.vault_keymaker_secret_manager import Keymaker, get_keymaker
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +33,10 @@ class TerranVesselResult:
 
 
 class TerranVesselGeminiInteractor:
-    """GEMINI_API_KEY → call_gemini → 화면용 텍스트."""
+    """Keymaker 제공 설정 → call_gemini → 화면용 텍스트."""
+
+    def __init__(self, keymaker: Keymaker | None = None) -> None:
+        self._keymaker = keymaker or get_keymaker()
 
     def answer(self, query: str, *, system_hint: str | None = None) -> TerranVesselResult:
         text = (query or "").strip()
@@ -43,18 +48,31 @@ class TerranVesselGeminiInteractor:
                 detail="질문이 비어 있습니다.",
             )
 
-        from core.matrix.vault_keymaker_secret_manager import get_keymaker
         from gemini_caller import GeminiQuotaError, call_gemini
 
-        km = get_keymaker()
-        model = km.gemini_chat_model_id()
+        try:
+            provision = self._keymaker.provide_gemini_chat()
+        except RuntimeError as exc:
+            logger.warning("[star_craft/terran_vessel] keymaker: %s", exc)
+            return TerranVesselResult(
+                ok=False,
+                reply="",
+                model="",
+                detail=str(exc),
+            )
+
+        model = provision.model_id
         preamble = _VESSEL_SYSTEM
         if system_hint:
             preamble = preamble + "\n" + system_hint.strip() + "\n"
         prompt = f"{preamble}\n[사용자]\n{text}"
 
         try:
-            reply = call_gemini(prompt, model=model)
+            reply = call_gemini(
+                prompt,
+                model=model,
+                keymaker=self._keymaker,
+            )
             logger.info(
                 "[star_craft/terran_vessel] gemini ok model=%s chars=%s",
                 model,

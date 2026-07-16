@@ -1,7 +1,11 @@
 """입구 인텐트 라우터 팩토리.
 
-기본: EXAONE 7.8B 논리 역할 INGRESS_CLASSIFIER (추가 모델 불필요).
-선택: GATEWAY_INTENT_BACKEND=nomic → 임베딩 프로토타입 (nomic-embed 필요).
+PoC 기본: 단일 로컬 LLM(Qwen2.5-1.5B)을 INGRESS_CLASSIFIER 역할로만 호출.
+시맨틱 라우터에 QLoRA는 필수가 아님 (프롬프트+allowlist로 충분).
+
+GATEWAY_INTENT_BACKEND:
+  - local | exaone | qwen (동의어): 로컬 Hub LLM 분류기
+  - nomic: 임베딩 프로토타입 (nomic-embed-text)
 """
 
 from __future__ import annotations
@@ -54,7 +58,7 @@ def pick_intent(
 
 
 class NomicPrototypeIntentRouter(IntentRouterPort):
-    """nomic-embed 프로토타입 유사도. 별도 임베딩 모델이 있을 때만."""
+    """nomic-embed 프로토타입 유사도. QLoRA 불필요."""
 
     def __init__(self) -> None:
         self._proto_vectors: dict[IngressIntent, list[list[float]]] | None = None
@@ -120,14 +124,10 @@ class NomicPrototypeIntentRouter(IntentRouterPort):
 
 
 def get_intent_router() -> IntentRouterPort:
-    """
-    GATEWAY_INTENT_BACKEND:
-      - exaone (기본): 기존 7.8B, 역할=INGRESS_CLASSIFIER만
-      - nomic: 임베딩 프로토타입 (추가 pull 필요)
-    """
-    backend = os.getenv("GATEWAY_INTENT_BACKEND", "exaone").strip().lower()
+    backend = os.getenv("GATEWAY_INTENT_BACKEND", "local").strip().lower()
     if backend == "nomic":
         return NomicPrototypeIntentRouter()
+    # local | exaone | qwen — 동일 프롬프트 분류기 (모델은 POC_HUB_MODEL)
     from gateway.app.services.exaone_intent_router import ExaoneIngressIntentRouter
 
     return ExaoneIngressIntentRouter()
