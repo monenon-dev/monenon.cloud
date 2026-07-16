@@ -105,6 +105,13 @@ except ModuleNotFoundError as exc:
     logging.getLogger(__name__).warning(
         "moneyball router disabled (ModuleNotFoundError): %s", exc
     )
+try:
+    from gateway.adapter.inbound.api import gateway_api_router
+except ModuleNotFoundError as exc:
+    gateway_api_router = None
+    logging.getLogger(__name__).warning(
+        "gateway router disabled (ModuleNotFoundError): %s", exc
+    )
 # Titanic CSV 자동 시드는 사용자가 업로드할 때만 실행
 UPLOAD_DIR = Path(__file__).resolve().parent / "uploads"
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
@@ -307,6 +314,8 @@ if faker_api_router is not None:
 app.include_router(titanic_router)
 if moneyball_router is not None:
     app.include_router(moneyball_router)
+if gateway_api_router is not None:
+    app.include_router(gateway_api_router)
 
 
 @app.get("/")
