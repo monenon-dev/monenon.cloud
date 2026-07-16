@@ -71,10 +71,17 @@ RACE_ONTOLOGY: tuple[Race, ...] = (
         capability="timeseries",
         metaphor="공장·빌드오더 — 시간축으로 측정하고 예측한다",
         one_liner="테란 = 시계/공장 (시간에 맞춰 계산한다)",
-        tools=(),  # 추후 시계열 추론 툴 편입
+        tools=(
+            RaceTool(
+                id="vessel_gemini",
+                title="Terran Vessel (Gemini)",
+                path="backend/apps/star_craft/app/use_cases/terran_vessel_gemini_interactor.py",
+                role="Gateway gemini 인텐트 — GEMINI_API_KEY 대화·추천",
+                kind="backend",
+            ),
+        ),
     ),
 )
-
 
 def get_race(race_id: str) -> Race | None:
     for race in RACE_ONTOLOGY:
