@@ -135,8 +135,8 @@ services:
 
   # ── pgAdmin (PostgreSQL UI) ──────────────────────────────────────────────────
   # UI: http://localhost:5050
-  # 로그인: PGADMIN_DEFAULT_EMAIL / PGADMIN_DEFAULT_PASSWORD
-  # 서버 추가 시 Host=pgvector, Port=5432, User=postgres, DB=monenon
+  # 로그인: PGADMIN_DEFAULT_EMAIL / PGADMIN_DEFAULT_PASSWORD (기본값 아래 참고)
+  # servers.json → 컨테이너 시작 시 "Monenon (pgvector)" 서버 자동 등록
   pgadmin:
     image: dpage/pgadmin4:latest
     ports:
@@ -147,6 +147,8 @@ services:
       PGADMIN_CONFIG_SERVER_MODE: "False"
     volumes:
       - pgadmin_data:/var/lib/pgadmin
+      - ./pgadmin/servers.json:/pgadmin4/servers.json:ro
+      - ./pgadmin/pgpass:/pgadmin4/pgpass:ro
     depends_on:
       pgvector:
         condition: service_healthy
