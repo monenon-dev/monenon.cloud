@@ -62,14 +62,17 @@ export function SocialLoginButtons({
         <span className="flex-1 text-center pr-8">카카오계정으로 로그인</span>
       </button>
 
-      <div className="rounded-xl border border-gray-200 bg-white px-2 py-2 dark:border-gray-700 dark:bg-gray-950">
-        {googleError ? (
-          <p role="alert" className="mb-2 text-xs text-red-600 dark:text-red-400 px-1">
-            {googleError}
-          </p>
-        ) : null}
-        <GoogleSignInButton onSuccess={handleGoogleSuccess} onError={setGoogleError} />
-      </div>
+      {googleError ? (
+        <p role="alert" className="text-xs text-red-600 dark:text-red-400 px-1">
+          {googleError}
+        </p>
+      ) : null}
+
+      <GoogleSignInButton
+        variant="social"
+        onSuccess={handleGoogleSuccess}
+        onError={setGoogleError}
+      />
     </div>
   );
 }
