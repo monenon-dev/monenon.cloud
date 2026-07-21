@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 
 import {
   buildOAuthRedirectUri,
-  getCanonicalOAuthOrigin,
+  oauthCookieOptions,
 } from "@/lib/oauth-redirect-uri";
 import { routes } from "@/lib/routes";
 
@@ -27,15 +27,6 @@ function readClientId(provider: OAuthProvider): string {
 export function handleOAuthStart(request: Request, provider: OAuthProvider) {
   const requestUrl = new URL(request.url);
   const requestOrigin = requestUrl.origin;
-  const canonicalOrigin = getCanonicalOAuthOrigin(requestOrigin);
-
-  if (requestOrigin !== canonicalOrigin) {
-    const canonical = new URL(request.url);
-    const canonicalUrl = new URL(canonicalOrigin);
-    canonical.protocol = canonicalUrl.protocol;
-    canonical.host = canonicalUrl.host;
-    return NextResponse.redirect(canonical);
-  }
 
   const clientId = readClientId(provider);
   if (!clientId) {
@@ -44,11 +35,11 @@ export function handleOAuthStart(request: Request, provider: OAuthProvider) {
     return NextResponse.redirect(loginUrl);
   }
 
-  const url = new URL(request.url);
-  const nextRaw = url.searchParams.get("next") || "/";
+  const nextRaw = requestUrl.searchParams.get("next") || "/";
   const next = nextRaw.startsWith("/") ? nextRaw : "/";
   const redirectUri = buildOAuthRedirectUri(provider, requestOrigin);
   const state = randomUUID();
+  const cookieOpts = oauthCookieOptions(requestOrigin);
 
   const authorize = new URL(AUTHORIZE_URL[provider]);
   authorize.searchParams.set("response_type", "code");
@@ -60,17 +51,7 @@ export function handleOAuthStart(request: Request, provider: OAuthProvider) {
   }
 
   const response = NextResponse.redirect(authorize);
-  response.cookies.set("moneo_oauth_state", state, {
-    httpOnly: true,
-    maxAge: 600,
-    sameSite: "lax",
-    path: "/",
-  });
-  response.cookies.set("moneo_oauth_next", next, {
-    httpOnly: true,
-    maxAge: 600,
-    sameSite: "lax",
-    path: "/",
-  });
+  response.cookies.set("moneo_oauth_state", state, cookieOpts);
+  response.cookies.set("moneo_oauth_next", next, cookieOpts);
   return response;
 }
