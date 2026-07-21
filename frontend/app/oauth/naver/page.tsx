@@ -1,18 +1,39 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { FormEvent, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { FormEvent, Suspense, useEffect, useState } from "react";
 
-import { getNaverConsentToken, hasNaverConsent } from "@/lib/social-auth";
+import {
+  consumeSocialLoginNext,
+  getNaverConsentToken,
+  hasNaverConsent,
+  saveSocialLoginNext,
+} from "@/lib/social-auth";
 import { SITE_NAME } from "@/lib/site-brand";
+import { routes } from "@/lib/routes";
 
 /**
  * 네이버 OAuth 로그인 UI (다크) — 약관 동의 토큰이 있을 때만 진입.
  * 실제 nid.naver.com 대신 로컬 화면으로 흐름을 재현한다.
  */
 export default function NaverOauthLoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="flex min-h-screen items-center justify-center bg-[#1a1a1a] text-slate-300">
+          <p className="text-sm">로딩 중…</p>
+        </main>
+      }
+    >
+      <NaverOauthLoginContent />
+    </Suspense>
+  );
+}
+
+function NaverOauthLoginContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [ui, setUi] = useState({
     ready: false,
     allowed: false,
@@ -27,6 +48,9 @@ export default function NaverOauthLoginPage() {
   const patchUi = (patch: Partial<typeof ui>) => setUi((prev) => ({ ...prev, ...patch }));
 
   useEffect(() => {
+    const next = searchParams.get("next");
+    if (next?.startsWith("/")) saveSocialLoginNext(next);
+
     const ok = hasNaverConsent();
     patchUi({
       ready: true,
@@ -34,9 +58,9 @@ export default function NaverOauthLoginPage() {
       consentToken: getNaverConsentToken(),
     });
     if (!ok) {
-      router.replace("/oauth/signup/naver");
+      router.replace(routes.oauth.signupNaver);
     }
-  }, [router]);
+  }, [router, searchParams]);
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -48,21 +72,20 @@ export default function NaverOauthLoginPage() {
       return;
     }
     patchUi({ loading: true, error: null, info: null });
-    // PoC: 동의 토큰 + 자격증명 입력 완료 시뮬레이션
+    const consentToken = getNaverConsentToken();
     window.setTimeout(() => {
       localStorage.setItem(
         "moneo_naver_session",
         JSON.stringify({
           provider: "naver",
           login_id: id,
-          consent_token: ui.consentToken,
+          consent_token: consentToken,
           at: new Date().toISOString(),
         })
       );
-      patchUi({
-        loading: false,
-        info: "네이버 로그인 시뮬레이션 완료. (동의 토큰 + 계정 입력)",
-      });
+      const destination = consumeSocialLoginNext("/");
+      router.replace(destination);
+      router.refresh();
     }, 400);
   };
 
@@ -183,7 +206,7 @@ export default function NaverOauthLoginPage() {
             비밀번호 찾기
           </button>
           <span className="mx-2 text-slate-700">|</span>
-          <Link href="/oauth/signup/naver" className="font-semibold text-[#03C75A] hover:underline">
+          <Link href={routes.oauth.signupNaver} className="font-semibold text-[#03C75A] hover:underline">
             회원가입
           </Link>
         </p>

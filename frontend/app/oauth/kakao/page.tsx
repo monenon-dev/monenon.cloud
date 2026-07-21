@@ -1,15 +1,36 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { FormEvent, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { FormEvent, Suspense, useEffect, useState } from "react";
 
-import { getKakaoConsentToken, hasKakaoConsent } from "@/lib/social-auth";
+import {
+  consumeSocialLoginNext,
+  getKakaoConsentToken,
+  hasKakaoConsent,
+  saveSocialLoginNext,
+} from "@/lib/social-auth";
 import { SITE_NAME } from "@/lib/site-brand";
+import { routes } from "@/lib/routes";
 
 /** 카카오 로그인 UI — 약관 동의 토큰이 있을 때만 진입. */
 export default function KakaoOauthLoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="flex min-h-screen items-center justify-center bg-[#f5f5f5] text-slate-500">
+          <p className="text-sm">로딩 중…</p>
+        </main>
+      }
+    >
+      <KakaoOauthLoginContent />
+    </Suspense>
+  );
+}
+
+function KakaoOauthLoginContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [ui, setUi] = useState({
     ready: false,
     allowed: false,
@@ -23,14 +44,17 @@ export default function KakaoOauthLoginPage() {
   const patchUi = (patch: Partial<typeof ui>) => setUi((prev) => ({ ...prev, ...patch }));
 
   useEffect(() => {
+    const next = searchParams.get("next");
+    if (next?.startsWith("/")) saveSocialLoginNext(next);
+
     const ok = hasKakaoConsent();
     patchUi({
       ready: true,
       allowed: ok,
       consentToken: getKakaoConsentToken(),
     });
-    if (!ok) router.replace("/oauth/signup/kakao");
-  }, [router]);
+    if (!ok) router.replace(routes.oauth.signupKakao);
+  }, [router, searchParams]);
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -42,21 +66,21 @@ export default function KakaoOauthLoginPage() {
       return;
     }
     patchUi({ loading: true, error: null, info: null });
+    const consentToken = getKakaoConsentToken();
     window.setTimeout(() => {
       localStorage.setItem(
         "moneo_kakao_session",
         JSON.stringify({
           provider: "kakao",
           login_id: id,
-          consent_token: ui.consentToken,
+          consent_token: consentToken,
           save_simple: ui.saveSimple,
           at: new Date().toISOString(),
         })
       );
-      patchUi({
-        loading: false,
-        info: "카카오 로그인 시뮬레이션 완료. (동의 토큰 + 계정 입력)",
-      });
+      const destination = consumeSocialLoginNext("/");
+      router.replace(destination);
+      router.refresh();
     }, 400);
   };
 
@@ -134,7 +158,7 @@ export default function KakaoOauthLoginPage() {
         </button>
 
         <div className="mt-8 flex items-center justify-between text-[12px] text-slate-500">
-          <Link href="/oauth/signup/kakao" className="hover:underline">
+          <Link href={routes.oauth.signupKakao} className="hover:underline">
             회원가입
           </Link>
           <p>
@@ -163,7 +187,7 @@ export default function KakaoOauthLoginPage() {
         consent: {ui.consentToken}
       </p>
       <p className="mt-2 text-center text-[11px] text-slate-400">
-        <Link href="/oauth/login" className="hover:underline">
+        <Link href={routes.oauth.login} className="hover:underline">
           {SITE_NAME} 로그인으로
         </Link>
       </p>
