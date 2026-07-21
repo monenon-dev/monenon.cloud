@@ -46,9 +46,7 @@ export function handleOAuthStart(request: Request, provider: OAuthProvider) {
   authorize.searchParams.set("client_id", clientId);
   authorize.searchParams.set("redirect_uri", redirectUri);
   authorize.searchParams.set("state", state);
-  if (provider === "kakao") {
-    authorize.searchParams.set("scope", "profile_nickname,account_email");
-  }
+  // scope는 카카오 앱에 설정된 동의 항목을 따름 (잘못된 scope → invalid_scope)
 
   const response = NextResponse.redirect(authorize);
   response.cookies.set("moneo_oauth_state", state, cookieOpts);
