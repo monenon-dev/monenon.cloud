@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import Logo from "@/components/brand/Logo";
+
 const SHELL = "mx-auto w-full max-w-6xl xl:max-w-7xl px-4 sm:px-6 lg:px-8";
 
 export function HomeFooter() {
@@ -10,13 +12,11 @@ export function HomeFooter() {
           <div className="min-w-0">
             <Link
               href="/"
-              className="text-base font-semibold tracking-tight text-white transition-opacity hover:opacity-90"
+              className="inline-block transition-opacity hover:opacity-90"
+              aria-label="Moneo home"
             >
-              Moneo
+              <Logo variant="horizontal" theme="dark" size={40} showTagline />
             </Link>
-            <p className="mt-1 max-w-sm text-xs leading-relaxed text-[var(--moneo-muted)] sm:text-sm">
-              AI Agents, Orchestrated for Work
-            </p>
           </div>
           <p className="text-xs text-[var(--moneo-muted)]/75">© 2026 Moneo</p>
         </div>

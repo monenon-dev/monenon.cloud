@@ -19,6 +19,7 @@ import { BuiltWithSection } from "@/components/home/built-with-section";
 import { HomeCtaSection } from "@/components/home/home-cta-section";
 import { HomeFooter } from "@/components/home/home-footer";
 import { HomeSidebar } from "@/components/layout/home-sidebar";
+import Logo from "@/components/brand/Logo";
 import { clearAuthSession, getAuthSession } from "@/lib/auth-api";
 import { buildChatsUrl, saveChatStarter } from "@/lib/chat-starter";
 import {
@@ -118,9 +119,10 @@ export default function MoneoHomePage() {
               </button>
               <Link
                 href="/"
-                className="shrink-0 text-left text-lg font-semibold tracking-tight text-white transition-opacity hover:opacity-90 sm:text-xl"
+                className="shrink-0 transition-opacity hover:opacity-90"
+                aria-label="Moneo home"
               >
-                Moneo
+                <Logo variant="horizontal" theme="dark" size={36} showTagline />
               </Link>
             </div>
 
@@ -179,12 +181,7 @@ export default function MoneoHomePage() {
           <div className={`${PAGE_SHELL} py-10 sm:py-14 lg:py-16`}>
             <div className="grid items-center gap-8 lg:grid-cols-[minmax(0,0.45fr)_minmax(0,0.55fr)] lg:gap-10">
               <div className="min-w-0">
-                <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-indigo-300/80">
-                  AI agents for work
-                </p>
-                <h1 className="mt-3 text-4xl font-semibold tracking-tight text-white leading-[1.08] sm:text-5xl lg:text-[3.25rem]">
-                  Moneo
-                </h1>
+                <Logo variant="stacked" theme="dark" size={88} className="mb-2" />
                 <p className="mt-4 max-w-md text-base leading-relaxed text-[var(--moneo-muted)] sm:text-lg">
                   AI Agents, Orchestrated for Work
                 </p>

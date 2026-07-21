@@ -53,6 +53,7 @@ export const PLATFORM_NAV: NavGroup[] = [
 ];
 
 import { routes } from "@/lib/routes";
+import Logo from "@/components/brand/Logo";
 
 // 링크형 메뉴 (페이지 이동)
 export const LINK_NAV = [
@@ -188,11 +189,8 @@ export function PlatformSidebarLayout({
           >
             {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
-          <Link
-            href="/"
-            className="text-base font-bold text-indigo-600 dark:text-indigo-400 sm:text-lg"
-          >
-            Moneo
+          <Link href="/" className="inline-flex" aria-label="Moneo home">
+            <Logo variant="horizontal" theme="dark" size={32} />
           </Link>
           <div className="ml-auto flex items-center gap-2">{headerActions}</div>
         </header>

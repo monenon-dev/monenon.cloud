@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 
 import { GoogleAuthSection } from "@/components/auth/google-auth-section";
+import Logo from "@/components/brand/Logo";
 import { formatApiError } from "@/lib/format-api-error";
 
 import { getApiBaseUrl } from "@/lib/api-base";
@@ -73,11 +74,11 @@ export default function SignupPage() {
   return (
     <main className="min-h-screen bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100 transition-colors flex flex-col items-center justify-center px-4 py-10">
       <div className="w-full max-w-sm">
-        <div className="text-center mb-8">
-          <Link href="/" className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">
-            Moneo
+        <div className="mb-8 flex flex-col items-center gap-3 text-center">
+          <Link href="/" aria-label="Moneo home" className="inline-flex">
+            <Logo variant="horizontal" theme="dark" size={48} showTagline />
           </Link>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">새 계정 만들기</p>
+          <p className="text-sm text-gray-600 dark:text-gray-400">새 계정 만들기</p>
         </div>
 
         <div className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-gray-50/80 dark:bg-gray-900/40 p-6 shadow-sm">

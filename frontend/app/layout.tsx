@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { JetBrains_Mono, Space_Grotesk } from "next/font/google";
+import { JetBrains_Mono, Playfair_Display, Space_Grotesk } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { ClearAdminSessionOutsideAdmin } from "@/components/auth/clear-admin-outside-admin";
 import { UserWarningNotifier } from "@/components/auth/user-warning-notifier";
@@ -13,6 +13,12 @@ const spaceGrotesk = Space_Grotesk({
 const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
   variable: "--font-mono",
+});
+
+const playfair = Playfair_Display({
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+  variable: "--font-logo",
 });
 
 export const metadata: Metadata = {
@@ -30,7 +36,7 @@ export default function RootLayout({
   return (
     <html
       lang="ko"
-      className={`dark ${spaceGrotesk.variable} ${jetbrainsMono.variable}`}
+      className={`dark ${spaceGrotesk.variable} ${jetbrainsMono.variable} ${playfair.variable}`}
     >
       <body
         className={`${spaceGrotesk.className} antialiased bg-[var(--moneo-bg)] text-[var(--moneo-text)]`}
