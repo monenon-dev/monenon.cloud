@@ -4,12 +4,20 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ChevronDown, ChevronRight } from "lucide-react";
 
-type LessonNavKey = "hub" | "titanic" | "samsung" | "moneyball";
+type LessonNavKey = "hub" | "titanic" | "samsung" | "moneyball" | "crawling";
 type TitanicSubKey = "upload" | "walter" | "smith" | "vision";
 type SamsungSubKey = "analysis" | "upload";
+type CrawlingSubKey = "news" | "board" | "write" | "scraper";
 
 const MONEYBALL_HREF = "/lesson/moneyball";
 const MONEYBALL_CHAT_HREF = "/lesson/moneyball/chat";
+
+const CRAWLING_SUB: { key: CrawlingSubKey; label: string; href: string }[] = [
+  { key: "news", label: "1. 네이버 뉴스", href: "/lesson/crawling/news" },
+  { key: "board", label: "2. 게시판 목록", href: "/lesson/crawling/board" },
+  { key: "write", label: "3. 게시판 글쓰기", href: "/lesson/crawling/write" },
+  { key: "scraper", label: "4. 크롤러 / 스크래퍼", href: "/lesson/crawling/scraper" },
+];
 
 type MoneyballSubKey = "seed" | "chat";
 
@@ -21,6 +29,14 @@ const MONEYBALL_SUB: { key: MoneyballSubKey; label: string; href: string }[] = [
 function resolveMoneyballSub(pathname: string): MoneyballSubKey | null {
   if (pathname.startsWith("/lesson/moneyball/chat")) return "chat";
   if (pathname.startsWith("/lesson/moneyball")) return "seed";
+  return null;
+}
+
+function resolveCrawlingSub(pathname: string): CrawlingSubKey | null {
+  if (pathname.startsWith("/lesson/crawling/scraper")) return "scraper";
+  if (pathname.startsWith("/lesson/crawling/write")) return "write";
+  if (pathname.startsWith("/lesson/crawling/board")) return "board";
+  if (pathname.startsWith("/lesson/crawling/news")) return "news";
   return null;
 }
 
@@ -78,9 +94,11 @@ export function LessonSidebar({ active = "hub" }: { active?: LessonNavKey }) {
   const titanicSub = resolveTitanicSub(pathname);
   const samsungSub = resolveSamsungSub(pathname);
   const moneyballSub = resolveMoneyballSub(pathname);
+  const crawlingSub = resolveCrawlingSub(pathname);
   const titanicOpen = active === "titanic" || titanicSub !== null;
   const samsungOpen = active === "samsung" || samsungSub !== null;
   const moneyballOpen = active === "moneyball" || moneyballSub !== null;
+  const crawlingOpen = active === "crawling" || crawlingSub !== null;
 
   return (
     <aside className="flex h-full w-full flex-col bg-[rgba(10,10,15,0.55)] text-[var(--moneo-text)]">
@@ -189,6 +207,39 @@ export function LessonSidebar({ active = "hub" }: { active?: LessonNavKey }) {
                 className="mb-2 block py-1 pl-2 text-sm text-[var(--moneo-muted)] hover:text-indigo-100"
               >
                 Moneyball 시작
+              </Link>
+            )}
+          </div>
+
+          <div className="py-2">
+            <div
+              className={`flex items-center justify-between py-2 text-sm ${
+                crawlingOpen ? "font-semibold text-white" : "text-indigo-100/75"
+              }`}
+            >
+              <span>크롤링 실습</span>
+              {crawlingOpen ? (
+                <ChevronDown className="h-4 w-4 text-[var(--moneo-muted)]" aria-hidden />
+              ) : (
+                <ChevronRight className="h-4 w-4 text-[var(--moneo-muted)]" aria-hidden />
+              )}
+            </div>
+            {crawlingOpen ? (
+              <ul className="mb-2 space-y-1 pl-2">
+                {CRAWLING_SUB.map((item) => (
+                  <li key={item.key}>
+                    <Link href={item.href} className={subLinkClass(crawlingSub === item.key)}>
+                      {item.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <Link
+                href="/lesson/crawling/news"
+                className="mb-2 block py-1 pl-2 text-sm text-[var(--moneo-muted)] hover:text-indigo-100"
+              >
+                크롤링 시작
               </Link>
             )}
           </div>

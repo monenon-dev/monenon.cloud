@@ -42,6 +42,10 @@ export const routes = {
     siliconValleyAdmin: "/lesson/silicon-valley/admin",
     samsung: "/lesson/samsung",
     samsungUpload: "/lesson/samsung/upload",
+    crawlingNews: "/lesson/crawling/news",
+    crawlingBoard: "/lesson/crawling/board",
+    crawlingWrite: "/lesson/crawling/write",
+    crawlingScraper: "/lesson/crawling/scraper",
   },
 } as const;
 
