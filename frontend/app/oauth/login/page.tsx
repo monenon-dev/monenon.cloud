@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
 
 import { GoogleAuthSection } from "@/components/auth/google-auth-section";
+import { SocialLoginButtons } from "@/components/auth/social-login-buttons";
 import Logo from "@/components/brand/Logo";
 import { loginWithCredentials, saveAuthSession } from "@/lib/auth-api";
 import { resolvePostAuthRedirect } from "@/lib/mypage-preferences";
@@ -17,6 +18,7 @@ function LoginForm() {
   const [ui, setUi] = useState({
     loading: false,
     error: null as string | null,
+    info: null as string | null,
   });
 
   const patchUi = (patch: Partial<typeof ui>) =>
@@ -36,7 +38,7 @@ function LoginForm() {
     const email = String(formProps.email ?? "").trim();
     const password = String(formProps.password ?? "");
 
-    patchUi({ loading: true, error: null });
+    patchUi({ loading: true, error: null, info: null });
     try {
       const session = await loginWithCredentials(email, password);
       saveAuthSession(session);
@@ -69,6 +71,11 @@ function LoginForm() {
           {successMessage && (
             <p className="text-sm text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950/40 border border-green-200 dark:border-green-900 rounded-lg px-3 py-2">
               {successMessage}
+            </p>
+          )}
+          {ui.info && (
+            <p className="text-sm text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-900 rounded-lg px-3 py-2">
+              {ui.info}
             </p>
           )}
           {ui.error && (
@@ -116,6 +123,19 @@ function LoginForm() {
             로그인
           </button>
           </form>
+
+          <div className="relative my-5">
+            <div className="absolute inset-0 flex items-center" aria-hidden>
+              <div className="w-full border-t border-gray-200 dark:border-gray-700" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase tracking-wide">
+              <span className="bg-gray-50/80 dark:bg-gray-900/40 px-2 text-gray-500 dark:text-gray-400">
+                또는 소셜 계정으로
+              </span>
+            </div>
+          </div>
+
+          <SocialLoginButtons onInfo={(message) => patchUi({ info: message, error: null })} />
         </div>
 
         <p className="text-center text-sm text-gray-600 dark:text-gray-400 mt-6">

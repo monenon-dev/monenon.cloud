@@ -17,6 +17,10 @@ export const routes = {
   oauth: {
     login: "/oauth/login",
     signup: "/oauth/signup",
+    signupNaver: "/oauth/signup/naver",
+    signupKakao: "/oauth/signup/kakao",
+    naver: "/oauth/naver",
+    kakao: "/oauth/kakao",
     onboarding: "/oauth/onboarding",
     mypage: "/oauth/mypage",
     admin: {

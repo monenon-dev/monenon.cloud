@@ -1,6 +1,8 @@
 import Link from "next/link";
 
-/** abc.com 랜딩 — 우측 상단 로그인 → /abc/login */
+import { routes } from "@/lib/routes";
+
+/** abc.com 데모 랜딩 — 로그인은 Moneo 통합 화면 */
 export default function AbcHomePage() {
   return (
     <div className="min-h-screen bg-[#f5f7fb] text-slate-900">
@@ -12,7 +14,7 @@ export default function AbcHomePage() {
           </span>
         </Link>
         <Link
-          href="/abc/login"
+          href={routes.oauth.login}
           className="rounded-md bg-[#1e3a8a] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1e40af]"
         >
           로그인
@@ -20,11 +22,13 @@ export default function AbcHomePage() {
       </header>
 
       <main className="mx-auto flex max-w-3xl flex-col gap-4 px-6 py-16">
-        <h1 className="text-3xl font-bold tracking-tight text-slate-900">abc.com</h1>
+        <h1 className="text-3xl font-bold tracking-tight text-slate-900">abc.com (데모)</h1>
         <p className="max-w-xl text-sm leading-relaxed text-slate-600">
-          우측 상단 로그인으로 eGovFrame 스타일 로그인 화면을 엽니다. 개발 연동은 일반(아이디/비밀번호) →{" "}
-          <code className="rounded bg-slate-200 px-1.5 py-0.5 text-xs">http://api.abc.com</code> 만
-          연결됩니다.
+          OAuth 연동 PoC용 데모 페이지입니다. 로그인·소셜 버튼은{" "}
+          <Link href={routes.oauth.login} className="font-medium text-indigo-600 hover:underline">
+            Moneo 로그인
+          </Link>
+          에서 이용하세요.
         </p>
       </main>
     </div>
