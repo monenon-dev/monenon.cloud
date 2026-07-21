@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
 import { getApiBaseUrl } from "@/lib/api-base";
+import { buildOAuthRedirectUri } from "@/lib/oauth-redirect-uri";
 import { routes } from "@/lib/routes";
 
 type OAuthProvider = "naver" | "kakao";
@@ -28,7 +29,7 @@ export async function handleOAuthCallback(request: Request, provider: OAuthProvi
     return NextResponse.redirect(loginUrl);
   }
 
-  const redirectUri = `${url.origin}/api/auth/callback/${provider}`;
+  const redirectUri = buildOAuthRedirectUri(provider, url.origin);
   const apiBase = getApiBaseUrl();
 
   let data: Record<string, unknown> = {};
