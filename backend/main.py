@@ -17,7 +17,7 @@ from core.matrix.vault_keymaker_secret_manager import get_keymaker
 # 전역 환경·키는 Keymaker 한곳에서 로드 (DB·Gemini 공통)
 get_keymaker().load_environment()
 
-from fastapi import Depends, FastAPI
+from fastapi import Depends, FastAPI, Request
 from fastapi.encoders import jsonable_encoder
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
@@ -388,6 +388,57 @@ def chat(body: ChatMessageBody):
         prompt = augment_message_with_weather(body.message)
         reply = call_gemini(prompt, model=chat_model)
         return {"model": chat_model, "reply": reply}
+    except ValueError as e:
+        return JSONResponse({"detail": str(e)}, status_code=400)
+    except GeminiQuotaError as e:
+        return JSONResponse({"detail": str(e)}, status_code=429)
+    except RuntimeError as e:
+        return JSONResponse({"detail": str(e)}, status_code=503)
+    except Exception as e:
+        return JSONResponse({"detail": str(e)}, status_code=502)
+
+
+def _basic_chat_reply(message: str) -> dict:
+    weather = try_weather_chat_reply(message)
+    if weather is not None:
+        model_id, reply = weather
+        return {"model": model_id, "reply": reply}
+    km = get_keymaker()
+    chat_model = km.gemini_chat_model_id()
+    prompt = augment_message_with_weather(message)
+    reply = call_gemini(prompt, model=chat_model)
+    return {"model": chat_model, "reply": reply}
+
+
+@app.post("/chat/guest")
+def chat_guest(body: ChatMessageBody, request: Request):
+    """
+    비로그인 게스트용 기본 채팅 — Moneo 에이전트 프롬프트·DB 저장 없음.
+    IP 기준 일일 호출 한도 적용.
+    """
+    from guest_chat_limit import GUEST_DAILY_LIMIT, check_guest_quota, increment_guest_quota
+
+    client_ip = request.client.host if request.client else "unknown"
+    allowed, used, limit = check_guest_quota(client_ip)
+    if not allowed:
+        return JSONResponse(
+            {
+                "detail": f"게스트 일일 이용 한도({limit}회)를 모두 사용했습니다. 로그인 후 이용해 주세요.",
+                "guest_used": used,
+                "guest_limit": limit,
+                "guest_remaining": 0,
+            },
+            status_code=429,
+        )
+    try:
+        payload = _basic_chat_reply(body.message)
+        used_after, limit, remaining = increment_guest_quota(client_ip)
+        return {
+            **payload,
+            "guest_used": used_after,
+            "guest_limit": limit,
+            "guest_remaining": remaining,
+        }
     except ValueError as e:
         return JSONResponse({"detail": str(e)}, status_code=400)
     except GeminiQuotaError as e:

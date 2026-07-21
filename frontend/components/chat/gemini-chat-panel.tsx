@@ -59,6 +59,8 @@ export interface GeminiChatPanelProps {
   starterDedupeKey?: string;
   /** 부모가 DB에서 메시지 로드 완료 시 증가 — resetKey와 별도로 initialMessages 반영 */
   messagesEpoch?: number;
+  /** 게스트 모드: PDF·도구·음성 등 Moneo 전용 입력 숨김 */
+  guestMode?: boolean;
 }
 
 const defaultBase = getTitanicApiBaseUrl();
@@ -136,6 +138,7 @@ export function GeminiChatPanel({
   onInitialInputHandled,
   starterDedupeKey,
   messagesEpoch = 0,
+  guestMode = false,
 }: GeminiChatPanelProps) {
   const [messages, setMessages] = useState<GeminiChatMessage[]>(initialMessages ?? []);
   const [input, setInput] = useState("");
@@ -363,6 +366,7 @@ export function GeminiChatPanel({
       </div>
 
       <form onSubmit={handleSubmit} className="w-full shrink-0 pr-1">
+        {!guestMode ? (
         <input
           ref={fileInputRef}
           type="file"
@@ -372,8 +376,9 @@ export function GeminiChatPanel({
             void handleFileChange(e);
           }}
         />
+        ) : null}
         <div className="rounded-[1.75rem] border border-gray-200/95 bg-[#f4f6f8] shadow-[0_1px_2px_rgba(0,0,0,0.04)] dark:border-gray-700 dark:bg-gray-900/95 dark:shadow-none overflow-hidden">
-          {attachment && (
+          {!guestMode && attachment && (
             <div className="flex flex-wrap items-center gap-2 border-b border-gray-200/90 px-4 py-2 text-xs dark:border-gray-700/90">
               <a
                 href={attachment.url}
@@ -410,6 +415,7 @@ export function GeminiChatPanel({
             aria-label="메시지 입력"
           />
           <div className="flex items-center justify-between gap-2 border-t border-gray-200/90 px-2 py-2 sm:px-3 dark:border-gray-700/90">
+            {!guestMode ? (
             <div className="flex items-center gap-0.5 text-gray-600 dark:text-gray-400">
               <button
                 type="button"
@@ -435,7 +441,11 @@ export function GeminiChatPanel({
                 <span className="hidden sm:inline">도구</span>
               </button>
             </div>
-            <div className="flex items-center gap-1 sm:gap-2 text-gray-600 dark:text-gray-400">
+            ) : (
+              <p className="px-2 text-xs text-gray-500 dark:text-gray-400">기본 채팅</p>
+            )}
+            <div className="flex items-center gap-1 sm:gap-2 text-gray-600 dark:text-gray-400 ml-auto">
+              {!guestMode ? (
               <button
                 type="button"
                 className="inline-flex items-center gap-1 rounded-full py-2 pl-3 pr-2 text-sm hover:bg-gray-200/70 dark:hover:bg-gray-800 transition-colors"
@@ -446,6 +456,7 @@ export function GeminiChatPanel({
                 <span className="max-w-[5.5rem] truncate sm:max-w-none">빠른 모델</span>
                 <ChevronDown className="h-4 w-4 shrink-0 opacity-70" />
               </button>
+              ) : null}
               <button
                 type="submit"
                 disabled={isLoading || !input.trim()}
@@ -458,6 +469,7 @@ export function GeminiChatPanel({
                   <Send className="h-4 w-4 translate-x-px translate-y-px" strokeWidth={2} />
                 )}
               </button>
+              {!guestMode ? (
               <button
                 type="button"
                 className="rounded-full p-2.5 hover:bg-gray-200/70 dark:hover:bg-gray-800 transition-colors"
@@ -466,6 +478,7 @@ export function GeminiChatPanel({
               >
                 <Mic className="h-5 w-5" strokeWidth={1.75} />
               </button>
+              ) : null}
             </div>
           </div>
         </div>

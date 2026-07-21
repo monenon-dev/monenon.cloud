@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
 
 import { getKakaoConsentToken, hasKakaoConsent } from "@/lib/social-auth";
+import { SITE_NAME } from "@/lib/site-brand";
 
 /** 카카오 로그인 UI — 약관 동의 토큰이 있을 때만 진입. */
 export default function KakaoOauthLoginPage() {
@@ -163,7 +164,7 @@ export default function KakaoOauthLoginPage() {
       </p>
       <p className="mt-2 text-center text-[11px] text-slate-400">
         <Link href="/oauth/login" className="hover:underline">
-          Moneo 로그인으로
+          {SITE_NAME} 로그인으로
         </Link>
       </p>
     </main>

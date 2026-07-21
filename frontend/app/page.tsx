@@ -238,7 +238,16 @@ export default function MoneoHomePage() {
                   <button
                     key={card.title}
                     type="button"
-                    onClick={() => card.prompt && navigateToChat(card.prompt)}
+                    onClick={() => {
+                      if (!card.prompt) return;
+                      if (!ui.authUser) {
+                        const nonce = saveChatStarter(card.prompt);
+                        const next = encodeURIComponent(buildChatsUrl(card.prompt, nonce));
+                        router.push(`${routes.oauth.login}?next=${next}`);
+                        return;
+                      }
+                      navigateToChat(card.prompt);
+                    }}
                     className={className}
                   >
                     {inner}

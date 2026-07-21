@@ -5,6 +5,9 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState, type ReactNode } from "react";
 
 import { saveKakaoConsentToken } from "@/lib/social-auth";
+import { MoneoServiceBrand } from "@/components/brand/moneo-service-brand";
+import { PRODUCT_NAME, SITE_NAME } from "@/lib/site-brand";
+import { routes } from "@/lib/routes";
 
 type AgreeKey =
   | "kakaoRequired"
@@ -122,16 +125,7 @@ export default function KakaoSignupConsentPage() {
         <p className="mb-8 text-center text-[22px] font-semibold tracking-tight">kakao</p>
 
         <div className="flex-1 overflow-y-auto rounded-xl border border-slate-200 bg-white px-5 py-6 shadow-sm">
-          {/* 서비스 */}
-          <div className="mb-4 flex items-center gap-3">
-            <div className="flex size-12 items-center justify-center rounded-full bg-gradient-to-br from-rose-400 to-indigo-600 text-sm font-black text-white">
-              a
-            </div>
-            <div>
-              <p className="text-[17px] font-bold">Moneo</p>
-              <p className="text-[12px] text-slate-400">Moneo</p>
-            </div>
-          </div>
+          <MoneoServiceBrand subtitle={`${PRODUCT_NAME} · 카카오 로그인 동의`} logoSize={40} />
 
           {/* 계정 */}
           <div className="mb-4 flex items-center justify-between rounded-lg bg-[#f5f5f5] px-3 py-3">
@@ -156,7 +150,7 @@ export default function KakaoSignupConsentPage() {
 
           <h2 className="mb-1 text-[15px] font-bold">카카오 로그인 동의</h2>
           <p className="mb-3 text-[13px] leading-relaxed text-slate-500">
-            Moneo 서비스 이용을 위해 회원번호와 함께 개인정보가 제공됩니다.
+            {SITE_NAME} 서비스 이용을 위해 회원번호와 함께 개인정보가 제공됩니다.
           </p>
 
           <Line checked={ui.agrees.kakaoRequired} onToggle={() => toggle("kakaoRequired")} arrow>
@@ -194,9 +188,9 @@ export default function KakaoSignupConsentPage() {
 
           <div className="my-4 border-t border-slate-100" />
 
-          <h2 className="mb-1 text-[15px] font-bold">Moneo 서비스 동의</h2>
+          <h2 className="mb-1 text-[15px] font-bold">{SITE_NAME} 서비스 동의</h2>
           <p className="mb-2 text-[13px] text-slate-500">
-            Moneo 서비스 이용을 위해 설정한 동의항목입니다.
+            {SITE_NAME} 서비스 이용을 위해 설정한 동의항목입니다.
           </p>
 
           <Line checked={ui.agrees.mallTerms} onToggle={() => toggle("mallTerms")} arrow>
@@ -209,15 +203,15 @@ export default function KakaoSignupConsentPage() {
             (선택) SMS 수신 동의
           </Line>
           <Line checked={ui.agrees.channel} onToggle={() => toggle("channel")}>
-            (선택) Moneo 채널을 친구로 추가하고, 광고와 마케팅 메시지를 카카오톡으로 받습니다.
+            (선택) {SITE_NAME} 채널을 친구로 추가하고, 광고와 마케팅 메시지를 카카오톡으로 받습니다.
           </Line>
 
           <div className="my-5 border-t border-slate-100" />
 
           <h3 className="mb-2 text-[14px] font-bold">안내사항</h3>
           <p className="text-[12px] leading-relaxed text-slate-500">
-            · 본 서비스는 카카오 로그인을 이용합니다. 서비스 제공 및 개인정보 처리에 대한 책임은
-            Moneo에 있으며, 수집된 정보는 Moneo 약관·개인정보처리방침에 따라 관리됩니다.
+            · 본 서비스는 카카오 로그인을 이용합니다. 서비스 제공 및 개인정보 처리에 대한 책임은{" "}
+            {PRODUCT_NAME}에 있으며, 수집된 정보는 {SITE_NAME} 약관·개인정보처리방침에 따라 관리됩니다.
           </p>
 
           {ui.error ? (
@@ -255,13 +249,13 @@ export default function KakaoSignupConsentPage() {
           </button>
           <button
             type="button"
-            onClick={() => router.push("/oauth/login")}
+            onClick={() => router.push(routes.oauth.login)}
             className="w-full py-2 text-center text-[13px] text-slate-500 hover:underline"
           >
             취소 · 로그인으로
           </button>
           <p className="text-center text-[11px] text-slate-400">
-            <Link href="/oauth/signup/naver" className="hover:underline">
+            <Link href={routes.oauth.signupNaver} className="hover:underline">
               네이버 동의 화면
             </Link>
           </p>

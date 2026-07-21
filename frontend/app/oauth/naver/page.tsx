@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
 
 import { getNaverConsentToken, hasNaverConsent } from "@/lib/social-auth";
+import { SITE_NAME } from "@/lib/site-brand";
 
 /**
  * 네이버 OAuth 로그인 UI (다크) — 약관 동의 토큰이 있을 때만 진입.
@@ -79,7 +80,7 @@ export default function NaverOauthLoginPage() {
         <div className="mb-10 text-center">
           <p className="text-[40px] font-black tracking-tight text-[#03C75A]">NAVER</p>
           <p className="mt-3 text-[15px] text-slate-300">
-            <span className="font-semibold text-white">Moneo</span> 로그인 중
+            <span className="font-semibold text-white">{SITE_NAME}</span> 로그인 중
           </p>
         </div>
 

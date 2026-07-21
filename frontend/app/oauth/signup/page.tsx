@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 
-import { GoogleAuthSection } from "@/components/auth/google-auth-section";
+import { SocialLoginButtons } from "@/components/auth/social-login-buttons";
 import Logo from "@/components/brand/Logo";
 import { formatApiError } from "@/lib/format-api-error";
 
@@ -82,8 +82,6 @@ export default function SignupPage() {
         </div>
 
         <div className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-gray-50/80 dark:bg-gray-900/40 p-6 shadow-sm">
-          <GoogleAuthSection redirectTo={routes.oauth.onboarding} forceRedirect />
-
           <form onSubmit={handleSubmit} className="space-y-4">
           {ui.error && (
             <p role="alert" className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 rounded-lg px-3 py-2">
@@ -160,6 +158,19 @@ export default function SignupPage() {
             회원가입
           </button>
           </form>
+
+          <div className="relative my-5">
+            <div className="absolute inset-0 flex items-center" aria-hidden>
+              <div className="w-full border-t border-gray-200 dark:border-gray-700" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase tracking-wide">
+              <span className="bg-gray-50/80 dark:bg-gray-900/40 px-2 text-gray-500 dark:text-gray-400">
+                또는 소셜 계정으로
+              </span>
+            </div>
+          </div>
+
+          <SocialLoginButtons redirectTo={routes.oauth.onboarding} forceRedirect />
         </div>
 
         <p className="text-center text-sm text-gray-600 dark:text-gray-400 mt-6">

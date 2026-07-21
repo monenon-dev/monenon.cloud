@@ -5,6 +5,9 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState, type ReactNode } from "react";
 
 import { saveNaverConsentToken } from "@/lib/social-auth";
+import { MoneoServiceBrand } from "@/components/brand/moneo-service-brand";
+import { PRODUCT_NAME, SITE_NAME } from "@/lib/site-brand";
+import { routes } from "@/lib/routes";
 
 type AgreeKey =
   | "thirdParty"
@@ -121,25 +124,13 @@ export default function NaverSignupConsentPage() {
           <span className="flex size-7 items-center justify-center rounded-full bg-slate-200 text-xs text-slate-500">
             👤
           </span>
-          <span>Moneo</span>
+          <span>{SITE_NAME}</span>
           <span className="text-slate-400">▾</span>
         </div>
       </header>
 
       <div className="mx-auto w-full max-w-md px-5 pb-10 pt-8">
-        {/* 서비스 로고 */}
-        <div className="mb-8 flex items-center gap-3">
-          <div className="flex size-14 items-center justify-center rounded-full bg-gradient-to-br from-rose-400 via-fuchsia-500 to-indigo-600 text-lg font-black text-white shadow-sm">
-            a
-          </div>
-          <div>
-            <p className="text-2xl font-bold tracking-tight">
-              <span className="text-[#e11d48]">a</span>
-              <span className="text-slate-900">bc.com</span>
-            </p>
-            <p className="text-xs text-slate-500">회원가입 · 약관 동의</p>
-          </div>
-        </div>
+        <MoneoServiceBrand className="mb-8" />
 
         {/* 전체 동의 */}
         <button
@@ -172,7 +163,7 @@ export default function NaverSignupConsentPage() {
         </div>
 
         <p className="mt-5 mb-1 text-[13px] font-semibold text-slate-700">
-          Moneo 서비스 약관 및 개인정보 동의
+          {PRODUCT_NAME} 서비스 약관 및 개인정보 동의
         </p>
 
         <div className="divide-y divide-slate-100 border-b border-slate-100">
@@ -199,14 +190,14 @@ export default function NaverSignupConsentPage() {
           <Row
             checked={ui.agrees.talkBenefit}
             onToggle={() => toggle("talkBenefit")}
-            title="[선택] 네이버에서 톡톡으로 Moneo의 혜택/소식받기 동의"
+            title={`[선택] 네이버에서 톡톡으로 ${SITE_NAME}의 혜택/소식받기 동의`}
           />
         </div>
 
         <p className="mt-6 text-[12px] leading-relaxed text-slate-400">
-          네이버에서 제공하는 로그인 기능을 통해 Moneo에 로그인함으로써 귀하는 네이버가
-          서비스 제공자가 아님을 확인합니다. 서비스 및 관련 약관에 대한 책임은 Moneo에
-          있습니다. Moneo의 서비스 및 개인정보 취급과 관련된 문의는 Moneo으로 해 주세요.
+          네이버에서 제공하는 로그인 기능을 통해 {SITE_NAME}에 로그인함으로써 귀하는 네이버가
+          서비스 제공자가 아님을 확인합니다. 서비스 및 관련 약관에 대한 책임은 {PRODUCT_NAME}에
+          있습니다. {PRODUCT_NAME}의 서비스 및 개인정보 취급과 관련된 문의는 {SITE_NAME}으로 해 주세요.
         </p>
 
         {ui.error ? (
@@ -224,7 +215,7 @@ export default function NaverSignupConsentPage() {
         <div className="mt-8 grid grid-cols-2 gap-3">
           <button
             type="button"
-            onClick={() => router.push("/oauth/login")}
+            onClick={() => router.push(routes.oauth.login)}
             className="rounded-md bg-slate-200 py-3.5 text-[15px] font-semibold text-slate-700 hover:bg-slate-300"
           >
             취소
@@ -243,11 +234,11 @@ export default function NaverSignupConsentPage() {
         </div>
 
         <p className="mt-6 text-center text-xs text-slate-400">
-          <Link href="/oauth/login" className="hover:underline">
+          <Link href={routes.oauth.login} className="hover:underline">
             로그인으로 돌아가기
           </Link>
           <span className="mx-2">·</span>
-          <Link href="/oauth/signup/kakao" className="hover:underline">
+          <Link href={routes.oauth.signupKakao} className="hover:underline">
             카카오 동의 화면
           </Link>
         </p>

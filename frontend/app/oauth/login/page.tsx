@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
 
-import { GoogleAuthSection } from "@/components/auth/google-auth-section";
 import { SocialLoginButtons } from "@/components/auth/social-login-buttons";
 import Logo from "@/components/brand/Logo";
 import { loginWithCredentials, saveAuthSession } from "@/lib/auth-api";
@@ -18,7 +17,6 @@ function LoginForm() {
   const [ui, setUi] = useState({
     loading: false,
     error: null as string | null,
-    info: null as string | null,
   });
 
   const patchUi = (patch: Partial<typeof ui>) =>
@@ -38,7 +36,7 @@ function LoginForm() {
     const email = String(formProps.email ?? "").trim();
     const password = String(formProps.password ?? "");
 
-    patchUi({ loading: true, error: null, info: null });
+    patchUi({ loading: true, error: null });
     try {
       const session = await loginWithCredentials(email, password);
       saveAuthSession(session);
@@ -65,17 +63,10 @@ function LoginForm() {
         </div>
 
         <div className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-gray-50/80 dark:bg-gray-900/40 p-6 shadow-sm">
-          <GoogleAuthSection redirectTo={redirectTo} />
-
           <form key={formKey} onSubmit={handleSubmit} className="space-y-4">
           {successMessage && (
             <p className="text-sm text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950/40 border border-green-200 dark:border-green-900 rounded-lg px-3 py-2">
               {successMessage}
-            </p>
-          )}
-          {ui.info && (
-            <p className="text-sm text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-900 rounded-lg px-3 py-2">
-              {ui.info}
             </p>
           )}
           {ui.error && (
@@ -135,7 +126,7 @@ function LoginForm() {
             </div>
           </div>
 
-          <SocialLoginButtons onInfo={(message) => patchUi({ info: message, error: null })} />
+          <SocialLoginButtons redirectTo={redirectTo} />
         </div>
 
         <p className="text-center text-sm text-gray-600 dark:text-gray-400 mt-6">

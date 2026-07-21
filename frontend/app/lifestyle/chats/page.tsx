@@ -26,6 +26,11 @@ import {
   type ChatSessionItem,
 } from "@/lib/chat-sessions";
 import { getChatUserId } from "@/lib/chat-user";
+import {
+  callGuestChat,
+  getGuestRemaining,
+  GUEST_DAILY_LIMIT,
+} from "@/lib/guest-chat";
 import { loadMyPagePreferences, wrapPromptWithSpeechTone } from "@/lib/mypage-preferences";
 import { routes, chatsSessionUrl } from "@/lib/routes";
 import { getApiBaseUrl } from "@/lib/api-base";
@@ -87,6 +92,7 @@ function ChatsPageContent() {
 
   const [starterPrompt, setStarterPrompt] = useState<string | undefined>(undefined);
   const [starterNonce, setStarterNonce] = useState<string | undefined>(undefined);
+  const [guestRemaining, setGuestRemaining] = useState(GUEST_DAILY_LIMIT);
 
   const isNewFromHome = searchParams.get("new") === "1";
   const loadedSessionRef = useRef<number | null>(null);
@@ -207,8 +213,30 @@ function ChatsPageContent() {
 
   useEffect(() => {
     setUserId(getChatUserId());
+    setGuestRemaining(getGuestRemaining());
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (!mounted || userId) return;
+    if (!isNewFromHome) return;
+
+    const queryPrompt = searchParams.get("prompt")?.trim();
+    const stored = readChatStarter();
+    const prompt = queryPrompt || stored.prompt?.trim() || "";
+    if (!prompt) return;
+
+    const nonce = searchParams.get("nonce") || stored.nonce || crypto.randomUUID();
+    const handleKey = `guest::${nonce}::${prompt}`;
+    if (newChatHandledRef.current === handleKey) return;
+
+    newChatHandledRef.current = handleKey;
+    clearChatStarter();
+    setPageError(null);
+    setStarterPrompt(prompt);
+    setStarterNonce(nonce);
+    router.replace(routes.lifestyle.chats, { scroll: false });
+  }, [mounted, userId, isNewFromHome, searchParams, router]);
 
   useEffect(() => {
     if (!mounted) return;
@@ -299,6 +327,17 @@ function ChatsPageContent() {
     [userId, activeSessionId, loadSessions]
   );
 
+  const handleGuestSendMessage = useCallback(async (text: string): Promise<GeminiChatMessage> => {
+    const result = await callGuestChat(text);
+    setGuestRemaining(result.remaining);
+    return {
+      role: "assistant",
+      text: result.reply,
+      ts: new Date().toISOString(),
+      model: result.model,
+    };
+  }, []);
+
   const activeSession = useMemo(
     () => sessions.find((s) => s.id === activeSessionId) ?? null,
     [sessions, activeSessionId]
@@ -311,20 +350,75 @@ function ChatsPageContent() {
   }
 
   if (!userId) {
+    const loginNext = encodeURIComponent(routes.lifestyle.chats);
     return (
-      <div className="flex h-dvh flex-col items-center justify-center gap-4 bg-white px-4 dark:bg-gray-950">
-        <p className="text-center text-sm text-gray-600 dark:text-gray-400">
-          대화 기록을 사용하려면 로그인이 필요합니다.
-        </p>
-        <Link
-          href={routes.oauth.login}
-          className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
-        >
-          로그인
-        </Link>
-        <Link href="/" className="text-sm text-gray-500 hover:underline">
-          ← 홈으로
-        </Link>
+      <div className="flex h-dvh max-h-dvh overflow-hidden bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100">
+        <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+          <header className="shrink-0 border-b border-gray-200 dark:border-gray-800 bg-white/90 dark:bg-gray-950/90 backdrop-blur-md">
+            <div className="flex h-14 items-center gap-3 px-4 sm:px-6">
+              <Link
+                href="/"
+                className="inline-flex items-center gap-1.5 text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
+              >
+                <ArrowLeft size={18} />
+                홈
+              </Link>
+              <h1 className="min-w-0 flex-1 truncate text-lg font-semibold text-indigo-600 dark:text-indigo-400">
+                Agent Chat
+              </h1>
+              <Link
+                href={`${routes.oauth.login}?next=${loginNext}`}
+                className="rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700"
+              >
+                로그인
+              </Link>
+            </div>
+          </header>
+
+          <div className="shrink-0 border-b border-amber-200/80 bg-amber-50/90 px-4 py-2.5 text-sm text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-100">
+            <p>
+              <span className="font-medium">게스트 모드</span> — 기본 채팅만 이용 가능합니다. 대화는
+              저장되지 않습니다.
+            </p>
+            <p className="mt-1 text-xs opacity-90">
+              오늘 남은 횟수:{" "}
+              <span className="font-semibold tabular-nums">
+                {guestRemaining}/{GUEST_DAILY_LIMIT}
+              </span>
+              {" · "}
+              <Link href={`${routes.oauth.login}?next=${loginNext}`} className="underline">
+                로그인
+              </Link>
+              하면 맞춤 에이전트·기록 저장·도구를 사용할 수 있습니다.
+            </p>
+          </div>
+
+          {pageError && (
+            <p role="alert" className="shrink-0 px-4 py-2 text-sm text-red-600 dark:text-red-400">
+              {pageError}
+            </p>
+          )}
+
+          <main className="flex flex-1 min-h-0 flex-col overflow-hidden px-4 py-4 sm:px-6 sm:py-6">
+            <GeminiChatPanel
+              apiBaseUrl={apiBaseUrl}
+              className="min-h-0 flex-1"
+              resetKey="guest"
+              guestMode
+              starterDedupeKey={starterNonce}
+              initialInput={starterPrompt}
+              autoSendInitialInput={Boolean(starterPrompt?.trim())}
+              onSendMessage={handleGuestSendMessage}
+              onInitialInputHandled={() => {
+                setStarterPrompt(undefined);
+                setStarterNonce(undefined);
+              }}
+              placeholder="간단한 질문을 입력하세요 (예: 오늘 날씨 알려줘)"
+              emptyTitle="게스트 채팅"
+              emptySubtitle="로그인 없이 기본 대화를 체험할 수 있습니다."
+            />
+          </main>
+        </div>
       </div>
     );
   }
