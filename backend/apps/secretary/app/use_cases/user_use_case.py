@@ -12,6 +12,8 @@ from secretary.adapter.outbound.pg.user_command_pg_repository import UserCommand
 from secretary.adapter.outbound.pg.user_query_pg_repository import UserQueryPgRepository
 from secretary.app.ports.input.user_use_case import UserUseCasePort
 from secretary.app.use_cases.google_auth import verify_google_id_token
+from secretary.app.use_cases.kakao_oauth import fetch_kakao_profile
+from secretary.app.use_cases.naver_oauth import fetch_naver_profile
 from secretary.app.use_cases.password import hash_password, verify_password
 from secretary.app.use_cases.suspension import is_user_suspended, suspension_detail_message
 
@@ -96,23 +98,54 @@ class UserUseCase(UserUseCasePort):
         if payload.get("email_verified") is False:
             raise ValueError("이메일이 인증되지 않은 Google 계정입니다.")
 
-        existing = await self._query.find_by_email(email)
-        if existing:
-            existing = await self._clear_expired_suspension(existing)
-            if is_user_suspended(existing):
-                raise ValueError(suspension_detail_message(existing))
-            picture = payload.get("picture")
-            if isinstance(picture, str) and picture and not existing.profile_image_url:
-                existing.profile_image_url = picture
-                await self._command.save(existing)
-            logger.info("[UserUseCase] authenticate_with_google 기존 사용자 — userId=%s", existing.id)
-            return existing
-
         name = payload.get("name")
         nickname_source = name if isinstance(name, str) and name.strip() else email.split("@")[0]
         nickname = nickname_source.strip()[:32] or "user"
         picture = payload.get("picture")
         profile_image_url = picture if isinstance(picture, str) and picture else None
+        return await self._find_or_create_oauth_user(email, nickname, profile_image_url)
+
+    async def authenticate_with_naver(self, code: str, redirect_uri: str) -> User:
+        profile = await fetch_naver_profile(code, redirect_uri)
+        email = profile["email"]
+        if not isinstance(email, str):
+            raise ValueError("네이버 계정 이메일을 확인할 수 없습니다.")
+        nickname = profile.get("nickname") if isinstance(profile.get("nickname"), str) else None
+        nickname = (nickname or email.split("@")[0]).strip()[:32] or "user"
+        image = profile.get("profile_image_url")
+        profile_image_url = image if isinstance(image, str) and image else None
+        return await self._find_or_create_oauth_user(email, nickname, profile_image_url)
+
+    async def authenticate_with_kakao(self, code: str, redirect_uri: str) -> User:
+        profile = await fetch_kakao_profile(code, redirect_uri)
+        email = profile["email"]
+        if not isinstance(email, str):
+            raise ValueError("카카오 계정 이메일을 확인할 수 없습니다.")
+        nickname = profile.get("nickname") if isinstance(profile.get("nickname"), str) else None
+        nickname = (nickname or email.split("@")[0]).strip()[:32] or "user"
+        image = profile.get("profile_image_url")
+        profile_image_url = image if isinstance(image, str) and image else None
+        return await self._find_or_create_oauth_user(email, nickname, profile_image_url)
+
+    async def _find_or_create_oauth_user(
+        self,
+        email: str,
+        nickname: str,
+        profile_image_url: str | None,
+    ) -> User:
+        if email == "admin@gmail.com":
+            raise ValueError("이 이메일은 사용할 수 없습니다.")
+
+        existing = await self._query.find_by_email(email)
+        if existing:
+            existing = await self._clear_expired_suspension(existing)
+            if is_user_suspended(existing):
+                raise ValueError(suspension_detail_message(existing))
+            if profile_image_url and not existing.profile_image_url:
+                existing.profile_image_url = profile_image_url
+                await self._command.save(existing)
+            logger.info("[UserUseCase] oauth 기존 사용자 — userId=%s email=%s", existing.id, email)
+            return existing
 
         user = User(
             email=email,
@@ -122,7 +155,7 @@ class UserUseCase(UserUseCasePort):
             profile_image_url=profile_image_url,
         )
         saved = await self._command.save(user)
-        logger.info("[UserUseCase] authenticate_with_google 신규 사용자 — userId=%s", saved.id)
+        logger.info("[UserUseCase] oauth 신규 사용자 — userId=%s email=%s", saved.id, email)
         return saved
 
     async def get_profile(self, user_id: int) -> UserProfileResponse | None:

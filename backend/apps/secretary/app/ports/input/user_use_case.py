@@ -20,6 +20,14 @@ class UserUseCasePort(ABC):
         ...
 
     @abstractmethod
+    async def authenticate_with_naver(self, code: str, redirect_uri: str) -> User:
+        ...
+
+    @abstractmethod
+    async def authenticate_with_kakao(self, code: str, redirect_uri: str) -> User:
+        ...
+
+    @abstractmethod
     async def get_profile(self, user_id: int) -> UserProfileResponse | None:
         ...
 

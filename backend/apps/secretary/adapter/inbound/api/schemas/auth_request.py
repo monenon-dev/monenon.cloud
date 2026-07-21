@@ -27,6 +27,13 @@ class GoogleLoginBody(BaseModel):
     credential: str = Field(..., min_length=10)
 
 
+class OAuthCodeBody(BaseModel):
+    """소셜 OAuth authorization code."""
+
+    code: str = Field(..., min_length=4)
+    redirect_uri: str = Field(..., min_length=10)
+
+
 class RegisterBody(BaseModel):
     """회원가입 본문."""
 

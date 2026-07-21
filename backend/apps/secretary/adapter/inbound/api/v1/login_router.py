@@ -7,7 +7,7 @@ import secrets
 
 from fastapi import APIRouter, Depends, HTTPException
 
-from secretary.adapter.inbound.api.schemas.auth_request import AuthCredentials, GoogleLoginBody
+from secretary.adapter.inbound.api.schemas.auth_request import AuthCredentials, GoogleLoginBody, OAuthCodeBody
 from secretary.adapter.inbound.api.schemas.auth_response import LoginSuccessResponse
 from secretary.adapter.outbound.orm.user_model import User
 from secretary.app.composition.providers import get_user_use_case
@@ -76,4 +76,42 @@ async def auth_login_google(
         raise HTTPException(status_code=503, detail=str(e)) from e
 
     logger.info("[LoginRouter] login_google 완료 — userId=%s", user.id)
+    return _login_response(user)
+
+
+@login_router.post("/naver", response_model=LoginSuccessResponse)
+async def auth_login_naver(
+    body: OAuthCodeBody,
+    use_case: UserUseCasePort = Depends(get_user_use_case),
+) -> LoginSuccessResponse:
+    try:
+        user = await use_case.authenticate_with_naver(body.code, body.redirect_uri)
+    except ValueError as e:
+        logger.warning("[LoginRouter] login_naver 실패 — %s", e)
+        status = 403 if "일시정지" in str(e) else 401
+        raise HTTPException(status_code=status, detail=str(e)) from e
+    except RuntimeError as e:
+        logger.error("[LoginRouter] login_naver 설정 오류 — %s", e)
+        raise HTTPException(status_code=503, detail=str(e)) from e
+
+    logger.info("[LoginRouter] login_naver 완료 — userId=%s", user.id)
+    return _login_response(user)
+
+
+@login_router.post("/kakao", response_model=LoginSuccessResponse)
+async def auth_login_kakao(
+    body: OAuthCodeBody,
+    use_case: UserUseCasePort = Depends(get_user_use_case),
+) -> LoginSuccessResponse:
+    try:
+        user = await use_case.authenticate_with_kakao(body.code, body.redirect_uri)
+    except ValueError as e:
+        logger.warning("[LoginRouter] login_kakao 실패 — %s", e)
+        status = 403 if "일시정지" in str(e) else 401
+        raise HTTPException(status_code=status, detail=str(e)) from e
+    except RuntimeError as e:
+        logger.error("[LoginRouter] login_kakao 설정 오류 — %s", e)
+        raise HTTPException(status_code=503, detail=str(e)) from e
+
+    logger.info("[LoginRouter] login_kakao 완료 — userId=%s", user.id)
     return _login_response(user)

@@ -6,14 +6,18 @@ import { useRouter } from "next/navigation";
 import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
 import type { AuthSession } from "@/lib/auth-api";
 import { resolvePostAuthRedirect } from "@/lib/mypage-preferences";
-import { hasKakaoConsent, hasNaverConsent, saveSocialLoginNext } from "@/lib/social-auth";
-import { routes } from "@/lib/routes";
 
 type SocialLoginButtonsProps = {
   redirectTo?: string;
   forceRedirect?: boolean;
   className?: string;
 };
+
+function oauthStartUrl(provider: "naver" | "kakao", redirectTo: string): string {
+  const next = redirectTo.startsWith("/") ? redirectTo : "/";
+  const params = new URLSearchParams({ next });
+  return `/api/auth/start/${provider}?${params.toString()}`;
+}
 
 export function SocialLoginButtons({
   redirectTo = "/",
@@ -39,8 +43,7 @@ export function SocialLoginButtons({
       <button
         type="button"
         onClick={() => {
-          saveSocialLoginNext(redirectTo);
-          router.push(hasNaverConsent() ? routes.oauth.naver : routes.oauth.signupNaver);
+          window.location.href = oauthStartUrl("naver", redirectTo);
         }}
         className="flex w-full items-center gap-3 rounded-xl bg-[#03C75A] px-3 py-2.5 text-left text-sm font-semibold text-white hover:brightness-95"
       >
@@ -53,8 +56,7 @@ export function SocialLoginButtons({
       <button
         type="button"
         onClick={() => {
-          saveSocialLoginNext(redirectTo);
-          router.push(hasKakaoConsent() ? routes.oauth.kakao : routes.oauth.signupKakao);
+          window.location.href = oauthStartUrl("kakao", redirectTo);
         }}
         className="flex w-full items-center gap-3 rounded-xl bg-[#FEE500] px-3 py-2.5 text-left text-sm font-semibold text-[#391B1B] hover:brightness-95"
       >

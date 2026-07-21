@@ -9,6 +9,7 @@ import { SocialLoginButtons } from "@/components/auth/social-login-buttons";
 import Logo from "@/components/brand/Logo";
 import { loginWithCredentials, saveAuthSession } from "@/lib/auth-api";
 import { resolvePostAuthRedirect } from "@/lib/mypage-preferences";
+import { formatOAuthError } from "@/lib/oauth-errors";
 import { routes } from "@/lib/routes";
 
 function LoginForm() {
@@ -25,6 +26,7 @@ function LoginForm() {
   const prefillEmail = searchParams.get("email");
   const formKey = prefillEmail ?? "default";
   const redirectTo = searchParams.get("next") || "/";
+  const oauthError = formatOAuthError(searchParams.get("error"));
   const successMessage =
     searchParams.get("registered") === "1"
       ? "회원가입이 완료되었습니다. 로그인한 뒤 업무 상황을 설정해 주세요."
@@ -67,6 +69,11 @@ function LoginForm() {
           {successMessage && (
             <p className="text-sm text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950/40 border border-green-200 dark:border-green-900 rounded-lg px-3 py-2">
               {successMessage}
+            </p>
+          )}
+          {oauthError && (
+            <p role="alert" className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 rounded-lg px-3 py-2">
+              {oauthError}
             </p>
           )}
           {ui.error && (
