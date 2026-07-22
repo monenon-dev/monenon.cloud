@@ -10,11 +10,11 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from admin.app.message_moderation import scan_user_message
-from lifestyle.adapter.inbound.api.schemas.message_schema import AddMessageBody, MessageOut, message_out
-from lifestyle.adapter.outbound.orm.chat_orm import Message, MessageRole
+from orchestration.adapter.inbound.api.schemas.message_schema import AddMessageBody, MessageOut, message_out
+from orchestration.adapter.outbound.orm.chat_orm import Message, MessageRole
 from core.matrix.grid_oracle_database_manager import get_db
-from lifestyle.app.composition.providers import get_chat_pg_repository
-from lifestyle.adapter.outbound.pg.chat_pg_repository import ChatPgRepository
+from orchestration.app.composition.providers import get_chat_pg_repository
+from orchestration.adapter.outbound.pg.chat_pg_repository import ChatPgRepository
 
 logger = logging.getLogger(__name__)
 

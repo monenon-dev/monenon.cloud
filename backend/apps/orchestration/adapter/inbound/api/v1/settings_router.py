@@ -10,18 +10,18 @@ from pydantic import BaseModel
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from lifestyle.adapter.outbound.orm.registry import CHAT_MODEL_MAP, CHAT_TABLE_META, LIFESTYLE_MODEL_MAP, LIFESTYLE_TABLE_META
-from lifestyle.adapter.outbound.orm.chat_orm import ChatSession, Message, MessageRole
+from orchestration.adapter.outbound.orm.registry import CHAT_MODEL_MAP, CHAT_TABLE_META, ORCHESTRATION_MODEL_MAP, ORCHESTRATION_TABLE_META
+from orchestration.adapter.outbound.orm.chat_orm import ChatSession, Message, MessageRole
 from core.matrix.grid_oracle_database_manager import get_db
-from lifestyle.app.composition.providers import get_lifestyle_pg_repository
-from lifestyle.adapter.outbound.pg.lifestyle_pg_repository import LifestylePgRepository
-from lifestyle.adapter.inbound.api.schemas.settings_schema import PatchUserSettingsBody, UserSettingOut
+from orchestration.app.composition.providers import get_orchestration_pg_repository
+from orchestration.adapter.outbound.pg.orchestration_pg_repository import OrchestrationPgRepository
+from orchestration.adapter.inbound.api.schemas.settings_schema import PatchUserSettingsBody, UserSettingOut
 from admin.adapter.outbound.orm.registry import ADMIN_MODEL_MAP, ADMIN_TABLE_META
 from secretary.adapter.outbound.orm.user_model import User
 
 logger = logging.getLogger(__name__)
 
-settings_router = APIRouter(prefix="/platform", tags=["lifestyle"])
+settings_router = APIRouter(prefix="/platform", tags=["orchestration"])
 
 
 class TableCount(BaseModel):
@@ -45,14 +45,14 @@ MEMBER_TABLE_META: list[tuple[str, str, str, str, str]] = [
 TABLE_META: list[tuple[str, str, str, str, str]] = [
     *ADMIN_TABLE_META,
     *MEMBER_TABLE_META,
-    *LIFESTYLE_TABLE_META,
+    *ORCHESTRATION_TABLE_META,
     *CHAT_TABLE_META,
 ]
 
 MODEL_MAP = {
     **ADMIN_MODEL_MAP,
     "users": User,
-    **LIFESTYLE_MODEL_MAP,
+    **ORCHESTRATION_MODEL_MAP,
     **CHAT_MODEL_MAP,
 }
 
@@ -60,7 +60,7 @@ MODEL_MAP = {
 @settings_router.get("/user-settings", response_model=UserSettingOut)
 async def get_user_settings(
     user_id: int,
-    repo: LifestylePgRepository = Depends(get_lifestyle_pg_repository),
+    repo: OrchestrationPgRepository = Depends(get_orchestration_pg_repository),
 ) -> UserSettingOut:
     row = await repo.get_or_create_user_setting(user_id)
     return UserSettingOut(
@@ -78,7 +78,7 @@ async def get_user_settings(
 async def patch_user_settings(
     body: PatchUserSettingsBody,
     session: AsyncSession = Depends(get_db),
-    repo: LifestylePgRepository = Depends(get_lifestyle_pg_repository),
+    repo: OrchestrationPgRepository = Depends(get_orchestration_pg_repository),
 ) -> UserSettingOut:
     row = await repo.get_or_create_user_setting(body.user_id)
 
@@ -92,7 +92,7 @@ async def patch_user_settings(
     row.updated_at = datetime.now(timezone.utc)
     await session.flush()
     await session.refresh(row)
-    logger.info("[LifestyleController] user_settings 저장 — user_id=%s", body.user_id)
+    logger.info("[OrchestrationController] user_settings 저장 — user_id=%s", body.user_id)
     return UserSettingOut(
         id=row.id,
         user_id=row.user_id,
@@ -123,14 +123,14 @@ async def platform_overview(session: AsyncSession = Depends(get_db)) -> Platform
                 description=description,
             )
         )
-    logger.info("[LifestyleController] overview — total_records=%s", total)
+    logger.info("[OrchestrationController] overview — total_records=%s", total)
     return PlatformOverview(tables=tables, total_records=total)
 
 
 @settings_router.post("/seed-demo")
 async def seed_demo_data(
     session: AsyncSession = Depends(get_db),
-    repo: LifestylePgRepository = Depends(get_lifestyle_pg_repository),
+    repo: OrchestrationPgRepository = Depends(get_orchestration_pg_repository),
 ) -> dict:
     user_result = await session.execute(select(User).limit(1))
     user = user_result.scalar_one_or_none()
@@ -161,5 +161,5 @@ async def seed_demo_data(
             ]
         )
 
-    logger.info("[LifestyleController] seed_demo 완료 — userId=%s", user.id)
+    logger.info("[OrchestrationController] seed_demo 완료 — userId=%s", user.id)
     return {"ok": True, "user_id": user.id}

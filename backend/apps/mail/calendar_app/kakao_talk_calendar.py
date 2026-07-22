@@ -12,7 +12,7 @@ import httpx
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from lifestyle.adapter.outbound.orm.lifestyle_orm import UserSetting
+from orchestration.adapter.outbound.orm.orchestration_orm import UserSetting
 from secretary.adapter.outbound.orm.kakao_account import KakaoAccount
 from secretary.app.use_cases.kakao_oauth import refresh_kakao_access_token
 

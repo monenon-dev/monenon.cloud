@@ -9,16 +9,16 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from lifestyle.adapter.inbound.api.schemas.chat_session_schema import (
+from orchestration.adapter.inbound.api.schemas.chat_session_schema import (
     BulkDeleteChatSessionsBody,
     ChatSessionOut,
     CreateChatSessionBody,
     UpdateChatSessionBody,
 )
-from lifestyle.adapter.outbound.orm.chat_orm import ChatSession, Message
+from orchestration.adapter.outbound.orm.chat_orm import ChatSession, Message
 from core.matrix.grid_oracle_database_manager import get_db
-from lifestyle.app.composition.providers import get_chat_pg_repository
-from lifestyle.adapter.outbound.pg.chat_pg_repository import ChatPgRepository
+from orchestration.app.composition.providers import get_chat_pg_repository
+from orchestration.adapter.outbound.pg.chat_pg_repository import ChatPgRepository
 from secretary.adapter.outbound.orm.user_model import User
 
 logger = logging.getLogger(__name__)

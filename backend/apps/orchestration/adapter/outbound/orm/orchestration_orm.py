@@ -1,4 +1,4 @@
-"""라이프스타일 테이블 — 사용자 설정."""
+"""orchestration 테이블 — 사용자 설정."""
 
 from __future__ import annotations
 

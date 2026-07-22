@@ -202,7 +202,7 @@ async def sync_to_kakao_calendar(
     body: KakaoSyncBody,
     session: AsyncSession = Depends(get_db),
 ) -> dict:
-    """lifestyle/schedule 등에서 구조화 일정을 톡캘린더로 보냄."""
+    """orchestration/schedule 등에서 구조화 일정을 톡캘린더로 보냄."""
     if body.start and body.end:
         date, start_time, end_time = _split_iso_local(body.start, body.end)
     elif body.date and body.start_time and body.end_time:

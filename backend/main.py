@@ -33,17 +33,17 @@ from gemini_caller import GeminiQuotaError, call_gemini
 from weather_caller import fetch_current_weather
 from weather_chat import augment_message_with_weather, try_weather_chat_reply
 try:
-    import lifestyle.adapter.outbound.orm.chat_orm  # noqa: F401 — 채팅 테이블 metadata
+    import orchestration.adapter.outbound.orm.chat_orm  # noqa: F401 — 채팅 테이블 metadata
 except ModuleNotFoundError:
     pass
 try:
-    import lifestyle.adapter.outbound.orm.lifestyle_orm  # noqa: F401 — 라이프스타일 테이블 metadata
+    import orchestration.adapter.outbound.orm.orchestration_orm  # noqa: F401 — 오케스트레이션 테이블 metadata
 except ModuleNotFoundError:
     pass
 try:
-    from lifestyle.adapter.inbound.api.v1 import lifestyle_router
+    from orchestration.adapter.inbound.api.v1 import orchestration_router
 except ModuleNotFoundError:
-    lifestyle_router = None
+    orchestration_router = None
 try:
     from secretary.adapter.inbound.api.v1 import secretary_router
 except Exception as e:
@@ -69,7 +69,7 @@ except ModuleNotFoundError:
     admin_router = None
     build_admin_use_case = None
 try:
-    from lifestyle.adapter.inbound.api.v1 import chat_router
+    from orchestration.adapter.inbound.api.v1 import chat_router
 except ModuleNotFoundError:
     chat_router = None
 try:
@@ -310,8 +310,8 @@ if secretary_router is not None:
     app.include_router(secretary_router)
 if admin_router is not None:
     app.include_router(admin_router)
-if lifestyle_router is not None:
-    app.include_router(lifestyle_router)
+if orchestration_router is not None:
+    app.include_router(orchestration_router)
 if chat_router is not None:
     app.include_router(chat_router)
 if mail_api_router is not None:
@@ -469,8 +469,8 @@ def chat_guest(body: ChatMessageBody, request: Request):
 @app.post("/agent/chat")
 async def agent_chat(body: AgentChatBody, session: AsyncSession = Depends(get_db)):
     """프론트 Monenon 채팅 — 응답 우선 모델로 Gemini 호출."""
-    from lifestyle.app.agent_system_prompt import with_agent_system_prompt
-    from lifestyle.app.chat_context import augment_prompt_with_user_context
+    from orchestration.app.agent_system_prompt import with_agent_system_prompt
+    from orchestration.app.chat_context import augment_prompt_with_user_context
 
     prompt = body.prompt
     if body.user_id is not None:

@@ -1,7 +1,7 @@
 [importlinter]
 root_packages =
     secretary
-    lifestyle
+    orchestration
     gateway
     star_craft
     titanic
@@ -21,7 +21,7 @@ name = apps.auth is only imported by auth_main
 type = forbidden
 source_modules =
     secretary
-    lifestyle
+    orchestration
     gateway
     star_craft
     titanic

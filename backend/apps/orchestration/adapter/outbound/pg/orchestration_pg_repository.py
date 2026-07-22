@@ -1,4 +1,4 @@
-"""라이프스타일 DB 어댑터."""
+"""orchestration DB 어댑터."""
 
 from __future__ import annotations
 
@@ -8,13 +8,13 @@ from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from lifestyle.adapter.outbound.orm.lifestyle_orm import UserSetting
+from orchestration.adapter.outbound.orm.orchestration_orm import UserSetting
 from secretary.adapter.outbound.orm.user_model import User
 
 logger = logging.getLogger(__name__)
 
 
-class LifestylePgRepository:
+class OrchestrationPgRepository:
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
 
@@ -40,5 +40,5 @@ class LifestylePgRepository:
         self._session.add(row)
         await self._session.flush()
         await self._session.refresh(row)
-        logger.info("[LifestylePgRepository] user_settings 생성 — user_id=%s", user_id)
+        logger.info("[OrchestrationPgRepository] user_settings 생성 — user_id=%s", user_id)
         return row

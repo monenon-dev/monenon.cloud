@@ -6,7 +6,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, Field
 
-from lifestyle.adapter.outbound.orm.chat_orm import Message
+from orchestration.adapter.outbound.orm.chat_orm import Message
 
 
 class MessageOut(BaseModel):

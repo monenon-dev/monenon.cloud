@@ -6,7 +6,7 @@ from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from lifestyle.adapter.outbound.orm.chat_orm import ChatSession
+from orchestration.adapter.outbound.orm.chat_orm import ChatSession
 
 
 class ChatPgRepository:

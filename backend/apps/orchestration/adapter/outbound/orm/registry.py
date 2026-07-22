@@ -1,7 +1,7 @@
-from lifestyle.adapter.outbound.orm.chat_orm import ChatSession, Message
-from lifestyle.adapter.outbound.orm.lifestyle_orm import UserSetting
+from orchestration.adapter.outbound.orm.chat_orm import ChatSession, Message
+from orchestration.adapter.outbound.orm.orchestration_orm import UserSetting
 
-LIFESTYLE_TABLE_META: list[tuple[str, str, str, str, str]] = [
+ORCHESTRATION_TABLE_META: list[tuple[str, str, str, str, str]] = [
     ("user_settings", "취향 설정", "user_settings", "운영", "관리자 — 회원별 취향 설정 조회"),
 ]
 
@@ -10,7 +10,7 @@ CHAT_TABLE_META: list[tuple[str, str, str, str, str]] = [
     ("messages", "Messages", "messages", "채팅", "대화 메시지"),
 ]
 
-LIFESTYLE_MODEL_MAP = {
+ORCHESTRATION_MODEL_MAP = {
     "user_settings": UserSetting,
 }
 
