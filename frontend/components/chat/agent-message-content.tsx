@@ -5,6 +5,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import ReactMarkdown from "react-markdown";
 import {
   BriefcaseBusiness,
   Check,
@@ -17,6 +18,10 @@ import {
   Sparkles,
   type LucideIcon,
 } from "lucide-react";
+import {
+  injectChipsInChildren,
+  preserveEscapedBrackets,
+} from "@/components/chat/markdown-chip-utils";
 
 export type AgentMessageContentProps = {
   text: string;
@@ -122,220 +127,105 @@ function splitByH2(markdown: string): { intro: string; sections: SectionBlock[] 
   };
 }
 
-/** Inline: **bold**, *em*, `code`, [label](url), [chip-like] */
-function renderInline(text: string, keyPrefix: string): ReactNode[] {
-  const nodes: ReactNode[] = [];
-  const re =
-    /(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`|\[[^\]]+\]\([^)]+\)|\[[^\]]+\])/g;
-  let last = 0;
-  let m: RegExpExecArray | null;
-  let i = 0;
-  while ((m = re.exec(text)) !== null) {
-    if (m.index > last) {
-      nodes.push(text.slice(last, m.index));
-    }
-    const token = m[0]!;
-    const k = `${keyPrefix}-${i++}`;
-    if (token.startsWith("**")) {
-      nodes.push(
-        <strong key={k} className="font-semibold text-zinc-900 dark:text-zinc-50">
-          {token.slice(2, -2)}
-        </strong>
-      );
-    } else if (token.startsWith("*")) {
-      nodes.push(
-        <em key={k} className="italic text-zinc-600 dark:text-zinc-300/90">
-          {token.slice(1, -1)}
-        </em>
-      );
-    } else if (token.startsWith("`")) {
-      nodes.push(
-        <code
-          key={k}
-          className="rounded-md border border-indigo-400/25 bg-indigo-500/10 px-1.5 py-0.5 font-mono text-[11px] text-indigo-800 dark:border-indigo-400/20 dark:text-indigo-100"
-        >
-          {token.slice(1, -1)}
+function MdStrong({ children }: { children?: ReactNode }) {
+  return (
+    <strong className="font-semibold text-zinc-900 dark:text-zinc-50">
+      {injectChipsInChildren(children, "strong")}
+    </strong>
+  );
+}
+MdStrong.displayName = "MdStrong";
+
+const mdComponents = {
+  p: ({ children }: { children?: ReactNode }) => (
+    <p className="mb-2.5 text-sm leading-relaxed text-zinc-700 last:mb-0 dark:text-zinc-200/90">
+      {injectChipsInChildren(children, "p")}
+    </p>
+  ),
+  h1: ({ children }: { children?: ReactNode }) => (
+    <h2 className="mt-4 mb-2 border-b border-gray-200 pb-1.5 text-base font-semibold tracking-tight text-zinc-900 first:mt-0 dark:border-white/10 dark:text-zinc-100">
+      {injectChipsInChildren(children, "h1")}
+    </h2>
+  ),
+  h2: ({ children }: { children?: ReactNode }) => (
+    <h2 className="mt-4 mb-2 border-b border-gray-200 pb-1.5 text-base font-semibold tracking-tight text-zinc-900 first:mt-0 dark:border-white/10 dark:text-zinc-100">
+      {injectChipsInChildren(children, "h2")}
+    </h2>
+  ),
+  h3: ({ children }: { children?: ReactNode }) => (
+    <h3 className="mt-3 mb-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-indigo-600 dark:text-indigo-300/90">
+      {injectChipsInChildren(children, "h3")}
+    </h3>
+  ),
+  ul: ({ children }: { children?: ReactNode }) => (
+    <ul className="mb-2.5 list-none space-y-1.5 last:mb-0 [&>li]:relative [&>li]:pl-3.5 [&>li]:before:absolute [&>li]:before:left-0 [&>li]:before:top-[0.45rem] [&>li]:before:size-1.5 [&>li]:before:rounded-[2px] [&>li]:before:bg-indigo-500 dark:[&>li]:before:bg-indigo-400/90 [&>li>ul]:mt-1.5 [&>li>ul]:mb-0">
+      {children}
+    </ul>
+  ),
+  ol: ({ children }: { children?: ReactNode }) => (
+    <ol className="mb-2.5 list-decimal space-y-1.5 pl-4 text-sm text-zinc-700 last:mb-0 dark:text-zinc-200/90">
+      {children}
+    </ol>
+  ),
+  li: ({ children }: { children?: ReactNode }) => (
+    <li className="text-sm leading-relaxed text-zinc-700 dark:text-zinc-200/90">
+      {injectChipsInChildren(children, "li")}
+    </li>
+  ),
+  strong: MdStrong,
+  em: ({ children }: { children?: ReactNode }) => (
+    <em className="italic text-zinc-600 dark:text-zinc-300/90">
+      {injectChipsInChildren(children, "em")}
+    </em>
+  ),
+  a: ({ href, children }: { href?: string; children?: ReactNode }) => (
+    <a
+      href={href}
+      target="_blank"
+      rel="noreferrer"
+      className="inline-flex max-w-full items-center rounded-md border border-indigo-400/30 bg-indigo-500/10 px-1.5 py-0.5 font-mono text-[11px] text-indigo-800 underline-offset-2 hover:bg-indigo-500/20 dark:border-indigo-400/25 dark:bg-indigo-500/15 dark:text-indigo-100"
+    >
+      {children}
+    </a>
+  ),
+  code: ({
+    className,
+    children,
+  }: {
+    className?: string;
+    children?: ReactNode;
+  }) => {
+    const block = Boolean(className);
+    if (block) {
+      return (
+        <code className="block overflow-x-auto rounded-lg border border-gray-200 bg-zinc-900/5 p-3 font-mono text-[11px] leading-relaxed text-zinc-800 dark:border-white/10 dark:bg-black/40 dark:text-indigo-100/90">
+          {children}
         </code>
       );
-    } else if (token.includes("](")) {
-      const lm = /^\[([^\]]+)\]\(([^)]+)\)$/.exec(token);
-      nodes.push(
-        <a
-          key={k}
-          href={lm?.[2]}
-          target="_blank"
-          rel="noreferrer"
-          className="inline-flex max-w-full items-center rounded-md border border-indigo-400/30 bg-indigo-500/10 px-1.5 py-0.5 font-mono text-[11px] text-indigo-800 underline-offset-2 hover:bg-indigo-500/20 dark:border-indigo-400/25 dark:bg-indigo-500/15 dark:text-indigo-100"
-        >
-          {lm?.[1]}
-        </a>
-      );
-    } else {
-      nodes.push(
-        <span
-          key={k}
-          className="inline-flex max-w-full items-center rounded-md border border-indigo-400/25 bg-indigo-500/10 px-1.5 py-0.5 font-mono text-[11px] text-indigo-800 dark:text-indigo-100"
-        >
-          {token.slice(1, -1)}
-        </span>
-      );
     }
-    last = m.index + token.length;
-  }
-  if (last < text.length) nodes.push(text.slice(last));
-  return nodes;
-}
+    return (
+      <code className="rounded-md border border-indigo-400/25 bg-indigo-500/10 px-1.5 py-0.5 font-mono text-[11px] text-indigo-800 dark:border-indigo-400/20 dark:text-indigo-100">
+        {children}
+      </code>
+    );
+  },
+  pre: ({ children }: { children?: ReactNode }) => (
+    <pre className="mb-2.5 overflow-x-auto last:mb-0">{children}</pre>
+  ),
+  hr: () => <hr className="my-3 border-gray-200 dark:border-white/10" />,
+};
 
 function MarkdownBody({ content }: { content: string }) {
-  const blocks = useMemo(() => {
-    const lines = content.replace(/\r\n/g, "\n").split("\n");
-    const out: ReactNode[] = [];
-    let i = 0;
-    let key = 0;
+  const source = useMemo(
+    () => preserveEscapedBrackets(content.replace(/\r\n/g, "\n")),
+    [content]
+  );
 
-    const flushParagraph = (buf: string[]) => {
-      const t = buf.join("\n").trim();
-      if (!t) return;
-      out.push(
-        <p
-          key={`p-${key++}`}
-          className="mb-2.5 text-sm leading-relaxed text-zinc-700 last:mb-0 dark:text-zinc-200/90"
-        >
-          {renderInline(t, `p${key}`)}
-        </p>
-      );
-    };
-
-    while (i < lines.length) {
-      const line = lines[i]!;
-
-      if (/^###\s+/.test(line)) {
-        out.push(
-          <h3
-            key={`h3-${key++}`}
-            className="mt-3 mb-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-indigo-600 dark:text-indigo-300/90"
-          >
-            {renderInline(line.replace(/^###\s+/, ""), `h3${key}`)}
-          </h3>
-        );
-        i += 1;
-        continue;
-      }
-      if (/^##\s+/.test(line)) {
-        out.push(
-          <h2
-            key={`h2-${key++}`}
-            className="mt-4 mb-2 border-b border-gray-200 pb-1.5 text-base font-semibold tracking-tight text-zinc-900 first:mt-0 dark:border-white/10 dark:text-zinc-100"
-          >
-            {renderInline(line.replace(/^##\s+/, ""), `h2${key}`)}
-          </h2>
-        );
-        i += 1;
-        continue;
-      }
-      if (/^#\s+/.test(line)) {
-        out.push(
-          <h2
-            key={`h1-${key++}`}
-            className="mt-4 mb-2 border-b border-gray-200 pb-1.5 text-base font-semibold tracking-tight text-zinc-900 first:mt-0 dark:border-white/10 dark:text-zinc-100"
-          >
-            {renderInline(line.replace(/^#\s+/, ""), `h1${key}`)}
-          </h2>
-        );
-        i += 1;
-        continue;
-      }
-      if (/^[-*•]\s+/.test(line)) {
-        const items: string[] = [];
-        while (i < lines.length && /^[-*•]\s+/.test(lines[i]!)) {
-          items.push(lines[i]!.replace(/^[-*•]\s+/, ""));
-          i += 1;
-        }
-        out.push(
-          <ul
-            key={`ul-${key++}`}
-            className="mb-2.5 space-y-1.5 last:mb-0 [&>li]:relative [&>li]:pl-3.5 [&>li]:before:absolute [&>li]:before:left-0 [&>li]:before:top-[0.45rem] [&>li]:before:size-1.5 [&>li]:before:rounded-[2px] [&>li]:before:bg-indigo-500 dark:[&>li]:before:bg-indigo-400/90"
-          >
-            {items.map((item, idx) => (
-              <li
-                key={idx}
-                className="text-sm leading-relaxed text-zinc-700 dark:text-zinc-200/90"
-              >
-                {renderInline(item, `li${key}-${idx}`)}
-              </li>
-            ))}
-          </ul>
-        );
-        continue;
-      }
-      if (/^\d+\.\s+/.test(line)) {
-        const items: string[] = [];
-        while (i < lines.length && /^\d+\.\s+/.test(lines[i]!)) {
-          items.push(lines[i]!.replace(/^\d+\.\s+/, ""));
-          i += 1;
-        }
-        out.push(
-          <ol
-            key={`ol-${key++}`}
-            className="mb-2.5 list-decimal space-y-1.5 pl-4 text-sm text-zinc-700 last:mb-0 dark:text-zinc-200/90"
-          >
-            {items.map((item, idx) => (
-              <li key={idx}>{renderInline(item, `ol${key}-${idx}`)}</li>
-            ))}
-          </ol>
-        );
-        continue;
-      }
-      if (line.startsWith("```")) {
-        const lang = line.slice(3).trim();
-        i += 1;
-        const code: string[] = [];
-        while (i < lines.length && !lines[i]!.startsWith("```")) {
-          code.push(lines[i]!);
-          i += 1;
-        }
-        if (i < lines.length) i += 1;
-        out.push(
-          <pre key={`pre-${key++}`} className="mb-2.5 overflow-x-auto last:mb-0">
-            <code
-              className="block overflow-x-auto rounded-lg border border-gray-200 bg-zinc-900/5 p-3 font-mono text-[11px] leading-relaxed text-zinc-800 dark:border-white/10 dark:bg-black/40 dark:text-indigo-100/90"
-              data-language={lang || undefined}
-            >
-              {code.join("\n")}
-            </code>
-          </pre>
-        );
-        continue;
-      }
-      if (/^---+$/.test(line.trim())) {
-        out.push(<hr key={`hr-${key++}`} className="my-3 border-gray-200 dark:border-white/10" />);
-        i += 1;
-        continue;
-      }
-      if (!line.trim()) {
-        i += 1;
-        continue;
-      }
-      const buf: string[] = [line];
-      i += 1;
-      while (
-        i < lines.length &&
-        lines[i]!.trim() &&
-        !/^#{1,3}\s+/.test(lines[i]!) &&
-        !/^[-*•]\s+/.test(lines[i]!) &&
-        !/^\d+\.\s+/.test(lines[i]!) &&
-        !lines[i]!.startsWith("```") &&
-        !/^---+$/.test(lines[i]!.trim())
-      ) {
-        buf.push(lines[i]!);
-        i += 1;
-      }
-      flushParagraph(buf);
-    }
-    return out;
-  }, [content]);
-
-  return <div className="agent-md text-sm">{blocks}</div>;
+  return (
+    <div className="agent-md text-sm">
+      <ReactMarkdown components={mdComponents}>{source}</ReactMarkdown>
+    </div>
+  );
 }
 
 function SectionAccordion({
