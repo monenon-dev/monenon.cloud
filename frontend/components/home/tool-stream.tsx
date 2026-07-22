@@ -33,6 +33,12 @@ export interface ToolCallResult {
 export type ToolStreamProps = {
   items: ToolCallResult[];
   onRetry?: (item: ToolCallResult) => void;
+  /** Fired when a rag hit row is clicked (docs.search / vector.query). */
+  onRagItemClick?: (
+    item: ToolCallResult,
+    hit: NonNullable<NonNullable<ToolCallResult["result"]>["items"]>[number],
+    hitIndex: number
+  ) => void;
   className?: string;
 };
 
@@ -61,8 +67,13 @@ function SimilarityBadge({ score }: { score: number }) {
 
 function RagResultBody({
   items,
+  onItemClick,
 }: {
   items: NonNullable<ToolCallResult["result"]>["items"];
+  onItemClick?: (
+    hit: NonNullable<NonNullable<ToolCallResult["result"]>["items"]>[number],
+    hitIndex: number
+  ) => void;
 }) {
   if (!items?.length) {
     return (
@@ -75,30 +86,59 @@ function RagResultBody({
     <ul className="space-y-2">
       {items.map((item, i) => {
         const low = typeof item.score === "number" && item.score < 0.5;
+        const interactive = Boolean(onItemClick);
         return (
-          <li
-            key={`${item.title}-${i}`}
-            className={`rounded-md border border-white/[0.06] bg-black/20 px-2 py-1.5 ${
-              low ? "opacity-60" : "opacity-100"
-            }`}
-          >
-            <div className="flex items-start justify-between gap-2">
-              <p className="min-w-0 flex-1 truncate text-[11px] font-medium text-indigo-50">
-                {item.title}
-              </p>
-              {typeof item.score === "number" ? (
-                <SimilarityBadge score={item.score} />
-              ) : null}
-            </div>
-            {item.preview ? (
-              <p className="mt-0.5 line-clamp-2 text-[10px] leading-relaxed text-indigo-200/55">
-                {item.preview}
-              </p>
-            ) : null}
+          <li key={`${item.title}-${i}`}>
+            {interactive ? (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onItemClick?.(item, i);
+                }}
+                className={`w-full rounded-md border border-white/[0.06] bg-black/20 px-2 py-1.5 text-left transition-colors hover:border-indigo-400/30 hover:bg-indigo-500/10 ${
+                  low ? "opacity-60" : "opacity-100"
+                }`}
+              >
+                <RagHitContent item={item} />
+              </button>
+            ) : (
+              <div
+                className={`rounded-md border border-white/[0.06] bg-black/20 px-2 py-1.5 ${
+                  low ? "opacity-60" : "opacity-100"
+                }`}
+              >
+                <RagHitContent item={item} />
+              </div>
+            )}
           </li>
         );
       })}
     </ul>
+  );
+}
+
+function RagHitContent({
+  item,
+}: {
+  item: NonNullable<NonNullable<ToolCallResult["result"]>["items"]>[number];
+}) {
+  return (
+    <>
+      <div className="flex items-start justify-between gap-2">
+        <p className="min-w-0 flex-1 truncate text-[11px] font-medium text-indigo-50">
+          {item.title}
+        </p>
+        {typeof item.score === "number" ? (
+          <SimilarityBadge score={item.score} />
+        ) : null}
+      </div>
+      {item.preview ? (
+        <p className="mt-0.5 line-clamp-2 text-[10px] leading-relaxed text-indigo-200/55">
+          {item.preview}
+        </p>
+      ) : null}
+    </>
   );
 }
 
@@ -167,7 +207,13 @@ function DraftResultBody({
   );
 }
 
-function ResultBody({ item }: { item: ToolCallResult }) {
+function ResultBody({
+  item,
+  onRagItemClick,
+}: {
+  item: ToolCallResult;
+  onRagItemClick?: ToolStreamProps["onRagItemClick"];
+}) {
   if (item.status === "pending") {
     return (
       <div className="flex items-center gap-2 text-[11px] text-sky-300/80">
@@ -194,7 +240,18 @@ function ResultBody({ item }: { item: ToolCallResult }) {
 
   const type = item.result?.type;
   const items = item.result?.items;
-  if (type === "rag") return <RagResultBody items={items} />;
+  if (type === "rag") {
+    return (
+      <RagResultBody
+        items={items}
+        onItemClick={
+          onRagItemClick
+            ? (hit, hitIndex) => onRagItemClick(item, hit, hitIndex)
+            : undefined
+        }
+      />
+    );
+  }
   if (type === "list") return <ListResultBody items={items} />;
   if (type === "draft") return <DraftResultBody items={items} />;
   return (
@@ -231,7 +288,12 @@ function StatusIcon({ status }: { status: ToolCallResult["status"] }) {
  * Tool Stream — clickable accordion rows for live agent tool calls.
  * Mock/API data is injected via `items` (keep fixtures outside this file).
  */
-export function ToolStream({ items, onRetry, className = "" }: ToolStreamProps) {
+export function ToolStream({
+  items,
+  onRetry,
+  onRagItemClick,
+  className = "",
+}: ToolStreamProps) {
   const [ui, setUi] = useState({
     expanded: {} as Record<string, boolean>,
   });
@@ -293,7 +355,7 @@ export function ToolStream({ items, onRetry, className = "" }: ToolStreamProps) 
                       aria-hidden
                     />
                     <div className="min-w-0 flex-1 space-y-2">
-                      <ResultBody item={item} />
+                      <ResultBody item={item} onRagItemClick={onRagItemClick} />
                       {item.status === "error" && onRetry ? (
                         <button
                           type="button"
