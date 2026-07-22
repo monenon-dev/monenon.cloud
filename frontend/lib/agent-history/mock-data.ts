@@ -6,7 +6,7 @@ import type {
 } from "@/lib/agent-history/types";
 
 /** One coherent run — never mix fields across scenarios. */
-type AgentHistoryScenario = {
+export type AgentHistoryScenario = {
   agentName: AgentName;
   tool: AgentToolName;
   prompt: string;
@@ -193,6 +193,19 @@ function buildExtraLogs(baseMs: number, count: number): AgentHistoryLog[] {
   return logs;
 }
 
+function buildInitialAgentHistoryLogs(): AgentHistoryLog[] {
+  const baseMs = Date.now();
+  const recent = buildRecentLogs(baseMs);
+  const extra = buildExtraLogs(baseMs, 40);
+  return [...recent, ...extra].sort(
+    (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+  );
+}
+
+/** Initial snapshot for mock live store + static fixtures. */
+export { buildInitialAgentHistoryLogs };
+export { SCENARIOS };
+
 const BASE_MS = Date.now();
 
 const RECENT = buildRecentLogs(BASE_MS);
@@ -202,10 +215,6 @@ const EXTRA = buildExtraLogs(BASE_MS, 20);
 export const MOCK_AGENT_HISTORY_LOGS: AgentHistoryLog[] = [...RECENT, ...EXTRA].sort(
   (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
 );
-
-export async function fetchAgentHistoryLogs(): Promise<AgentHistoryLog[]> {
-  return MOCK_AGENT_HISTORY_LOGS;
-}
 
 export const AGENT_HISTORY_FILTER_AGENTS = AGENTS;
 export const AGENT_HISTORY_FILTER_STATUSES: Array<AgentHistoryStatus | "all"> = [

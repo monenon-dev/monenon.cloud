@@ -34,5 +34,16 @@ export interface AgentHistoryLog {
 /** API 교체 시: fetch → AgentHistoryLog[] 매핑만 맞추면 됩니다. */
 export type AgentHistoryListResponse = {
   items: AgentHistoryLog[];
+  /** Existing rows whose fields (e.g. status) changed since last poll. */
+  patches?: AgentHistoryLog[];
   total: number;
+  hasMore?: boolean;
+};
+
+export type FetchAgentHistoryOptions = {
+  /** ISO-8601 — return rows newer than this timestamp. */
+  since?: string;
+  /** ISO-8601 — return rows older than this (pagination). */
+  before?: string;
+  limit?: number;
 };

@@ -2,73 +2,46 @@
 
 import { useMemo, useState } from "react";
 import { ChevronDown, Search } from "lucide-react";
+import { AgentHistoryTableRow } from "@/components/agent-history/agent-history-table-row";
 import {
   AGENT_HISTORY_FILTER_AGENTS,
   AGENT_HISTORY_FILTER_STATUSES,
 } from "@/lib/agent-history/mock-data";
+import { AGENT_HISTORY_PAGE_SIZE } from "@/lib/agent-history/constants";
 import type {
   AgentHistoryLog,
   AgentHistoryStatus,
   AgentName,
 } from "@/lib/agent-history/types";
+import type { AgentHistoryLiveHighlights } from "@/hooks/use-agent-history-live";
 
 type SortKey = "timestamp" | "durationMs" | "tokens" | "agentName" | "tool" | "status";
 type SortDir = "asc" | "desc";
 
-const PAGE_SIZE = 20;
-
-function formatTime(iso: string): string {
-  const d = new Date(iso);
-  return d.toLocaleString("ko-KR", {
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: false,
-  });
-}
-
-function formatDuration(ms: number): string {
-  if (ms < 1000) return `${ms}ms`;
-  return `${(ms / 1000).toFixed(1)}s`;
-}
-
-function statusBadge(status: AgentHistoryStatus) {
-  if (status === "success") {
-    return (
-      <span className="inline-flex items-center rounded border border-emerald-400/30 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] text-emerald-300">
-        성공
-      </span>
-    );
-  }
-  if (status === "running") {
-    return (
-      <span className="inline-flex items-center gap-1 rounded border border-sky-400/30 bg-sky-500/10 px-1.5 py-0.5 text-[10px] text-sky-300">
-        <span className="size-1.5 rounded-full bg-sky-400 animate-pulse" />
-        진행중
-      </span>
-    );
-  }
-  return (
-    <span className="inline-flex items-center rounded border border-rose-400/30 bg-rose-500/10 px-1.5 py-0.5 text-[10px] text-rose-300">
-      실패
-    </span>
-  );
-}
-
 type Props = {
   logs: AgentHistoryLog[];
+  highlights: AgentHistoryLiveHighlights;
+  totalCount: number;
+  hasMoreOlder?: boolean;
+  loadingMore?: boolean;
+  onLoadMoreOlder?: () => void;
 };
 
-export function AgentHistoryTable({ logs }: Props) {
+export function AgentHistoryTable({
+  logs,
+  highlights,
+  totalCount,
+  hasMoreOlder = false,
+  loadingMore = false,
+  onLoadMoreOlder,
+}: Props) {
   const [ui, setUi] = useState({
     agent: "all" as AgentName | "all",
     status: "all" as AgentHistoryStatus | "all",
     query: "",
     sortKey: "timestamp" as SortKey,
     sortDir: "desc" as SortDir,
-    visible: PAGE_SIZE,
+    visible: AGENT_HISTORY_PAGE_SIZE,
   });
 
   const patch = (p: Partial<typeof ui>) =>
@@ -102,7 +75,8 @@ export function AgentHistoryTable({ logs }: Props) {
   }, [logs, ui.agent, ui.status, ui.query, ui.sortKey, ui.sortDir]);
 
   const visibleRows = filtered.slice(0, ui.visible);
-  const canLoadMore = ui.visible < filtered.length;
+  const canLoadMoreLocal = ui.visible < filtered.length;
+  const canLoadMoreRemote = hasMoreOlder && !canLoadMoreLocal;
 
   const toggleSort = (key: SortKey) => {
     if (ui.sortKey === key) {
@@ -141,7 +115,7 @@ export function AgentHistoryTable({ logs }: Props) {
           전체 로그
         </h2>
         <p className="font-mono text-[11px] text-indigo-200/45">
-          {filtered.length} / {logs.length} events
+          {filtered.length} / {totalCount} events
         </p>
       </div>
 
@@ -153,7 +127,7 @@ export function AgentHistoryTable({ logs }: Props) {
             onChange={(e) =>
               patch({
                 agent: e.target.value as AgentName | "all",
-                visible: PAGE_SIZE,
+                visible: AGENT_HISTORY_PAGE_SIZE,
               })
             }
             className="rounded-lg border border-white/10 bg-[#121218] px-2.5 py-2 text-xs text-indigo-100 outline-none focus:border-indigo-400/40"
@@ -174,7 +148,7 @@ export function AgentHistoryTable({ logs }: Props) {
             onChange={(e) =>
               patch({
                 status: e.target.value as AgentHistoryStatus | "all",
-                visible: PAGE_SIZE,
+                visible: AGENT_HISTORY_PAGE_SIZE,
               })
             }
             className="rounded-lg border border-white/10 bg-[#121218] px-2.5 py-2 text-xs text-indigo-100 outline-none focus:border-indigo-400/40"
@@ -197,7 +171,7 @@ export function AgentHistoryTable({ logs }: Props) {
             />
             <input
               value={ui.query}
-              onChange={(e) => patch({ query: e.target.value, visible: PAGE_SIZE })}
+              onChange={(e) => patch({ query: e.target.value, visible: AGENT_HISTORY_PAGE_SIZE })}
               placeholder="예: docs.search"
               className="w-full rounded-lg border border-white/10 bg-[#121218] py-2 pl-8 pr-2.5 text-xs text-indigo-100 outline-none placeholder:text-indigo-200/30 focus:border-indigo-400/40"
             />
@@ -219,21 +193,11 @@ export function AgentHistoryTable({ logs }: Props) {
           </thead>
           <tbody>
             {visibleRows.map((row) => (
-              <tr
+              <AgentHistoryTableRow
                 key={row.id}
-                className="border-t border-white/5 transition-colors duration-150 hover:bg-white/[0.04]"
-              >
-                <td className="whitespace-nowrap px-3 py-2.5 text-indigo-200/55">
-                  {formatTime(row.timestamp)}
-                </td>
-                <td className="px-3 py-2.5 text-indigo-100">{row.agentName}</td>
-                <td className="px-3 py-2.5 text-indigo-200">{row.tool}</td>
-                <td className="px-3 py-2.5">{statusBadge(row.status)}</td>
-                <td className="px-3 py-2.5 text-indigo-200/80">
-                  {formatDuration(row.durationMs)}
-                </td>
-                <td className="px-3 py-2.5 text-indigo-200/80">{row.tokens}</td>
-              </tr>
+                row={row}
+                highlights={highlights}
+              />
             ))}
             {visibleRows.length === 0 && (
               <tr>
@@ -249,15 +213,25 @@ export function AgentHistoryTable({ logs }: Props) {
         </table>
       </div>
 
-      {canLoadMore && (
+      {(canLoadMoreLocal || canLoadMoreRemote) && (
         <div className="mt-4 flex justify-center">
           <button
             type="button"
-            onClick={() => patch({ visible: ui.visible + PAGE_SIZE })}
-            className="rounded-lg border border-white/10 bg-white/[0.03] px-4 py-2 text-xs text-indigo-100 transition-colors hover:border-white/20 hover:bg-white/[0.05]"
+            disabled={loadingMore}
+            onClick={() => {
+              if (canLoadMoreLocal) {
+                patch({ visible: ui.visible + AGENT_HISTORY_PAGE_SIZE });
+                return;
+              }
+              onLoadMoreOlder?.();
+            }}
+            className="rounded-lg border border-white/10 bg-white/[0.03] px-4 py-2 text-xs text-indigo-100 transition-colors hover:border-white/20 hover:bg-white/[0.05] disabled:opacity-60"
           >
-            더 보기 ({Math.min(PAGE_SIZE, filtered.length - ui.visible)} / 남은{" "}
-            {filtered.length - ui.visible})
+            {loadingMore
+              ? "불러오는 중…"
+              : canLoadMoreLocal
+                ? `더 보기 (${Math.min(AGENT_HISTORY_PAGE_SIZE, filtered.length - ui.visible)} / 남은 ${filtered.length - ui.visible})`
+                : "이전 로그 더 보기"}
           </button>
         </div>
       )}
