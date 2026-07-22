@@ -153,7 +153,7 @@ export function GoogleSignInButton({
           type="button"
           onClick={openGoogleSignIn}
           disabled={loading || !initialized}
-          className={`flex w-full items-center gap-3 rounded-xl border border-white/10 bg-[#12121a] px-3 py-2.5 text-left text-sm font-medium text-indigo-50/90 transition-colors hover:bg-[#4285F4]/10 disabled:opacity-60 ${className}`}
+          className={`flex w-full items-center gap-3 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 text-left text-sm font-medium text-gray-100 transition-colors hover:bg-[rgba(66,133,244,0.1)] disabled:opacity-60 ${className}`}
         >
           <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-white text-xs font-black text-[#4285F4]">
             G

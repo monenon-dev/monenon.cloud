@@ -15,7 +15,7 @@ type SocialLoginButtonsProps = {
 
 /** Outline social CTA — brand color only on the icon; dark shell + soft hover tint. */
 const SOCIAL_BTN =
-  "flex w-full items-center gap-3 rounded-xl border border-white/10 bg-[#12121a] px-3 py-2.5 text-left text-sm font-medium text-indigo-50/90 transition-colors";
+  "flex w-full items-center gap-3 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 text-left text-sm font-medium text-gray-100 transition-colors";
 
 function oauthStartUrl(provider: "naver" | "kakao", redirectTo: string): string {
   const next = redirectTo.startsWith("/") ? redirectTo : "/";
@@ -49,7 +49,7 @@ export function SocialLoginButtons({
         onClick={() => {
           window.location.href = oauthStartUrl("naver", redirectTo);
         }}
-        className={`${SOCIAL_BTN} hover:bg-[#03C75A]/10`}
+        className={`${SOCIAL_BTN} hover:bg-[rgba(3,199,90,0.1)]`}
       >
         <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[#03C75A] text-xs font-black text-white">
           N
@@ -62,7 +62,7 @@ export function SocialLoginButtons({
         onClick={() => {
           window.location.href = oauthStartUrl("kakao", redirectTo);
         }}
-        className={`${SOCIAL_BTN} hover:bg-[#FEE500]/[0.08]`}
+        className={`${SOCIAL_BTN} hover:bg-[rgba(254,229,0,0.1)]`}
       >
         <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[#FEE500] text-xs font-black text-[#391B1B]">
           톡
