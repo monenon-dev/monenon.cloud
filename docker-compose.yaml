@@ -1,6 +1,9 @@
 # 백엔드 Docker:  docker compose up --build backend
+# Auth 게이트웨이: docker compose up --build auth  (ports 없음 — Tunnel만)
 # API 터널:       docker compose --profile tunnel up -d
-#                 (루트 .env 에 CLOUDFLARE_TUNNEL_TOKEN 필요 — api.monenon.cloud → backend:8000)
+#                 (루트 .env 에 CLOUDFLARE_TUNNEL_TOKEN 필요
+#                  api.monenon.cloud → backend:8000
+#                  auth.monenon.cloud → auth:9000  ← Cloudflare 대시보드에서 수동 추가)
 # 프론트엔드:     Docker 배포 제외 (Vercel / 로컬 npm run dev)
 # 강사님 흐름: backend Dockerfile + requirements.txt → Hub push → 시그마 Ubuntu Docker Engine
 # 접속 PC(네오): scripts/docker-build-push.ps1
@@ -25,6 +28,7 @@ services:
       NEO4J_USER: neo4j
       NEO4J_PASSWORD: ${NEO4J_PASSWORD:-monenon2026}
       REDIS_URL: redis://redis:6379
+      SERVICE_AUD: ${SERVICE_AUD:-monenon-api}
     depends_on:
       - pgvector
       - neo4j
@@ -44,6 +48,42 @@ services:
       retries: 5
       start_period: 40s
 
+  # JWT 발급 전용 — 호스트 ports 없음 (Tunnel: auth.monenon.cloud → auth:9000)
+  # env: backend/.env.auth (JWT_PRIVATE_KEY). 예: cp backend/.env.auth.example backend/.env.auth
+  auth:
+    image: ${AUTH_IMAGE:-whtjgml2002/monenon-auth:latest}
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    working_dir: /app
+    command: ["uvicorn", "auth_main:app", "--host", "0.0.0.0", "--port", "9000"]
+    env_file:
+      - path: ./backend/.env
+        required: false
+      - path: ./backend/.env.auth
+        required: false
+    environment:
+      PYTHONPATH: /app:/app/apps
+      REDIS_URL: redis://redis:6379/0
+      DATABASE_URL: postgresql+psycopg://postgres:${POSTGRES_PASSWORD:-monenon2026}@pgvector:5432/monenon
+      SERVICE_AUD: ${SERVICE_AUD:-monenon-api}
+    depends_on:
+      - redis
+      - pgvector
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:9000/healthz')",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
   n8n:
     profiles: [tunnel]
     image: docker.n8n.io/n8nio/n8n:latest
@@ -59,8 +99,9 @@ services:
     volumes:
       - n8n_data:/home/node/.n8n
 
-  # ── Cloudflare Tunnel — API·n8n만 Docker로 노출 (프론트는 Vercel) ─────────────
-  # Public Hostname 예:
+  # ── Cloudflare Tunnel — API·auth·n8n Docker 노출 (프론트는 Vercel) ───────────
+  # Public Hostname 예 (대시보드·config 수동):
+  #   auth.monenon.cloud → http://auth:9000
   #   api.monenon.cloud  → http://backend:8000
   #   n8n.monenon.cloud  → http://n8n:5678
   # monenon.cloud(홈)은 Vercel DNS — 터널에 frontend 넣지 말 것
@@ -73,6 +114,8 @@ services:
       TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:?set CLOUDFLARE_TUNNEL_TOKEN in root .env}
     depends_on:
       backend:
+        condition: service_healthy
+      auth:
         condition: service_healthy
       n8n:
         condition: service_started

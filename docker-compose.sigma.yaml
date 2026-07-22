@@ -19,7 +19,13 @@ services:
     image: ${BACKEND_IMAGE:-whtjgml2002/monenon-backend:latest}
     pull_policy: missing
 
+  auth:
+    image: ${AUTH_IMAGE:-whtjgml2002/monenon-auth:latest}
+    pull_policy: missing
+
   cloudflared:
     depends_on: !override
       backend:
+        condition: service_healthy
+      auth:
         condition: service_healthy

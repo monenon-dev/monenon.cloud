@@ -4,9 +4,13 @@
 !.env.example
 !.env.sample
 !.env.template
+!.env.auth.example
 !*.example
 *.pem
 *.key
+backend/.keys/
+backend/.import_linter_cache/
+.import_linter_cache/
 *.p12
 *.pfx
 *.cer
