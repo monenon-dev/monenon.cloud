@@ -1,0 +1,37 @@
+[importlinter]
+root_packages =
+    secretary
+    lifestyle
+    gateway
+    star_craft
+    titanic
+    moneyball
+    admin
+    sherlock_homes
+    silicon_valley
+    mail
+    faker
+    dumb_and_dumber
+    telegram_reporter
+    auth
+    core
+
+[importlinter:contract:auth-isolation]
+name = apps.auth is only imported by auth_main
+type = forbidden
+source_modules =
+    secretary
+    lifestyle
+    gateway
+    star_craft
+    titanic
+    moneyball
+    admin
+    sherlock_homes
+    silicon_valley
+    mail
+    faker
+    dumb_and_dumber
+    telegram_reporter
+forbidden_modules =
+    auth
