@@ -13,6 +13,10 @@ type SocialLoginButtonsProps = {
   className?: string;
 };
 
+/** Outline social CTA — brand color only on the icon; dark shell + soft hover tint. */
+const SOCIAL_BTN =
+  "flex w-full items-center gap-3 rounded-xl border border-white/10 bg-[#12121a] px-3 py-2.5 text-left text-sm font-medium text-indigo-50/90 transition-colors";
+
 function oauthStartUrl(provider: "naver" | "kakao", redirectTo: string): string {
   const next = redirectTo.startsWith("/") ? redirectTo : "/";
   const params = new URLSearchParams({ next });
@@ -45,9 +49,9 @@ export function SocialLoginButtons({
         onClick={() => {
           window.location.href = oauthStartUrl("naver", redirectTo);
         }}
-        className="flex w-full items-center gap-3 rounded-xl bg-[#03C75A] px-3 py-2.5 text-left text-sm font-semibold text-white hover:brightness-95"
+        className={`${SOCIAL_BTN} hover:bg-[#03C75A]/10`}
       >
-        <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-white text-xs font-black text-[#03C75A]">
+        <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[#03C75A] text-xs font-black text-white">
           N
         </span>
         <span className="flex-1 text-center pr-8">네이버 아이디로 로그인</span>
@@ -58,16 +62,16 @@ export function SocialLoginButtons({
         onClick={() => {
           window.location.href = oauthStartUrl("kakao", redirectTo);
         }}
-        className="flex w-full items-center gap-3 rounded-xl bg-[#FEE500] px-3 py-2.5 text-left text-sm font-semibold text-[#391B1B] hover:brightness-95"
+        className={`${SOCIAL_BTN} hover:bg-[#FEE500]/[0.08]`}
       >
-        <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[#391B1B] text-xs font-black text-[#FEE500]">
+        <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[#FEE500] text-xs font-black text-[#391B1B]">
           톡
         </span>
         <span className="flex-1 text-center pr-8">카카오계정으로 로그인</span>
       </button>
 
       {googleError ? (
-        <p role="alert" className="text-xs text-red-600 dark:text-red-400 px-1">
+        <p role="alert" className="px-1 text-xs text-rose-300">
           {googleError}
         </p>
       ) : null}

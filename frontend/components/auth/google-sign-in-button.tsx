@@ -135,7 +135,7 @@ export function GoogleSignInButton({
 
   if (!clientId) {
     return (
-      <p className="text-sm text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900 rounded-lg px-3 py-2">
+      <p className="rounded-lg border border-amber-400/25 bg-amber-500/10 px-3 py-2 text-sm text-amber-200">
         NEXT_PUBLIC_GOOGLE_CLIENT_ID 환경 변수를 설정해 주세요.
       </p>
     );
@@ -153,7 +153,7 @@ export function GoogleSignInButton({
           type="button"
           onClick={openGoogleSignIn}
           disabled={loading || !initialized}
-          className={`flex w-full items-center gap-3 rounded-xl bg-[#4285F4] px-3 py-2.5 text-left text-sm font-semibold text-white hover:brightness-95 disabled:opacity-60 ${className}`}
+          className={`flex w-full items-center gap-3 rounded-xl border border-white/10 bg-[#12121a] px-3 py-2.5 text-left text-sm font-medium text-indigo-50/90 transition-colors hover:bg-[#4285F4]/10 disabled:opacity-60 ${className}`}
         >
           <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-white text-xs font-black text-[#4285F4]">
             G
