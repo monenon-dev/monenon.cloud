@@ -13,6 +13,10 @@ import {
 
 import Logo from "@/components/brand/Logo";
 import {
+  AgentMessageContent,
+  AgentStreamingPlaceholder,
+} from "@/components/chat/agent-message-content";
+import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
@@ -365,6 +369,18 @@ export function GeminiChatPanel({
           {messages.map((msg, idx) => {
             const isUser = msg.role === "user";
             const timeLabel = mounted && msg.ts ? formatMessageTime(msg.ts) : null;
+            const isLastAssistant =
+              msg.role === "assistant" &&
+              messages.slice(idx + 1).every((m) => m.role !== "assistant");
+
+            const regenerate = () => {
+              for (let i = idx - 1; i >= 0; i -= 1) {
+                if (messages[i]?.role === "user") {
+                  void sendQuestion(messages[i]!.text);
+                  return;
+                }
+              }
+            };
 
             return (
             <div
@@ -383,7 +399,14 @@ export function GeminiChatPanel({
                     : "bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700"
                 }`}
               >
-                <p className="text-sm whitespace-pre-wrap">{msg.text}</p>
+                {isUser ? (
+                  <p className="text-sm whitespace-pre-wrap">{msg.text}</p>
+                ) : (
+                  <AgentMessageContent
+                    text={msg.text}
+                    onRegenerate={isLastAssistant ? regenerate : undefined}
+                  />
+                )}
                 {msg.role === "assistant" &&
                   (msg.model ||
                     (msg.confidence !== undefined && msg.confidence > 0) ||
@@ -407,7 +430,11 @@ export function GeminiChatPanel({
             </div>
             );
           })}
-          {isLoading && <Loader2 className="animate-spin text-indigo-500 mx-auto" aria-label="응답 대기 중" />}
+          {isLoading && (
+            <div className="flex justify-start">
+              <AgentStreamingPlaceholder />
+            </div>
+          )}
           {errorMessage && (
             <p className="text-center text-sm text-red-600 dark:text-red-400 px-2" role="alert">
               {errorMessage}
