@@ -9,6 +9,7 @@ import {
   getKakaoConsentToken,
   hasKakaoConsent,
   saveSocialLoginNext,
+  saveSocialProviderSession,
 } from "@/lib/social-auth";
 import { SITE_NAME } from "@/lib/site-brand";
 import { routes } from "@/lib/routes";
@@ -68,16 +69,12 @@ function KakaoOauthLoginContent() {
     patchUi({ loading: true, error: null, info: null });
     const consentToken = getKakaoConsentToken();
     window.setTimeout(() => {
-      localStorage.setItem(
-        "moneo_kakao_session",
-        JSON.stringify({
-          provider: "kakao",
+      if (ui.saveSimple) {
+        saveSocialProviderSession("kakao", {
           login_id: id,
           consent_token: consentToken,
-          save_simple: ui.saveSimple,
-          at: new Date().toISOString(),
-        })
-      );
+        });
+      }
       const destination = consumeSocialLoginNext("/");
       router.replace(destination);
       router.refresh();

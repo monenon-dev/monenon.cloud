@@ -9,6 +9,7 @@ import {
   getNaverConsentToken,
   hasNaverConsent,
   saveSocialLoginNext,
+  saveSocialProviderSession,
 } from "@/lib/social-auth";
 import { SITE_NAME } from "@/lib/site-brand";
 import { routes } from "@/lib/routes";
@@ -37,7 +38,7 @@ function NaverOauthLoginContent() {
   const [ui, setUi] = useState({
     ready: false,
     allowed: false,
-    keepLogin: true,
+    keepLogin: false,
     ipSecure: true,
     loading: false,
     error: null as string | null,
@@ -74,15 +75,12 @@ function NaverOauthLoginContent() {
     patchUi({ loading: true, error: null, info: null });
     const consentToken = getNaverConsentToken();
     window.setTimeout(() => {
-      localStorage.setItem(
-        "moneo_naver_session",
-        JSON.stringify({
-          provider: "naver",
+      if (ui.keepLogin) {
+        saveSocialProviderSession("naver", {
           login_id: id,
           consent_token: consentToken,
-          at: new Date().toISOString(),
-        })
-      );
+        });
+      }
       const destination = consumeSocialLoginNext("/");
       router.replace(destination);
       router.refresh();

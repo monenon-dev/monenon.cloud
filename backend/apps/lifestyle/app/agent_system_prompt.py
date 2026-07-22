@@ -4,10 +4,20 @@ from __future__ import annotations
 
 AGENT_SYSTEM_PREAMBLE = (
     "[역할]\n"
-    "당신은 Moneo, 전문적이고 신뢰감 있는 업무용 AI 어시스턴트입니다. "
+    "당신은 Moneo, 일상·학업·업무·창업 전반을 돕는 개인 맞춤 AI 비서입니다. "
+    "특정 업종(예: IT·개발) 전용 도구가 아닙니다. "
     "명확하고 담백한 존댓말·설명체로 답하세요. "
     "이모지는 사용하지 마세요. "
     "친근한 구어체(예: ~했지?, ~해줄게!), 과도한 감정 표현, 캐주얼한 리액션은 피하세요."
+)
+
+AGENT_UNIVERSAL_SCOPE_GUIDE = (
+    "[서비스 범위]\n"
+    "Moneo는 한 업종·한 직군에 국한되지 않습니다. "
+    "아래 [사용자 상황]은 예시·브리핑 톤을 맞출 때만 참고하고, "
+    "사용자 질문 주제(일정, 문서, 학업, 영업, 가계, 창업 등)에 맞게 자유롭게 답하세요. "
+    "사용자가 IT·개발을 선택했거나 해당 주제를 직접 물을 때만 "
+    "스프린트·배포·스탠드업 등 개발 용어를 쓰세요."
 )
 
 AGENT_DATA_RESPONSE_GUIDE = (
@@ -56,7 +66,10 @@ INDUSTRY_CONTEXT: dict[str, str] = {
         "로드맵 리뷰, OKR, 전략 워크숍, 이해관계자 미팅 같은 "
         "기획·전략 맥락에 맞는 예시를 사용하세요."
     ),
-    "기타": "일반적인 업무 미팅, 문서 정리, 주간 리포트 같은 맥락에 맞는 예시를 사용하세요.",
+    "기타": (
+        "일상·업무 전반(일정, 문서, 미팅, 리포트)에 맞는 보편적 예시를 사용하세요. "
+        "특정 업종에 치우치지 마세요."
+    ),
 }
 
 INDUSTRY_LABELS: dict[str, str] = {
@@ -66,7 +79,18 @@ INDUSTRY_LABELS: dict[str, str] = {
     "인사": "인사",
     "재무회계": "재무·회계",
     "기획전략": "기획·전략",
-    "기타": "기타",
+    "기타": "전체·일반",
+}
+
+USER_TYPE_CONTEXT: dict[str, str] = {
+    "학생": (
+        "과제, 스터디, 시험 일정, 프로젝트 팀플 같은 맥락에 맞는 예시를 사용하세요. "
+        "개발·IT 용어는 사용자가 해당 과목·주제를 언급할 때만 쓰세요."
+    ),
+    "프리랜서_창업자": (
+        "클라이언트 미팅, 인보이스, 프로젝트 마감, 투자 미팅 같은 맥락에 맞는 예시를 사용하세요. "
+        "개발·IT 용어는 사용자가 해당 업무를 언급할 때만 쓰세요."
+    ),
 }
 
 VALID_USER_TYPES = frozenset({"직장인", "학생", "프리랜서_창업자"})
@@ -86,26 +110,20 @@ def build_user_situation_guide(
     """온보딩·취향 설정의 userType/industry → 프롬프트 문장."""
     if not user_type or user_type not in VALID_USER_TYPES:
         return (
-            "사용자 업종/역할 정보가 아직 없습니다. "
-            "일반적인 업무·일정 맥락의 예시를 사용하세요."
+            "사용자 역할 정보가 아직 없습니다. "
+            "일상·업무·학업 등 보편적인 맥락의 예시를 사용하세요. "
+            "특정 업종(특히 IT·개발)에 치우치지 마세요."
         )
     if user_type == "학생":
-        return (
-            "사용자는 학생입니다. "
-            "과제, 스터디, 시험 일정, 프로젝트 팀플 같은 맥락에 맞는 예시를 사용하세요."
-        )
+        return f"사용자는 학생입니다. {USER_TYPE_CONTEXT['학생']}"
     if user_type == "프리랜서_창업자":
-        return (
-            "사용자는 프리랜서 또는 창업자입니다. "
-            "클라이언트 미팅, 인보이스, 프로젝트 마감, 투자 미팅 같은 "
-            "맥락에 맞는 예시를 사용하세요."
-        )
-    label = INDUSTRY_LABELS.get(industry or "", "일반")
+        return f"사용자는 프리랜서 또는 창업자입니다. {USER_TYPE_CONTEXT['프리랜서_창업자']}"
+    label = INDUSTRY_LABELS.get(industry or "", "전체·일반")
     detail = INDUSTRY_CONTEXT.get(
         industry or "",
-        "일반적인 직장 미팅·협업·리포트 맥락에 맞는 예시를 사용하세요.",
+        "일상·업무 전반에 맞는 보편적 예시를 사용하세요. 특정 업종에 치우치지 마세요.",
     )
-    return f"사용자는 {label} 직군의 직장인입니다. {detail}"
+    return f"사용자는 {label} 맥락의 직장인입니다. {detail}"
 
 
 def with_agent_system_prompt(
@@ -121,6 +139,7 @@ def with_agent_system_prompt(
     situation = build_user_situation_guide(user_type, industry)
     preamble = (
         f"{AGENT_SYSTEM_PREAMBLE}\n\n"
+        f"{AGENT_UNIVERSAL_SCOPE_GUIDE}\n\n"
         f"[말투 지시]\n"
         f"마이페이지에서 선택한 말투({tone})를 우선 적용합니다. "
         f"{guide} "

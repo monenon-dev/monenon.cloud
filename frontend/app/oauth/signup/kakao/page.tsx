@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 
+import { clearAuthSession } from "@/lib/auth-api";
 import { saveKakaoConsentToken } from "@/lib/social-auth";
 import { MoneoServiceBrand } from "@/components/brand/moneo-service-brand";
 import { PRODUCT_NAME, SITE_NAME } from "@/lib/site-brand";
@@ -81,6 +82,10 @@ export default function KakaoSignupConsentPage() {
   });
 
   const patchUi = (patch: Partial<typeof ui>) => setUi((prev) => ({ ...prev, ...patch }));
+
+  useEffect(() => {
+    clearAuthSession();
+  }, []);
 
   const requiredOk = useMemo(() => REQUIRED.every((k) => ui.agrees[k]), [ui.agrees]);
 

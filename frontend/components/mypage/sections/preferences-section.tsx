@@ -112,7 +112,7 @@ export function PreferencesSection({
       <section className={mypageCardClass}>
         <h3 className="text-base font-semibold text-white">업무 상황</h3>
         <p className="mt-1 text-sm text-[var(--moneo-muted)]">
-          업종·역할에 맞춰 채팅 브리핑·예시 일정의 맥락이 달라집니다.
+          Moneo는 한 업종 전용이 아닙니다. 아래 선택은 예시·브리핑 톤 맞춤용입니다.
         </p>
         <div className="mt-4">
           <Label className="text-sm text-indigo-100/90">어떤 상황이신가요?</Label>

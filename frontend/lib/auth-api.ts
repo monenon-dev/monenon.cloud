@@ -1,6 +1,7 @@
 import { formatApiError } from "@/lib/format-api-error";
 
 import { getApiBaseUrl } from "@/lib/api-base";
+import { clearSocialAuthStorage, purgeLegacySocialAuthStorage } from "@/lib/social-auth";
 
 const apiBaseUrl = getApiBaseUrl();
 
@@ -11,6 +12,7 @@ export type AuthSession = {
   role: string;
 };
 
+/** 탭(sessionStorage)에만 저장 — 브라우저를 닫으면 로그인 해제 */
 export function saveAuthSession(data: AuthSession): void {
   sessionStorage.setItem("access_token", data.access_token);
   sessionStorage.setItem("user_nickname", data.nickname);
@@ -20,6 +22,7 @@ export function saveAuthSession(data: AuthSession): void {
 
 export function getAuthSession(): AuthSession | null {
   if (typeof window === "undefined") return null;
+  purgeLegacySocialAuthStorage();
   const token = sessionStorage.getItem("access_token");
   const nickname = sessionStorage.getItem("user_nickname");
   const role = sessionStorage.getItem("user_role");
@@ -39,6 +42,7 @@ export function clearAuthSession(): void {
   sessionStorage.removeItem("user_nickname");
   sessionStorage.removeItem("user_role");
   sessionStorage.removeItem("user_id");
+  clearSocialAuthStorage();
 }
 
 export type AdminSession = {

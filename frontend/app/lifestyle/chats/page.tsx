@@ -32,7 +32,7 @@ import {
   getGuestRemaining,
   GUEST_DAILY_LIMIT,
 } from "@/lib/guest-chat";
-import { loadMyPagePreferences, wrapPromptWithSpeechTone } from "@/lib/mypage-preferences";
+import { loadMyPagePreferences } from "@/lib/mypage-preferences";
 import { routes, chatsSessionUrl } from "@/lib/routes";
 import { getApiBaseUrl } from "@/lib/api-base";
 
@@ -47,12 +47,11 @@ const GUEST_SUGGESTIONS = [
 async function callAgentChat(text: string, userId: number): Promise<GeminiChatMessage> {
   const prefs = loadMyPagePreferences(userId);
   const { speechTone, userType, industry } = prefs;
-  const prompt = wrapPromptWithSpeechTone(text, speechTone, { userType, industry });
   const res = await fetch(`${apiBaseUrl.replace(/\/$/, "")}/agent/chat`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      prompt,
+      prompt: text,
       user_id: userId,
       speech_tone: speechTone,
       user_type: userType,

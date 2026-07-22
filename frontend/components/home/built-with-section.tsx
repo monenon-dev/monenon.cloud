@@ -42,7 +42,13 @@ const BUILT_WITH: {
 
 const STAGGER_S = 0.12;
 
-export function BuiltWithSection({ className = "" }: { className?: string }) {
+export function BuiltWithSection({
+  className = "",
+  id,
+}: {
+  className?: string;
+  id?: string;
+}) {
   const sectionRef = useRef<HTMLElement>(null);
   const [revealed, setRevealed] = useState(false);
 
@@ -66,6 +72,7 @@ export function BuiltWithSection({ className = "" }: { className?: string }) {
   return (
     <section
       ref={sectionRef}
+      id={id}
       className={`mt-12 sm:mt-14 ${className}`}
       aria-label="Built with"
     >

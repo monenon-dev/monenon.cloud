@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 
 import { SocialLoginButtons } from "@/components/auth/social-login-buttons";
 import Logo from "@/components/brand/Logo";
+import { clearAuthSession } from "@/lib/auth-api";
 import { formatApiError } from "@/lib/format-api-error";
 
 import { getApiBaseUrl } from "@/lib/api-base";
@@ -47,6 +48,10 @@ export default function SignupPage() {
   const patchUi = (patch: Partial<typeof ui>) =>
     setUi((prev) => ({ ...prev, ...patch }));
 
+  useEffect(() => {
+    clearAuthSession();
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formProps = Object.fromEntries(new FormData(e.currentTarget).entries());
@@ -85,6 +90,7 @@ export default function SignupPage() {
         return;
       }
       const emailParam = encodeURIComponent(email);
+      clearAuthSession();
       router.push(`${routes.oauth.login}?registered=1&email=${emailParam}`);
     } catch {
       patchUi({ error: "네트워크 오류가 발생했습니다." });

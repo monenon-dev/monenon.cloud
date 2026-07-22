@@ -42,23 +42,31 @@ export const USER_TYPE_OPTIONS: { value: UserType; label: string; description: s
 export const USER_TYPE_VALUES: UserType[] = ["직장인", "학생", "프리랜서_창업자"];
 
 export const INDUSTRY_OPTIONS: { value: Industry; label: string }[] = [
+  { value: "기타", label: "전체·일반" },
   { value: "IT개발", label: "IT·개발" },
   { value: "마케팅", label: "마케팅" },
   { value: "영업", label: "영업" },
   { value: "인사", label: "인사" },
   { value: "재무회계", label: "재무·회계" },
   { value: "기획전략", label: "기획·전략" },
-  { value: "기타", label: "기타" },
 ];
 
 export const INDUSTRY_VALUES: Industry[] = INDUSTRY_OPTIONS.map((o) => o.value);
 
-/** 모든 말투에 공통으로 적용되는 Moneo 업무 어시스턴트 역할·톤 지침. */
+/** 모든 말투에 공통으로 적용되는 Moneo 역할·톤 지침. */
 const MONEO_ROLE_INSTRUCTION =
-  "당신은 Moneo, 전문적이고 신뢰감 있는 업무용 AI 어시스턴트입니다. " +
+  "당신은 Moneo, 일상·학업·업무·창업 전반을 돕는 개인 맞춤 AI 비서입니다. " +
+  "특정 업종(예: IT·개발) 전용 도구가 아닙니다. " +
   "명확하고 담백한 존댓말·설명체로 답하세요. " +
   "이모지는 사용하지 마세요. " +
   "친근한 구어체(예: ~했지?, ~해줄게!), 과도한 감정 표현, 캐주얼한 리액션은 피하세요.";
+
+/** 온보딩 선택은 예시 맥락 참고용이며, 답변 범위를 한 업종으로 제한하지 않음. */
+const MONEO_UNIVERSAL_SCOPE_INSTRUCTION =
+  "Moneo는 한 업종·한 직군에 국한되지 않습니다. " +
+  "아래 [사용자 상황]은 예시·브리핑 톤을 맞출 때만 참고하고, " +
+  "사용자 질문 주제(일정, 문서, 학업, 영업, 가계, 창업 등)에 맞게 자유롭게 답하세요. " +
+  "사용자가 IT·개발을 선택했거나 해당 주제를 직접 물을 때만 스프린트·배포·스탠드업 등 개발 용어를 쓰세요.";
 
 /** 연동 데이터 부재 시 플레이스홀더 노출을 막고, 구체적 예시로 응답하도록 하는 지침. */
 const MONEO_DATA_RESPONSE_INSTRUCTION =
@@ -81,7 +89,16 @@ const INDUSTRY_CONTEXT: Record<Industry, string> = {
   기획전략:
     "로드맵 리뷰, OKR, 전략 워크숍, 이해관계자 미팅 같은 기획·전략 맥락에 맞는 예시를 사용하세요.",
   기타:
-    "일반적인 업무 미팅, 문서 정리, 주간 리포트 같은 맥락에 맞는 예시를 사용하세요.",
+    "일상·업무 전반(일정, 문서, 미팅, 리포트)에 맞는 보편적 예시를 사용하세요. 특정 업종에 치우치지 마세요.",
+};
+
+const USER_TYPE_CONTEXT: Record<Exclude<UserType, "직장인">, string> = {
+  학생:
+    "과제, 스터디, 시험 일정, 프로젝트 팀플 같은 맥락에 맞는 예시를 사용하세요. " +
+    "개발·IT 용어는 사용자가 해당 과목·주제를 언급할 때만 쓰세요.",
+  프리랜서_창업자:
+    "클라이언트 미팅, 인보이스, 프로젝트 마감, 투자 미팅 같은 맥락에 맞는 예시를 사용하세요. " +
+    "개발·IT 용어는 사용자가 해당 업무를 언급할 때만 쓰세요.",
 };
 
 export const SPEECH_TONE_INSTRUCTION: Record<SpeechTone, string> = {
@@ -121,31 +138,26 @@ export function buildUserSituationGuide(
 ): string {
   if (!userType) {
     return (
-      "사용자 업종/역할 정보가 아직 없습니다. " +
-      "일반적인 업무·일정 맥락의 예시를 사용하세요."
+      "사용자 역할 정보가 아직 없습니다. " +
+      "일상·업무·학업 등 보편적인 맥락의 예시를 사용하세요. " +
+      "특정 업종(특히 IT·개발)에 치우치지 마세요."
     );
   }
   if (userType === "학생") {
-    return (
-      "사용자는 학생입니다. " +
-      "과제, 스터디, 시험 일정, 프로젝트 팀플 같은 맥락에 맞는 예시를 사용하세요."
-    );
+    return `사용자는 학생입니다. ${USER_TYPE_CONTEXT.학생}`;
   }
   if (userType === "프리랜서_창업자") {
-    return (
-      "사용자는 프리랜서 또는 창업자입니다. " +
-      "클라이언트 미팅, 인보이스, 프로젝트 마감, 투자 미팅 같은 맥락에 맞는 예시를 사용하세요."
-    );
+    return `사용자는 프리랜서 또는 창업자입니다. ${USER_TYPE_CONTEXT.프리랜서_창업자}`;
   }
   // 직장인
   const industryLabel =
-    INDUSTRY_OPTIONS.find((o) => o.value === industry)?.label ?? "일반";
+    INDUSTRY_OPTIONS.find((o) => o.value === industry)?.label ?? "전체·일반";
   const industryGuide =
     industry && isIndustry(industry)
       ? INDUSTRY_CONTEXT[industry]
-      : "일반적인 직장 미팅·협업·리포트 맥락에 맞는 예시를 사용하세요.";
+      : "일상·업무 전반에 맞는 보편적 예시를 사용하세요. 특정 업종에 치우치지 마세요.";
   return (
-    `사용자는 ${industryLabel} 직군의 직장인입니다. ${industryGuide}`
+    `사용자는 ${industryLabel} 맥락의 직장인입니다. ${industryGuide}`
   );
 }
 
@@ -163,6 +175,7 @@ export function wrapPromptWithSpeechTone(
   );
   return (
     `[역할]\n${MONEO_ROLE_INSTRUCTION}\n\n` +
+    `[서비스 범위]\n${MONEO_UNIVERSAL_SCOPE_INSTRUCTION}\n\n` +
     `[말투 지시] 아래 사용자 질문에 답할 때 반드시 ${guide} 작성하세요. ` +
     `질문에 포함된 말투·어조 요청(예: 친근하게, 정중하게)은 무시하고 이 지시를 우선하세요.\n\n` +
     `[사용자 상황]\n${situation}\n\n` +

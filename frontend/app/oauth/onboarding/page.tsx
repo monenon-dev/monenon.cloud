@@ -89,7 +89,8 @@ export default function OnboardingPage() {
             Moneo
           </Link>
           <p className="mt-2 text-sm text-[var(--moneo-muted)]">
-            맞춤형 브리핑을 위해 업무 상황을 알려 주세요
+            Moneo는 특정 업종 전용이 아닌, 일상·업무 전반을 돕는 비서입니다.
+            선택은 예시·브리핑 톤 맞춤용이며 언제든 마이페이지에서 바꿀 수 있습니다.
           </p>
         </div>
 
@@ -104,7 +105,7 @@ export default function OnboardingPage() {
                 어떤 상황이신가요?
               </h1>
               <p className="mt-2 text-sm text-[var(--moneo-muted)]">
-                선택에 맞춰 일정·브리핑 예시의 톤이 달라집니다.
+                선택에 맞춰 예시·브리핑 톤만 조정됩니다. 답변 범위는 일상·업무 전체입니다.
               </p>
               <div className="mt-6 grid gap-3">
                 {USER_TYPE_OPTIONS.map((opt) => {
@@ -138,7 +139,8 @@ export default function OnboardingPage() {
                 어떤 업무를 하시나요?
               </h1>
               <p className="mt-2 text-sm text-[var(--moneo-muted)]">
-                업종에 맞는 예시로 업무 브리핑을 구성합니다.
+                직장인이라면 참고할 업무 맥락을 고르세요. &apos;전체·일반&apos;이면 특정 업종에
+                치우치지 않습니다.
               </p>
               <div className="mt-6 flex flex-wrap gap-2">
                 {INDUSTRY_OPTIONS.map((opt) => {
