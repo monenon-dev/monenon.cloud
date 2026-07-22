@@ -3,6 +3,7 @@
 import Link from "next/link";
 import {
   Bot,
+  Play,
   Terminal,
 } from "lucide-react";
 
@@ -70,6 +71,16 @@ export function HomeSidebar({
                 홈
               </p>
               <ul className="space-y-0.5">
+                <li>
+                  <Link
+                    href={routes.demo}
+                    onClick={onClose}
+                    className={navClass(false)}
+                  >
+                    <Play size={18} />
+                    데모 보기
+                  </Link>
+                </li>
                 <li>
                   <Link
                     href={routes.lifestyle.chats}

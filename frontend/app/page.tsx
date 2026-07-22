@@ -204,7 +204,7 @@ export default function MoneoHomePage() {
               </div>
 
               <div className="min-w-0 w-full">
-                <AgentPreview className="w-full" />
+                <AgentPreview className="w-full" href={routes.demo} />
               </div>
             </div>
 
