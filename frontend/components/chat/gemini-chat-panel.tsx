@@ -4,12 +4,19 @@ import { useState, useRef, useEffect, useCallback, ChangeEvent, KeyboardEvent, F
 import {
   ChevronDown,
   Loader2,
+  Lock,
   Mic,
   Plus,
   Send,
   SlidersHorizontal,
 } from "lucide-react";
 
+import Logo from "@/components/brand/Logo";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { getTitanicApiBaseUrl } from "@/lib/api-base";
 import { formatMessageTime } from "@/lib/chat-sessions";
 import { type PdfBlobUploadResult, uploadPdfToBlob } from "@/lib/pdf-blob-api";
@@ -61,6 +68,8 @@ export interface GeminiChatPanelProps {
   messagesEpoch?: number;
   /** 게스트 모드: PDF·도구·음성 등 Moneo 전용 입력 숨김 */
   guestMode?: boolean;
+  /** 빈 화면 예시 프롬프트 (클릭 시 입력창만 채움, 전송 안 함) */
+  emptySuggestions?: string[];
 }
 
 const defaultBase = getTitanicApiBaseUrl();
@@ -127,8 +136,8 @@ export function GeminiChatPanel({
   apiBaseUrl = defaultBase,
   chatPath = "/titanic/smith/chat",
   placeholder = "업무에 대해 물어보세요 (예: 이번 주 리포트 요약해 줘)",
-  emptyTitle: _emptyTitle = "Moneo와 대화를 시작하세요",
-  emptySubtitle: _emptySubtitle = "일정·문서·리포트 등 업무를 물어보면 에이전트가 답합니다.",
+  emptyTitle = "Moneo와 대화를 시작하세요",
+  emptySubtitle = "일정·문서·리포트 등 업무를 물어보면 에이전트가 답합니다.",
   className = "",
   initialMessages,
   onSendMessage,
@@ -139,6 +148,7 @@ export function GeminiChatPanel({
   starterDedupeKey,
   messagesEpoch = 0,
   guestMode = false,
+  emptySuggestions,
 }: GeminiChatPanelProps) {
   const [messages, setMessages] = useState<GeminiChatMessage[]>(initialMessages ?? []);
   const [input, setInput] = useState("");
@@ -307,10 +317,50 @@ export function GeminiChatPanel({
     <div className={`flex h-full min-h-0 flex-col overflow-hidden gap-3 ${className}`}>
       <div
         ref={messagesContainerRef}
-        className="flex-1 min-h-0 overflow-y-auto overscroll-contain space-y-4 rounded-2xl border border-gray-200 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/30 px-4 sm:px-6 py-4"
+        className={`flex-1 min-h-0 overflow-y-auto overscroll-contain space-y-4 rounded-2xl border px-4 sm:px-6 py-4 ${
+          guestMode
+            ? "border-white/10 bg-white/[0.02]"
+            : "border-gray-200 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/30"
+        }`}
       >
           {messages.length === 0 && !isLoading && !errorMessage && (
-            <p className="text-center text-sm text-gray-400 py-8">메시지를 입력해 대화를 시작하세요.</p>
+            <div className="flex flex-col items-center justify-center gap-4 px-2 py-10 text-center">
+              {guestMode ? (
+                <Logo variant="symbol" theme="dark" size={40} className="opacity-90" />
+              ) : null}
+              <div className="space-y-1.5">
+                {emptyTitle ? (
+                  <p
+                    className={`text-sm font-medium ${
+                      guestMode ? "text-indigo-100/90" : "text-gray-600 dark:text-gray-300"
+                    }`}
+                  >
+                    {emptyTitle}
+                  </p>
+                ) : null}
+                <p
+                  className={`text-sm leading-relaxed ${
+                    guestMode ? "text-indigo-200/55" : "text-gray-400"
+                  }`}
+                >
+                  {emptySubtitle || "메시지를 입력해 대화를 시작하세요."}
+                </p>
+              </div>
+              {emptySuggestions && emptySuggestions.length > 0 ? (
+                <div className="mt-1 flex max-w-md flex-wrap justify-center gap-2">
+                  {emptySuggestions.map((hint) => (
+                    <button
+                      key={hint}
+                      type="button"
+                      onClick={() => setInput(hint)}
+                      className="rounded-full border border-indigo-400/30 bg-indigo-500/10 px-3 py-1.5 text-left text-xs text-indigo-100/85 transition-colors hover:border-indigo-400/50 hover:bg-indigo-500/20"
+                    >
+                      {hint}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+            </div>
           )}
           {messages.map((msg, idx) => {
             const isUser = msg.role === "user";
@@ -377,7 +427,13 @@ export function GeminiChatPanel({
           }}
         />
         ) : null}
-        <div className="rounded-[1.75rem] border border-gray-200/95 bg-[#f4f6f8] shadow-[0_1px_2px_rgba(0,0,0,0.04)] dark:border-gray-700 dark:bg-gray-900/95 dark:shadow-none overflow-hidden">
+        <div
+          className={`rounded-[1.75rem] border overflow-hidden ${
+            guestMode
+              ? "border-white/10 bg-white/[0.04] shadow-none"
+              : "border-gray-200/95 bg-[#f4f6f8] shadow-[0_1px_2px_rgba(0,0,0,0.04)] dark:border-gray-700 dark:bg-gray-900/95 dark:shadow-none"
+          }`}
+        >
           {!guestMode && attachment && (
             <div className="flex flex-wrap items-center gap-2 border-b border-gray-200/90 px-4 py-2 text-xs dark:border-gray-700/90">
               <a
@@ -410,11 +466,21 @@ export function GeminiChatPanel({
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={placeholder}
-            className="w-full min-h-[5.5rem] resize-none border-0 bg-transparent px-4 sm:px-5 pt-4 pb-2 text-[15px] leading-relaxed text-gray-900 placeholder:text-gray-500/80 focus:outline-none focus:ring-0 dark:text-gray-100 dark:placeholder:text-gray-500"
+            className={`w-full min-h-[5.5rem] resize-none border-0 bg-transparent px-4 sm:px-5 pt-4 pb-2 text-[15px] leading-relaxed focus:outline-none focus:ring-0 ${
+              guestMode
+                ? "text-indigo-50 placeholder:text-indigo-200/40"
+                : "text-gray-900 placeholder:text-gray-500/80 dark:text-gray-100 dark:placeholder:text-gray-500"
+            }`}
             rows={3}
             aria-label="메시지 입력"
           />
-          <div className="flex items-center justify-between gap-2 border-t border-gray-200/90 px-2 py-2 sm:px-3 dark:border-gray-700/90">
+          <div
+            className={`flex items-center justify-between gap-2 px-2 py-2 sm:px-3 ${
+              guestMode
+                ? "border-t border-white/10"
+                : "border-t border-gray-200/90 dark:border-gray-700/90"
+            }`}
+          >
             {!guestMode ? (
             <div className="flex items-center gap-0.5 text-gray-600 dark:text-gray-400">
               <button
@@ -442,7 +508,20 @@ export function GeminiChatPanel({
               </button>
             </div>
             ) : (
-              <p className="px-2 text-xs text-gray-500 dark:text-gray-400">기본 채팅</p>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <p className="inline-flex items-center gap-1.5 px-2 text-xs text-indigo-200/55">
+                    <Lock className="size-3 opacity-80" aria-hidden />
+                    기본 채팅
+                  </p>
+                </TooltipTrigger>
+                <TooltipContent
+                  side="top"
+                  className="border border-white/10 bg-[#12121c] text-indigo-100"
+                >
+                  로그인하면 모델을 선택할 수 있어요
+                </TooltipContent>
+              </Tooltip>
             )}
             <div className="flex items-center gap-1 sm:gap-2 text-gray-600 dark:text-gray-400 ml-auto">
               {!guestMode ? (

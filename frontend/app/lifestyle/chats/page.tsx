@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, Loader2 } from "lucide-react";
 
+import Logo from "@/components/brand/Logo";
 import { ChatFridgeBanner } from "@/components/chat/chat-fridge-banner";
 import { ChatSessionsSidebar } from "@/components/chat/chat-sessions-sidebar";
 import {
@@ -36,6 +37,12 @@ import { routes, chatsSessionUrl } from "@/lib/routes";
 import { getApiBaseUrl } from "@/lib/api-base";
 
 const apiBaseUrl = getApiBaseUrl();
+
+const GUEST_SUGGESTIONS = [
+  "오늘 일정 정리해줘",
+  "최근 대화 요약해줘",
+  "이 문서 핵심만 정리해줘",
+];
 
 async function callAgentChat(text: string, userId: number): Promise<GeminiChatMessage> {
   const prefs = loadMyPagePreferences(userId);
@@ -351,50 +358,74 @@ function ChatsPageContent() {
 
   if (!userId) {
     const loginNext = encodeURIComponent(routes.lifestyle.chats);
+    const used = Math.max(0, GUEST_DAILY_LIMIT - guestRemaining);
+    const remainingPct = Math.round((guestRemaining / GUEST_DAILY_LIMIT) * 100);
     return (
-      <div className="flex h-dvh max-h-dvh overflow-hidden bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100">
-        <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-          <header className="shrink-0 border-b border-gray-200 dark:border-gray-800 bg-white/90 dark:bg-gray-950/90 backdrop-blur-md">
+      <div className="relative flex h-dvh max-h-dvh overflow-hidden moneo-grid-bg text-[var(--moneo-text)]">
+        <div className="relative z-10 flex min-w-0 flex-1 flex-col overflow-hidden">
+          <header className="shrink-0 border-b border-white/10 bg-[#0a0a0f]/75 backdrop-blur-md">
             <div className="flex h-14 items-center gap-3 px-4 sm:px-6">
               <Link
                 href="/"
-                className="inline-flex items-center gap-1.5 text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
+                className="inline-flex min-w-0 items-center gap-2 text-[var(--moneo-text)] hover:opacity-90"
+                aria-label="홈으로"
               >
-                <ArrowLeft size={18} />
-                홈
+                <Logo variant="horizontal" theme="dark" size={28} />
               </Link>
-              <h1 className="min-w-0 flex-1 truncate text-lg font-semibold text-indigo-600 dark:text-indigo-400">
+              <span className="hidden text-white/20 sm:inline" aria-hidden>
+                |
+              </span>
+              <h1 className="min-w-0 flex-1 truncate text-sm font-medium tracking-wide text-indigo-200/80 sm:text-base">
                 Agent Chat
               </h1>
               <Link
                 href={`${routes.oauth.login}?next=${loginNext}`}
-                className="rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700"
+                className="rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-500"
               >
                 로그인
               </Link>
             </div>
           </header>
 
-          <div className="shrink-0 border-b border-amber-200/80 bg-amber-50/90 px-4 py-2.5 text-sm text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-100">
-            <p>
-              <span className="font-medium">게스트 모드</span> — 기본 채팅만 이용 가능합니다. 대화는
-              저장되지 않습니다.
-            </p>
-            <p className="mt-1 text-xs opacity-90">
-              오늘 남은 횟수:{" "}
-              <span className="font-semibold tabular-nums">
-                {guestRemaining}/{GUEST_DAILY_LIMIT}
-              </span>
-              {" · "}
-              <Link href={`${routes.oauth.login}?next=${loginNext}`} className="underline">
-                로그인
+          <div className="shrink-0 border-b border-indigo-400/25 bg-indigo-500/10 px-4 py-3 sm:px-6">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-w-0 border-l-2 border-indigo-400 pl-3">
+                <p className="text-sm text-indigo-100/90">
+                  게스트로 둘러보는 중이에요. 대화 기록은 남지 않아요.
+                </p>
+                <div className="mt-2 flex max-w-xs items-center gap-2">
+                  <div
+                    className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/10"
+                    role="progressbar"
+                    aria-valuenow={guestRemaining}
+                    aria-valuemin={0}
+                    aria-valuemax={GUEST_DAILY_LIMIT}
+                    aria-label="오늘 남은 게스트 메시지"
+                  >
+                    <div
+                      className="h-full rounded-full bg-indigo-400/80 transition-[width] duration-300 ease-out"
+                      style={{ width: `${remainingPct}%` }}
+                    />
+                  </div>
+                  <span className="font-mono text-[11px] tabular-nums text-indigo-200/70">
+                    {guestRemaining}/{GUEST_DAILY_LIMIT}
+                  </span>
+                </div>
+                <p className="mt-1 text-[10px] text-indigo-300/50">
+                  오늘 사용 {used}회 · 남은 {guestRemaining}회
+                </p>
+              </div>
+              <Link
+                href={`${routes.oauth.login}?next=${loginNext}`}
+                className="inline-flex shrink-0 items-center justify-center rounded-lg border border-indigo-400/40 bg-transparent px-3 py-2 text-xs font-medium text-indigo-100 transition-colors hover:border-indigo-400/70 hover:bg-indigo-500/15"
+              >
+                로그인하면 맞춤 에이전트·기록 저장·도구를 사용할 수 있습니다
               </Link>
-              하면 맞춤 에이전트·기록 저장·도구를 사용할 수 있습니다.
-            </p>
+            </div>
           </div>
 
           {pageError && (
-            <p role="alert" className="shrink-0 px-4 py-2 text-sm text-red-600 dark:text-red-400">
+            <p role="alert" className="shrink-0 px-4 py-2 text-sm text-rose-300">
               {pageError}
             </p>
           )}
@@ -413,9 +444,10 @@ function ChatsPageContent() {
                 setStarterPrompt(undefined);
                 setStarterNonce(undefined);
               }}
-              placeholder="간단한 질문을 입력하세요 (예: 오늘 날씨 알려줘)"
-              emptyTitle="게스트 채팅"
-              emptySubtitle="로그인 없이 기본 대화를 체험할 수 있습니다."
+              placeholder="업무에 대해 물어보세요 (예: 오늘 일정 정리해줘)"
+              emptyTitle="업무 에이전트를 체험해 보세요"
+              emptySubtitle="아래 예시로 시작하거나, 궁금한 업무를 입력해 보세요."
+              emptySuggestions={GUEST_SUGGESTIONS}
             />
           </main>
         </div>
