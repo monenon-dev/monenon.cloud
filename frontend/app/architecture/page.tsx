@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Bot, Play } from "lucide-react";
 
-import { ArchitectureStackSection } from "@/components/home/architecture-stack-section";
+import { ArchitectureStackSections } from "@/components/home/architecture-stack-sections";
 import { HomeFooter } from "@/components/home/home-footer";
 import {
   LANDING_PAGE_SHELL,
@@ -82,10 +82,10 @@ export default function ArchitecturePage() {
           </section>
 
           <section
-            className={`${LANDING_PAGE_SHELL} border-t border-white/10 pb-14 sm:pb-16 lg:pb-20`}
-            aria-label="기술 스택 카드"
+            className={`${LANDING_PAGE_SHELL} border-t border-white/10 py-14 sm:py-16 lg:py-20`}
+            aria-label="기술 스택"
           >
-            <ArchitectureStackSection />
+            <ArchitectureStackSections />
           </section>
 
           <section
