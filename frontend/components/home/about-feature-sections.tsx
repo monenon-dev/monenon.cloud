@@ -1,10 +1,14 @@
-import { ImageIcon } from "lucide-react";
+import { BriefingInfographic } from "@/components/home/about-infographics/BriefingInfographic";
+import { DocsOrganizeInfographic } from "@/components/home/about-infographics/DocsOrganizeInfographic";
+import { ReportGenInfographic } from "@/components/home/about-infographics/ReportGenInfographic";
+import type { ReactNode } from "react";
 
 type AboutFeature = {
   title: string;
   pain: string;
   solution: string[];
   imageFirst: boolean;
+  infographic: ReactNode;
 };
 
 const ABOUT_FEATURES: AboutFeature[] = [
@@ -17,6 +21,7 @@ const ABOUT_FEATURES: AboutFeature[] = [
       "회의 전 5분이면 하루 흐름을 파악할 수 있습니다.",
     ],
     imageFirst: true,
+    infographic: <BriefingInfographic />,
   },
   {
     title: "문서·자료 정리",
@@ -27,6 +32,7 @@ const ABOUT_FEATURES: AboutFeature[] = [
       "팀 공유 전에 한 번에 정리된 요약본을 받을 수 있습니다.",
     ],
     imageFirst: false,
+    infographic: <DocsOrganizeInfographic />,
   },
   {
     title: "업무 리포트 생성",
@@ -37,22 +43,9 @@ const ABOUT_FEATURES: AboutFeature[] = [
       "슬랙이나 메일로 공유하기 좋은 한 페이지 요약을 만듭니다.",
     ],
     imageFirst: true,
+    infographic: <ReportGenInfographic />,
   },
 ];
-
-function FeatureScreenshotPlaceholder({ title }: { title: string }) {
-  return (
-    <div
-      className="moneo-glass flex aspect-[4/3] w-full flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-white/15 bg-white/[0.02] p-6 text-center sm:aspect-video"
-      aria-hidden
-    >
-      {/* 실제 스크린샷으로 교체 필요 */}
-      <ImageIcon className="size-8 text-indigo-400/50" strokeWidth={1.25} />
-      <p className="text-xs text-gray-500">{title} 스크린샷</p>
-      <p className="text-[10px] text-gray-600">실제 스크린샷으로 교체 필요</p>
-    </div>
-  );
-}
 
 export function AboutFeatureSections() {
   return (
@@ -64,7 +57,7 @@ export function AboutFeatureSections() {
           aria-labelledby={`about-feature-${feature.title}`}
         >
           <div className={feature.imageFirst ? "order-1" : "order-1 lg:order-2"}>
-            <FeatureScreenshotPlaceholder title={feature.title} />
+            {feature.infographic}
           </div>
 
           <div
