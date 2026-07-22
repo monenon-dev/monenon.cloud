@@ -1,7 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Bot, CheckCircle2, Loader2, XCircle } from "lucide-react";
+import { Bot } from "lucide-react";
+import {
+  ToolStream,
+  type ToolCallResult,
+} from "@/components/home/tool-stream";
 
 const CHAT_LINES = [
   { role: "user" as const, text: "오늘 오전 스탠드업 브리핑 요약해 줘." },
@@ -15,44 +19,106 @@ const CHAT_LINES = [
   },
 ];
 
-type ToolStatus = "running" | "ok" | "error";
-
-type ToolPattern = {
-  tool: string;
-  detail: string;
-  status: ToolStatus;
-};
-
-/** Demo-only patterns — no API */
-const TOOL_PATTERNS: ToolPattern[] = [
-  { tool: "calendar.list", detail: "meetings=4", status: "ok" },
-  { tool: "docs.search", detail: "q=Q3 plan", status: "running" },
-  { tool: "email.draft", detail: "to=team@moneo.ai", status: "ok" },
-  { tool: "report.generate", detail: "tokens=842", status: "ok" },
-  { tool: "slack.digest", detail: "channels=3", status: "running" },
-  { tool: "docs.search", detail: "hits=12", status: "ok" },
-  { tool: "vector.query", detail: "top_k=8", status: "error" },
+/** Demo fixtures — injected into ToolStream (not defined inside the UI component). */
+const TOOL_CALL_FIXTURES: Omit<ToolCallResult, "id" | "timestamp">[] = [
+  {
+    toolName: "calendar.list",
+    status: "success",
+    params: { range: "today", meetings: 4 },
+    result: {
+      type: "list",
+      items: [
+        { title: "Standup · Core", meta: "09:30" },
+        { title: "Design sync", meta: "10:15" },
+        { title: "Investor prep", meta: "11:00" },
+        { title: "Lunch / buffer", meta: "12:30" },
+      ],
+    },
+  },
+  {
+    toolName: "docs.search",
+    status: "pending",
+    params: { q: "Q3 plan", top_k: 5 },
+  },
+  {
+    toolName: "email.draft",
+    status: "success",
+    params: { to: "team@moneo.ai" },
+    result: {
+      type: "draft",
+      items: [
+        {
+          title: "Re: Morning standup brief",
+          meta: "team@moneo.ai",
+          preview:
+            "팀 여러분, 오늘 스탠드업에서 나온 액션 아이템 3건과 리스크 1건을 공유합니다…",
+        },
+      ],
+    },
+  },
+  {
+    toolName: "slack.digest",
+    status: "pending",
+    params: { channels: 3, since: "08:00" },
+  },
+  {
+    toolName: "docs.search",
+    status: "success",
+    params: { q: "Q3 plan", hits: 12 },
+    result: {
+      type: "rag",
+      items: [
+        {
+          title: "q3-roadmap.md",
+          preview:
+            "North-star: reduce time-to-brief for ops agents under 45s…",
+          score: 0.91,
+        },
+        {
+          title: "planning/notes-0612.txt",
+          preview: "Risk: vendor SLA drift on calendar sync path…",
+          score: 0.74,
+        },
+        {
+          title: "archive/old-okr.md",
+          preview: "Legacy OKR draft — mostly superseded by roadmap.",
+          score: 0.41,
+        },
+      ],
+    },
+  },
+  {
+    toolName: "vector.query",
+    status: "error",
+    params: { top_k: 8, collection: "ops_docs" },
+    error: {
+      code: "VECTOR_TIMEOUT",
+      message: "Timed out waiting for embedding index (ops_docs).",
+    },
+  },
+  {
+    toolName: "slack.digest",
+    status: "success",
+    params: { channels: 3 },
+    result: {
+      type: "list",
+      items: [
+        { title: "#ops-alerts", meta: "14 msgs" },
+        { title: "#product", meta: "6 msgs" },
+        { title: "#moneo-agent", meta: "9 msgs" },
+      ],
+    },
+  },
 ];
 
 const MAX_VISIBLE = 5;
 const ADD_INTERVAL_MS = 4800;
-const TYPE_MS = 42;
+const PROMOTE_PENDING_MS = 1600;
 const FADE_OUT_MS = 900;
-/** One active row: py-2 + 3×11px lines ≈ 4.25rem; gap-2 = 0.5rem */
-const TOOL_ROW_H_REM = 4.25;
-const TOOL_GAP_REM = 0.5;
-/** Locked list box for MAX_VISIBLE rows — never grows/shrinks with item count */
-const STREAM_LIST_HEIGHT = `calc(${MAX_VISIBLE} * ${TOOL_ROW_H_REM}rem + ${MAX_VISIBLE - 1} * ${TOOL_GAP_REM}rem)`;
-const TOOL_ROW_H_CLASS = "h-[4.25rem]";
-/** Label (~1.25rem) + mb-2 (0.5rem) + vertical p-4 (2rem) + list */
-const PREVIEW_BODY_HEIGHT = `calc(${STREAM_LIST_HEIGHT} + 3.75rem)`;
+const STREAM_LIST_MIN_H = "16.5rem";
+const PREVIEW_BODY_HEIGHT = `calc(${STREAM_LIST_MIN_H} + 3.75rem)`;
 
-type LiveToolItem = ToolPattern & {
-  id: string;
-  t: string;
-  typed: number;
-  exiting: boolean;
-};
+type LiveToolItem = ToolCallResult & { exiting?: boolean };
 
 function clockStamp(): string {
   const d = new Date();
@@ -61,14 +127,12 @@ function clockStamp(): string {
     .join(":");
 }
 
-function pickPattern(seq: number): ToolPattern {
-  return TOOL_PATTERNS[seq % TOOL_PATTERNS.length]!;
+function pickFixture(seq: number): Omit<ToolCallResult, "id" | "timestamp"> {
+  return TOOL_CALL_FIXTURES[seq % TOOL_CALL_FIXTURES.length]!;
 }
 
-/** Scroll only inside an overflow panel — never the window/document. */
 function scrollPanelTop(el: HTMLElement | null, top: number) {
   if (!el) return;
-  // Not a scrollport → leave alone (smooth scrollTo here can disturb the page)
   if (el.scrollHeight <= el.clientHeight + 1) return;
   el.scrollTop = top;
 }
@@ -152,17 +216,14 @@ function ToolStreamPanel() {
   });
   const streamScrollRef = useRef<HTMLDivElement>(null);
 
-  // Spawn next log every few seconds
   useEffect(() => {
     const spawn = () => {
       setStream((prev) => {
-        const pattern = pickPattern(prev.seq);
+        const fixture = pickFixture(prev.seq);
         const next: LiveToolItem = {
-          ...pattern,
+          ...fixture,
           id: `${Date.now()}-${prev.seq}`,
-          t: clockStamp(),
-          typed: 0,
-          exiting: false,
+          timestamp: clockStamp(),
         };
         const active = prev.items.filter((i) => !i.exiting);
         const exiting = prev.items.filter((i) => i.exiting);
@@ -187,7 +248,6 @@ function ToolStreamPanel() {
     return () => window.clearInterval(id);
   }, []);
 
-  // Remove exiting rows after fade
   useEffect(() => {
     const exiting = stream.items.filter((i) => i.exiting);
     if (exiting.length === 0) return;
@@ -200,47 +260,71 @@ function ToolStreamPanel() {
     return () => window.clearTimeout(id);
   }, [stream.items]);
 
-  // Typewriter; keep spinner longer, then promote running → ok
+  // Promote pending fixtures that have a success payload in the catalog
   useEffect(() => {
-    const typingItem = stream.items.find(
-      (i) => !i.exiting && i.typed < i.detail.length
+    const pending = stream.items.find(
+      (i) => !i.exiting && i.status === "pending"
     );
-    if (typingItem) {
-      const id = window.setTimeout(() => {
-        setStream((prev) => ({
-          ...prev,
-          items: prev.items.map((item) => {
-            if (item.id !== typingItem.id || item.exiting) return item;
-            if (item.typed >= item.detail.length) return item;
-            return { ...item, typed: item.typed + 1 };
-          }),
-        }));
-      }, TYPE_MS);
-      return () => window.clearTimeout(id);
-    }
-
-    const toComplete = stream.items.find(
-      (i) =>
-        !i.exiting &&
-        i.status === "running" &&
-        i.typed >= i.detail.length
-    );
-    if (!toComplete) return;
+    if (!pending) return;
     const id = window.setTimeout(() => {
       setStream((prev) => ({
         ...prev,
-        items: prev.items.map((item) =>
-          item.id === toComplete.id ? { ...item, status: "ok" as const } : item
-        ),
+        items: prev.items.map((item) => {
+          if (item.id !== pending.id || item.exiting) return item;
+          if (item.toolName === "docs.search") {
+            return {
+              ...item,
+              status: "success" as const,
+              params: { ...item.params, hits: 12 },
+              result: {
+                type: "rag" as const,
+                items: [
+                  {
+                    title: "q3-roadmap.md",
+                    preview:
+                      "North-star: reduce time-to-brief for ops agents under 45s…",
+                    score: 0.88,
+                  },
+                  {
+                    title: "standup-template.md",
+                    preview: "Agenda · blockers · owners — keep under 8 min.",
+                    score: 0.63,
+                  },
+                  {
+                    title: "noise/wiki-dump.md",
+                    preview: "Unrelated wiki dump — low relevance.",
+                    score: 0.37,
+                  },
+                ],
+              },
+            };
+          }
+          if (item.toolName === "slack.digest") {
+            return {
+              ...item,
+              status: "success" as const,
+              result: {
+                type: "list" as const,
+                items: [
+                  { title: "#ops-alerts", meta: "11 msgs" },
+                  { title: "#product", meta: "4 msgs" },
+                  { title: "#moneo-agent", meta: "7 msgs" },
+                ],
+              },
+            };
+          }
+          return { ...item, status: "success" as const };
+        }),
       }));
-    }, 1400);
+    }, PROMOTE_PENDING_MS);
     return () => window.clearTimeout(id);
   }, [stream.items]);
 
   useEffect(() => {
-    // Newest logs prepend at top — keep panel pinned without smooth window chaining
     scrollPanelTop(streamScrollRef.current, 0);
   }, [stream.seq]);
+
+  const visibleItems = stream.items.filter((i) => !i.exiting);
 
   return (
     <div className="flex min-w-[12.5rem] shrink-0 flex-col p-4">
@@ -249,53 +333,27 @@ function ToolStreamPanel() {
       </p>
       <div
         ref={streamScrollRef}
-        className="moneo-thin-scrollbar relative flex flex-col gap-2 overflow-y-auto overscroll-contain [overflow-anchor:none]"
-        style={{ height: STREAM_LIST_HEIGHT, minHeight: STREAM_LIST_HEIGHT }}
-        aria-live="polite"
+        className="moneo-thin-scrollbar relative overflow-y-auto overscroll-contain [overflow-anchor:none]"
+        style={{ height: STREAM_LIST_MIN_H, minHeight: STREAM_LIST_MIN_H }}
       >
-        {stream.items.map((ev) => (
-          <div
-            key={ev.id}
-            className={`tool-stream-row flex items-start gap-2 rounded-lg border bg-white/[0.03] px-2.5 font-mono text-[11px] leading-snug ${
-              ev.exiting
-                ? "tool-stream-row--out pointer-events-none overflow-hidden border-transparent py-0 opacity-0"
-                : `tool-stream-row--in shrink-0 overflow-hidden border-white/5 py-2 opacity-100 ${TOOL_ROW_H_CLASS}`
-            }`}
-          >
-            <span className="relative mt-0.5 size-3.5 shrink-0">
-              <Loader2
-                className={`absolute inset-0 size-3.5 animate-spin text-sky-400 transition-opacity duration-500 ${
-                  ev.status === "running" ? "opacity-100" : "opacity-0"
-                }`}
-                aria-hidden
-              />
-              <XCircle
-                className={`absolute inset-0 size-3.5 text-rose-400 transition-opacity duration-500 ${
-                  ev.status === "error" ? "opacity-100" : "opacity-0"
-                }`}
-                aria-hidden
-              />
-              <CheckCircle2
-                className={`absolute inset-0 size-3.5 text-emerald-400 transition-opacity duration-500 ${
-                  ev.status === "ok" ? "opacity-100" : "opacity-0"
-                }`}
-                aria-hidden
-              />
-            </span>
-            <div className="min-w-0 flex-1 overflow-hidden">
-              <p className="truncate text-indigo-100/50">{ev.t}</p>
-              <p className="truncate text-indigo-100" title={ev.tool}>
-                {ev.tool}
-              </p>
-              <p className="truncate text-indigo-200/60">
-                {ev.detail.slice(0, ev.typed)}
-                {ev.typed < ev.detail.length ? (
-                  <span className="ml-0.5 inline-block h-3 w-1 animate-pulse bg-indigo-300/70 align-middle" />
-                ) : null}
-              </p>
-            </div>
-          </div>
-        ))}
+        <ToolStream
+          items={visibleItems}
+          onRetry={(item) => {
+            setStream((prev) => ({
+              ...prev,
+              items: prev.items.map((row) =>
+                row.id === item.id
+                  ? {
+                      ...row,
+                      status: "pending",
+                      error: undefined,
+                      result: undefined,
+                    }
+                  : row
+              ),
+            }));
+          }}
+        />
       </div>
     </div>
   );
