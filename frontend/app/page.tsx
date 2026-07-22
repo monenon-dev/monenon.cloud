@@ -13,7 +13,6 @@ import {
 } from "lucide-react";
 
 import { AgentPreview } from "@/components/home/agent-preview";
-import { BuiltWithSection } from "@/components/home/built-with-section";
 import { HomeCtaSection } from "@/components/home/home-cta-section";
 import { HomeFooter } from "@/components/home/home-footer";
 import {
@@ -24,7 +23,6 @@ import { HomeSidebar } from "@/components/layout/home-sidebar";
 import Logo from "@/components/brand/Logo";
 import { clearAuthSession, getAuthSession } from "@/lib/auth-api";
 import { buildChatsUrl, saveChatStarter } from "@/lib/chat-starter";
-import { LANDING_SECTION_IDS } from "@/lib/landing-sections";
 import {
   loadMyPagePreferences,
   needsProfileOnboarding,
@@ -190,11 +188,6 @@ export default function MoneoHomePage() {
                 );
               })}
             </div>
-
-            <BuiltWithSection
-              id={LANDING_SECTION_IDS.architecture}
-              className="scroll-mt-20"
-            />
           </div>
         </section>
 

@@ -5,8 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Bot, Play } from "lucide-react";
 
-import { AboutFeatureSections } from "@/components/home/about-feature-sections";
-import { AgentPreview } from "@/components/home/agent-preview";
+import { ArchitectureStackSection } from "@/components/home/architecture-stack-section";
 import { HomeFooter } from "@/components/home/home-footer";
 import {
   LANDING_PAGE_SHELL,
@@ -22,7 +21,7 @@ import { routes } from "@/lib/routes";
 
 type AuthUser = { nickname: string; role: string };
 
-export default function AboutPage() {
+export default function ArchitecturePage() {
   const router = useRouter();
   const [ui, setUi] = useState({
     sidebarOpen: false,
@@ -67,34 +66,26 @@ export default function AboutPage() {
 
         <main>
           <section className={`${LANDING_PAGE_SHELL} py-10 sm:py-14 lg:py-16`}>
-            <div className="grid items-center gap-8 lg:grid-cols-[minmax(0,0.42fr)_minmax(0,0.58fr)] lg:gap-10">
-              <div className="min-w-0">
-                <p className="text-xs font-medium uppercase tracking-[0.2em] text-indigo-400/80">
-                  About moneo
-                </p>
-                <h1 className="mt-3 text-3xl font-semibold tracking-tight text-white sm:text-4xl lg:text-[2.75rem] lg:leading-tight">
-                  moneo가 하는 일
-                </h1>
-                <p className="mt-4 max-w-lg text-base leading-relaxed text-[var(--moneo-muted)] sm:text-lg">
-                  AI Agents, Orchestrated for Work
-                </p>
-                <p className="mt-4 max-w-lg text-sm leading-relaxed text-gray-400 sm:text-base">
-                  업무 맥락을 이해하는 에이전트가 일정·문서·대화를 엮어, 하루를 시작하고
-                  정리하고 보고하는 반복 업무를 대신 처리합니다.
-                </p>
-              </div>
-
-              <div className="min-w-0 w-full">
-                <AgentPreview className="w-full" href={routes.demo} />
-              </div>
-            </div>
+            <p className="text-xs font-medium uppercase tracking-[0.2em] text-indigo-400/80">
+              Architecture
+            </p>
+            <h1 className="mt-3 max-w-2xl text-3xl font-semibold tracking-tight text-white sm:text-4xl lg:text-[2.75rem] lg:leading-tight">
+              moneo의 아키텍처
+            </h1>
+            <p className="mt-4 max-w-xl text-base leading-relaxed text-[var(--moneo-muted)] sm:text-lg">
+              AI 에이전트 오케스트레이션을 위한 기술 스택
+            </p>
+            <p className="mt-4 max-w-2xl text-sm leading-relaxed text-gray-400 sm:text-base">
+              여러 에이전트가 도구를 호출하고, 문서를 검색하고, 결과를 조립하는 흐름을
+              안정적으로 운영하기 위해 아래 스택을 사용합니다.
+            </p>
           </section>
 
           <section
-            className={`${LANDING_PAGE_SHELL} border-t border-white/10 py-14 sm:py-16 lg:py-20`}
-            aria-label="핵심 기능"
+            className={`${LANDING_PAGE_SHELL} border-t border-white/10 pb-14 sm:pb-16 lg:pb-20`}
+            aria-label="기술 스택 카드"
           >
-            <AboutFeatureSections />
+            <ArchitectureStackSection />
           </section>
 
           <section
@@ -114,10 +105,11 @@ export default function AboutPage() {
               className={`${LANDING_PAGE_SHELL} flex flex-col items-center py-14 text-center sm:py-16 lg:py-20`}
             >
               <h2 className="max-w-2xl text-2xl font-semibold tracking-tight text-white sm:text-3xl">
-                에이전트와 업무를 시작해 보세요
+                직접 써보고 흐름을 확인해 보세요
               </h2>
               <p className="mt-3 max-w-md text-sm leading-relaxed text-[var(--moneo-muted)]">
-                브리핑부터 리포트까지, 반복 업무는 moneo에게 맡기고 본업에 집중하세요.
+                에이전트 채팅으로 바로 시작하거나, 데모에서 오케스트레이션 흐름을 미리 볼 수
+                있습니다.
               </p>
               <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
                 <Link
@@ -125,7 +117,7 @@ export default function AboutPage() {
                   className="inline-flex items-center gap-2 rounded-xl bg-indigo-500 px-5 py-2.5 text-sm font-medium text-white shadow-[0_0_28px_rgba(99,102,241,0.4)] transition-colors hover:bg-indigo-400"
                 >
                   <Bot size={18} />
-                  에이전트 채팅 시작하기
+                  직접 써보기
                 </Link>
                 <Link
                   href={routes.demo}

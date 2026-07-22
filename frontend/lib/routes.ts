@@ -2,6 +2,7 @@
 export const routes = {
   home: "/",
   about: "/about",
+  architecture: "/architecture",
   demo: "/demo",
   showcase: "/showcase",
   addressbook: "/addressbook",
