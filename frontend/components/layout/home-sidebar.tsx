@@ -28,7 +28,6 @@ function workChatHref(prompt: string): string {
 }
 
 function navHref(sectionId: string): string {
-  if (sectionId === "user_settings") return routes.lifestyle.settings;
   if (sectionId in WORK_CHAT_PROMPTS) {
     return workChatHref(WORK_CHAT_PROMPTS[sectionId]);
   }
@@ -98,7 +97,7 @@ export function HomeSidebar({
                     className={navClass(activeView === "logs")}
                   >
                     <Terminal size={18} />
-                    Agent 히스토리
+                    에이전트 히스토리
                   </Link>
                 </li>
               </ul>

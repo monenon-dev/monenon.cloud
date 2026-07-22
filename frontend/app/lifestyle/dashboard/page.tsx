@@ -6,7 +6,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 import {
   Database,
   RefreshCw,
-  Settings,
   Sparkles,
   type LucideIcon,
 } from "lucide-react";
@@ -39,7 +38,6 @@ interface PlatformOverview {
 
 const SECTION_DESCRIPTIONS: Record<Exclude<PlatformSection, "users">, string> = {
   overview: "전체 테이블 현황과 Neon DB 연결 상태를 확인합니다.",
-  user_settings: "관리자가 회원별 취향 설정(user_settings)을 조회합니다.",
   closet: "등록한 옷과 오늘 날씨에 맞는 코디를 확인합니다.",
   refrigerator: "식재료·유통기한·날씨·선호 메뉴를 정리합니다.",
   music: "출근·외출·요리 상황별 음악 추천 — /music 페이지",
@@ -48,7 +46,6 @@ const SECTION_DESCRIPTIONS: Record<Exclude<PlatformSection, "users">, string> = 
 
 const VALID_SECTIONS = new Set<PlatformSection>([
   "overview",
-  "user_settings",
   "closet",
   "refrigerator",
   "music",
@@ -91,6 +88,10 @@ function DashboardContent() {
     // 구 메뉴 "에이전트 채팅방"(messages) → 에이전트 채팅으로 통합
     if (section === "messages") {
       router.replace(routes.lifestyle.chats);
+      return;
+    }
+    if (section === "user_settings") {
+      router.replace(routes.oauth.mypagePreferences);
       return;
     }
     if (section && VALID_SECTIONS.has(section as PlatformSection)) {
@@ -161,26 +162,6 @@ function DashboardContent() {
 
       {activeSection === "overview" ? (
         <OverviewPanel overview={overview} loading={loading} />
-      ) : activeSection === "user_settings" ? (
-        <div className="rounded-2xl border border-gray-200 bg-white p-8 dark:border-gray-800 dark:bg-gray-900">
-          <div className="flex items-start gap-4">
-            <div className="rounded-xl bg-indigo-100 p-3 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300">
-              <Settings size={24} aria-hidden />
-            </div>
-            <div>
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white">취향 설정</h2>
-              <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                {SECTION_DESCRIPTIONS.user_settings}
-              </p>
-              <Link
-                href={routes.oauth.admin.userSettings}
-                className="mt-4 inline-flex rounded-xl bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
-              >
-                관리자 설정 조회 화면 열기
-              </Link>
-            </div>
-          </div>
-        </div>
       ) : activeSection === "chat_sessions" ? (
         <ChatSessionsTable apiBaseUrl={apiBaseUrl} />
       ) : (

@@ -140,7 +140,7 @@ export default function ClosetPage() {
           <Shirt className="text-indigo-600" size={22} />
           <h1 className="flex-1 text-lg font-bold text-gray-900 dark:text-white">옷장</h1>
           <Link
-            href={routes.lifestyle.settings}
+            href={routes.oauth.mypagePreferences}
             className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800"
             title="선호도 설정"
           >
@@ -214,7 +214,7 @@ export default function ClosetPage() {
               )}
               <p className="mt-3 text-xs text-gray-500">
                 옷을 등록하면 내 옷장 기준으로 추천됩니다. 선호 스타일은{" "}
-                <Link href={routes.lifestyle.settings} className="text-indigo-600 underline">
+                <Link href={routes.oauth.mypagePreferences} className="text-indigo-600 underline">
                   선호도 설정
                 </Link>
                 에서 바꿀 수 있습니다.

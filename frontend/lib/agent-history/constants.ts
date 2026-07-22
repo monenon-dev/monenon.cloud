@@ -13,3 +13,6 @@ export const AGENT_HISTORY_POLL_ACTIVE_MS = 2_500;
 export const AGENT_HISTORY_HIGHLIGHT_MS = 2_500;
 
 export const AGENT_HISTORY_PAGE_SIZE = 20;
+
+/** 마이페이지 대시보드 최근 활동 요약 */
+export const DASHBOARD_RECENT_ACTIVITY_LIMIT = 5;

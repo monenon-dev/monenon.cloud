@@ -27,7 +27,7 @@ export function AgentHistoryView() {
             홈
           </Link>
           <div className="min-w-0 flex-1">
-            <h1 className="truncate text-sm font-semibold text-white">Agent 히스토리</h1>
+            <h1 className="truncate text-sm font-semibold text-white">에이전트 히스토리</h1>
             <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
               <p className="truncate font-mono text-[10px] text-indigo-300/55">
                 timeline · audit log

@@ -57,13 +57,29 @@ export function AgentHistoryStatusBadge({
   );
 }
 
-export function AgentHistoryStatusDot({ status }: { status: AgentHistoryStatus }) {
+export function AgentHistoryStatusDot({
+  status,
+  variant = "timeline",
+}: {
+  status: AgentHistoryStatus;
+  variant?: "timeline" | "inline";
+}) {
   const base =
     status === "success"
       ? "bg-emerald-400"
       : status === "running"
         ? "bg-sky-400 animate-pulse"
         : "bg-rose-400";
+
+  if (variant === "inline") {
+    return (
+      <span
+        className={`mt-1.5 size-2 shrink-0 rounded-full transition-colors duration-500 ease-out ${base}`}
+        aria-hidden
+      />
+    );
+  }
+
   return (
     <span
       className={`absolute -left-[5px] top-1.5 size-2.5 rounded-full ring-4 ring-[var(--moneo-bg)] transition-colors duration-500 ease-out ${base}`}

@@ -133,7 +133,7 @@ export default function MoneoHomePage() {
                     className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-5 py-2.5 text-sm font-medium text-indigo-100 transition-colors hover:border-indigo-400/30"
                   >
                     <Terminal size={18} />
-                    Agent 히스토리
+                    에이전트 히스토리
                   </Link>
                 </div>
               </div>

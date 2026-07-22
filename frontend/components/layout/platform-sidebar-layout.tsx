@@ -6,7 +6,6 @@ import {
   Menu,
   X,
   LayoutDashboard,
-  Settings,
   BriefcaseBusiness,
   Files,
   FileBarChart,
@@ -20,7 +19,6 @@ import {
 export type PlatformSection =
   | "overview"
   | "users"
-  | "user_settings"
   | "closet"
   | "refrigerator"
   | "music"
@@ -44,7 +42,6 @@ export const PLATFORM_NAV: NavGroup[] = [
     title: "에이전트 작업",
     icon: BriefcaseBusiness,
     items: [
-      { id: "user_settings", label: "에이전트 설정", tableName: "user_settings", icon: Settings },
       { id: "closet", label: "오늘의 업무 브리핑", tableName: "closet", icon: BriefcaseBusiness },
       { id: "refrigerator", label: "문서/자료 정리", tableName: "refrigerator", icon: Files },
       { id: "music", label: "업무 리포트 생성", tableName: "music", icon: FileBarChart },

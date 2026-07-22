@@ -153,7 +153,7 @@ export default function RefrigeratorPage() {
           <RefrigeratorIcon className="text-sky-600" size={22} />
           <h1 className="flex-1 text-lg font-bold text-gray-900 dark:text-white">냉장고</h1>
           <Link
-            href={routes.lifestyle.settings}
+            href={routes.oauth.mypagePreferences}
             className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800"
             title="선호도 설정"
           >

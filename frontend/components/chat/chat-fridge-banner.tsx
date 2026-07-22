@@ -58,7 +58,7 @@ export function ChatFridgeBanner({ userId, apiBaseUrl }: Props) {
       </div>
       <p className="mt-1.5 text-[11px] text-gray-500 dark:text-gray-400">
         재고 수정은{" "}
-        <Link href={routes.lifestyle.settings} className="text-indigo-600 hover:underline dark:text-indigo-400">
+        <Link href={routes.oauth.mypagePreferences} className="text-indigo-600 hover:underline dark:text-indigo-400">
           취향 설정
         </Link>
         에서 할 수 있습니다.

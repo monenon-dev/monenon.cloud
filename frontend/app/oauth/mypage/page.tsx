@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
 
 import { AccountSection } from "@/components/mypage/sections/account-section";
@@ -13,7 +13,6 @@ import {
 } from "@/components/mypage/mypage-sidebar-layout";
 import { clearAuthSession } from "@/lib/auth-api";
 import { routes } from "@/lib/routes";
-import { getApiBaseUrl } from "@/lib/api-base";
 import { formatApiError } from "@/lib/format-api-error";
 import {
   isWorkSituationComplete,
@@ -21,8 +20,16 @@ import {
   saveMyPagePreferences,
   type MyPagePreferences,
 } from "@/lib/mypage-preferences";
+import { getApiBaseUrl } from "@/lib/api-base";
+import type { MyPageSectionId } from "@/lib/routes";
 
 const apiBaseUrl = getApiBaseUrl();
+
+const VALID_MYPAGE_SECTIONS = new Set<MyPageSectionId>([
+  "dashboard",
+  "preferences",
+  "account",
+]);
 
 interface UserProfile {
   id: number;
@@ -63,7 +70,23 @@ function initials(nickname: string): string {
 }
 
 export default function MyPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="relative flex min-h-screen items-center justify-center moneo-grid-bg text-[var(--moneo-text)]">
+          <div className="moneo-noise pointer-events-none absolute inset-0 -z-10" aria-hidden />
+          <Loader2 className="animate-spin text-indigo-400" size={36} />
+        </main>
+      }
+    >
+      <MyPageContent />
+    </Suspense>
+  );
+}
+
+function MyPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [ui, setUi] = useState({
     activeSection: "dashboard" as MyPageSection,
     loading: true,
@@ -103,6 +126,13 @@ export default function MyPage() {
       patchUi({ loading: false });
     }
   };
+
+  useEffect(() => {
+    const section = searchParams.get("section");
+    if (section && VALID_MYPAGE_SECTIONS.has(section as MyPageSectionId)) {
+      patchUi({ activeSection: section as MyPageSection });
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     const token = sessionStorage.getItem("access_token");
@@ -215,8 +245,6 @@ export default function MyPage() {
       {ui.activeSection === "dashboard" && (
         <DashboardSection
           nickname={profile.nickname}
-          roleLabel={role}
-          joinDate={joinDate}
           agentName={prefs.agentName}
           interestCount={prefs.interests.length}
         />

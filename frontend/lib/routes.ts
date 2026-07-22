@@ -26,6 +26,8 @@ export const routes = {
     kakao: "/oauth/kakao",
     onboarding: "/oauth/onboarding",
     mypage: "/oauth/mypage",
+    /** `/mypage/preferences` 리다이렉트 대상 — 취향 설정 탭 */
+    mypagePreferences: "/oauth/mypage?section=preferences",
     admin: {
       root: "/oauth/admin",
       login: "/oauth/admin/login",
@@ -58,6 +60,12 @@ export const routes = {
 
 export function lifestyleDashboardSection(section: string): string {
   return `${routes.lifestyle.dashboard}?section=${section}`;
+}
+
+export type MyPageSectionId = "dashboard" | "preferences" | "account";
+
+export function mypageSectionUrl(section: MyPageSectionId): string {
+  return `${routes.oauth.mypage}?section=${section}`;
 }
 
 export function chatsSessionUrl(sessionId: number): string {
