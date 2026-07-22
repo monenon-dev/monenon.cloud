@@ -46,7 +46,12 @@ export function handleOAuthStart(request: Request, provider: OAuthProvider) {
   authorize.searchParams.set("client_id", clientId);
   authorize.searchParams.set("redirect_uri", redirectUri);
   authorize.searchParams.set("state", state);
-  // scope는 카카오 앱에 설정된 동의 항목을 따름 (잘못된 scope → invalid_scope)
+  // 동의/로그인 화면 한국어 고정 (카카오: 공식 lang, 네이버: locale)
+  if (provider === "kakao") {
+    authorize.searchParams.set("lang", "ko");
+  } else {
+    authorize.searchParams.set("locale", "ko_KR");
+  }
 
   const response = NextResponse.redirect(authorize);
   response.cookies.set("moneo_oauth_state", state, cookieOpts);
