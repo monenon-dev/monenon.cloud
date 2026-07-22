@@ -46,10 +46,20 @@ except ModuleNotFoundError:
     lifestyle_router = None
 try:
     from secretary.adapter.inbound.api.v1 import secretary_router
-    from secretary.adapter.outbound.orm.user_model import User  # noqa: F401
-    from secretary.adapter.outbound.orm.kakao_account import KakaoAccount  # noqa: F401
-except ModuleNotFoundError:
+except Exception as e:
+    logging.getLogger(__name__).exception(
+        "secretary_router import failed — /auth/login 등 비활성: %s", e
+    )
     secretary_router = None
+else:
+    # ORM 메타데이터 등록 (실패해도 로그인 라우터는 유지)
+    try:
+        from secretary.adapter.outbound.orm.user_model import User  # noqa: F401
+        from secretary.adapter.outbound.orm.kakao_account import KakaoAccount  # noqa: F401
+    except Exception as e:
+        logging.getLogger(__name__).warning(
+            "secretary ORM import skipped: %s", e
+        )
 try:
     from admin.adapter.inbound.api.v1 import admin_router
     from admin.adapter.outbound.orm.admin_account import AdminAccount  # noqa: F401
