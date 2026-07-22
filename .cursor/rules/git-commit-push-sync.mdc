@@ -1,0 +1,17 @@
+---
+description: After meaningful work, commit push and sync neo/main/sigma without asking
+alwaysApply: true
+---
+
+# Git: 커밋 · 푸시 · 동기화 (상시)
+
+사용자가 **매번 말하지 않아도** 의미 있는 코드/문서 작업이 끝나면 아래를 수행한다.
+
+1. **커밋** — 관련 파일만 스테이징 (`.env` 시크릿, 무관한 untracked는 제외)
+2. **푸시** — `origin neo`
+3. **동기화** — `main` ← `neo` fast-forward(또는 merge) 후 `origin main` 푸시, `sigma` 동일, 다시 `neo` 체크아웃
+4. 커밋 메시지는 저장소 스타일·why 중심. HEREDOC 사용
+5. 훅 실패 시 amend 금지, 수정 후 **새 커밋**
+6. force push / `-i` / config 변경 금지
+
+예외: 사용자가 명시적으로 “커밋하지 마”, “푸시하지 마”라고 한 경우만 생략.

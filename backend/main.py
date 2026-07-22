@@ -47,6 +47,7 @@ except ModuleNotFoundError:
 try:
     from secretary.adapter.inbound.api.v1 import secretary_router
     from secretary.adapter.outbound.orm.user_model import User  # noqa: F401
+    from secretary.adapter.outbound.orm.kakao_account import KakaoAccount  # noqa: F401
 except ModuleNotFoundError:
     secretary_router = None
 try:
@@ -221,6 +222,12 @@ async def lifespan(app: FastAPI):
                 text(
                     "ALTER TABLE users ADD COLUMN IF NOT EXISTS "
                     "suspended_until TIMESTAMPTZ"
+                )
+            )
+            await conn.execute(
+                text(
+                    "ALTER TABLE user_settings ADD COLUMN IF NOT EXISTS "
+                    "kakao_calendar_sync BOOLEAN NOT NULL DEFAULT FALSE"
                 )
             )
             for drop_sql in (

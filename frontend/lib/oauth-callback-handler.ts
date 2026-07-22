@@ -72,9 +72,14 @@ export async function handleOAuthCallback(request: Request, provider: OAuthProvi
   complete.searchParams.set("nickname", nickname);
   complete.searchParams.set("role", role);
   complete.searchParams.set("next", next);
+  const intent = cookieStore.get("moneo_oauth_intent")?.value;
+  if (provider === "kakao" && intent === "kakao_calendar_sync") {
+    complete.searchParams.set("kakao_calendar_sync", "1");
+  }
 
   const response = NextResponse.redirect(complete);
   response.cookies.delete("moneo_oauth_state");
   response.cookies.delete("moneo_oauth_next");
+  response.cookies.delete("moneo_oauth_intent");
   return response;
 }

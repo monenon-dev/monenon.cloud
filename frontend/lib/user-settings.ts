@@ -37,6 +37,7 @@ export interface UserSettingResponse {
   language: string;
   preferred_model: string;
   lifestyle: LifestyleProfile;
+  kakao_calendar_sync?: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -65,6 +66,7 @@ export async function patchUserSettings(
     language?: string;
     preferred_model?: string;
     lifestyle?: LifestyleProfile;
+    kakao_calendar_sync?: boolean;
   },
   apiBaseUrl?: string
 ): Promise<UserSettingResponse> {

@@ -68,6 +68,7 @@ async def get_user_settings(
         user_id=row.user_id,
         language=row.language,
         preferred_model=row.preferred_model,
+        kakao_calendar_sync=bool(getattr(row, "kakao_calendar_sync", False)),
         created_at=row.created_at,
         updated_at=row.updated_at,
     )
@@ -85,6 +86,8 @@ async def patch_user_settings(
         row.language = body.language.strip() or "ko"
     if body.preferred_model is not None:
         row.preferred_model = body.preferred_model.strip() or row.preferred_model
+    if body.kakao_calendar_sync is not None:
+        row.kakao_calendar_sync = body.kakao_calendar_sync
 
     row.updated_at = datetime.now(timezone.utc)
     await session.flush()
@@ -95,6 +98,7 @@ async def patch_user_settings(
         user_id=row.user_id,
         language=row.language,
         preferred_model=row.preferred_model,
+        kakao_calendar_sync=bool(row.kakao_calendar_sync),
         created_at=row.created_at,
         updated_at=row.updated_at,
     )

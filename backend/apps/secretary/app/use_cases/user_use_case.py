@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import secrets
+from datetime import datetime
 
 from secretary.adapter.inbound.api.schemas.auth_request import UserCreate
 from secretary.adapter.inbound.api.schemas.auth_response import UserProfileResponse, UserResponse
@@ -12,7 +13,8 @@ from secretary.adapter.outbound.pg.user_command_pg_repository import UserCommand
 from secretary.adapter.outbound.pg.user_query_pg_repository import UserQueryPgRepository
 from secretary.app.ports.input.user_use_case import UserUseCasePort
 from secretary.app.use_cases.google_auth import verify_google_id_token
-from secretary.app.use_cases.kakao_oauth import fetch_kakao_profile
+from secretary.app.use_cases.kakao_account_store import upsert_kakao_account
+from secretary.app.use_cases.kakao_oauth import exchange_kakao_code
 from secretary.app.use_cases.naver_oauth import fetch_naver_profile
 from secretary.app.use_cases.password import hash_password, verify_password
 from secretary.app.use_cases.suspension import is_user_suspended, suspension_detail_message
@@ -117,15 +119,31 @@ class UserUseCase(UserUseCasePort):
         return await self._find_or_create_oauth_user(email, nickname, profile_image_url)
 
     async def authenticate_with_kakao(self, code: str, redirect_uri: str) -> User:
-        profile = await fetch_kakao_profile(code, redirect_uri)
-        email = profile["email"]
+        full = await exchange_kakao_code(code, redirect_uri)
+        email = full["email"]
         if not isinstance(email, str):
             raise ValueError("카카오 계정 이메일을 확인할 수 없습니다.")
-        nickname = profile.get("nickname") if isinstance(profile.get("nickname"), str) else None
+        nickname = full.get("nickname") if isinstance(full.get("nickname"), str) else None
         nickname = (nickname or email.split("@")[0]).strip()[:32] or "user"
-        image = profile.get("profile_image_url")
+        image = full.get("profile_image_url")
         profile_image_url = image if isinstance(image, str) and image else None
-        return await self._find_or_create_oauth_user(email, nickname, profile_image_url)
+        user = await self._find_or_create_oauth_user(email, nickname, profile_image_url)
+
+        access = full.get("access_token")
+        if isinstance(access, str) and access:
+            refresh = full.get("refresh_token")
+            scope = full.get("scope")
+            expires_at = full.get("expires_at")
+            await upsert_kakao_account(
+                self._command._session,
+                user.id,
+                access_token=access,
+                refresh_token=refresh if isinstance(refresh, str) else None,
+                expires_at=expires_at if isinstance(expires_at, datetime) else None,
+                scope=scope if isinstance(scope, str) else None,
+            )
+            await self._command._session.commit()
+        return user
 
     async def _find_or_create_oauth_user(
         self,

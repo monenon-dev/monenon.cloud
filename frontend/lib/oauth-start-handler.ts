@@ -40,15 +40,18 @@ export function handleOAuthStart(request: Request, provider: OAuthProvider) {
   const redirectUri = buildOAuthRedirectUri(provider, requestOrigin);
   const state = randomUUID();
   const cookieOpts = oauthCookieOptions(requestOrigin);
+  const scopeParam = requestUrl.searchParams.get("scope")?.trim();
 
   const authorize = new URL(AUTHORIZE_URL[provider]);
   authorize.searchParams.set("response_type", "code");
   authorize.searchParams.set("client_id", clientId);
   authorize.searchParams.set("redirect_uri", redirectUri);
   authorize.searchParams.set("state", state);
-  // 동의/로그인 화면 한국어 고정 (카카오: 공식 lang, 네이버: locale)
   if (provider === "kakao") {
     authorize.searchParams.set("lang", "ko");
+    if (scopeParam) {
+      authorize.searchParams.set("scope", scopeParam);
+    }
   } else {
     authorize.searchParams.set("locale", "ko_KR");
   }
@@ -56,5 +59,8 @@ export function handleOAuthStart(request: Request, provider: OAuthProvider) {
   const response = NextResponse.redirect(authorize);
   response.cookies.set("moneo_oauth_state", state, cookieOpts);
   response.cookies.set("moneo_oauth_next", next, cookieOpts);
+  if (provider === "kakao" && scopeParam?.includes("talk_calendar")) {
+    response.cookies.set("moneo_oauth_intent", "kakao_calendar_sync", cookieOpts);
+  }
   return response;
 }
