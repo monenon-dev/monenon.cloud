@@ -6,8 +6,6 @@ import { useRouter } from "next/navigation";
 import {
   Terminal,
   Bot,
-  Menu,
-  X,
   BriefcaseBusiness,
   Files,
   FileBarChart,
@@ -18,15 +16,15 @@ import { AgentPreview } from "@/components/home/agent-preview";
 import { BuiltWithSection } from "@/components/home/built-with-section";
 import { HomeCtaSection } from "@/components/home/home-cta-section";
 import { HomeFooter } from "@/components/home/home-footer";
-import { LandingHeaderNav } from "@/components/home/landing-header-nav";
+import {
+  LANDING_PAGE_SHELL,
+  LandingSiteHeader,
+} from "@/components/home/landing-site-header";
 import { HomeSidebar } from "@/components/layout/home-sidebar";
 import Logo from "@/components/brand/Logo";
 import { clearAuthSession, getAuthSession } from "@/lib/auth-api";
 import { buildChatsUrl, saveChatStarter } from "@/lib/chat-starter";
-import {
-  LANDING_SECTION_IDS,
-  scrollToLandingSection,
-} from "@/lib/landing-sections";
+import { LANDING_SECTION_IDS } from "@/lib/landing-sections";
 import {
   loadMyPagePreferences,
   needsProfileOnboarding,
@@ -64,9 +62,6 @@ const FEATURE_PROMO_CARDS: {
     prompt: "이번 주 업무 진행 상황을 리포트로 정리해 줘",
   },
 ];
-
-/** Shared content width — keeps layout stable past ~1280–1440px viewports */
-const PAGE_SHELL = "mx-auto w-full max-w-6xl xl:max-w-7xl px-4 sm:px-6 lg:px-8";
 
 export default function MoneoHomePage() {
   const router = useRouter();
@@ -110,99 +105,15 @@ export default function MoneoHomePage() {
       />
 
       <div className="relative z-10 flex w-full min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-20 shrink-0 border-b border-white/10 bg-[rgba(10,10,15,0.82)] backdrop-blur-md">
-          <div className={PAGE_SHELL}>
-            <div className="flex h-14 items-center justify-between gap-3 sm:h-16 sm:gap-4">
-              <div className="flex min-w-0 flex-1 items-center gap-3 sm:gap-4">
-                <button
-                  type="button"
-                  onClick={() => patchUi({ sidebarOpen: !ui.sidebarOpen })}
-                  className="inline-flex shrink-0 items-center justify-center rounded-lg border border-white/10 p-2 text-indigo-100 hover:bg-white/5"
-                  aria-label={ui.sidebarOpen ? "menu close" : "menu open"}
-                  aria-expanded={ui.sidebarOpen}
-                >
-                  {ui.sidebarOpen ? <X size={20} /> : <Menu size={20} />}
-                </button>
-                <Link
-                  href="/"
-                  className="shrink-0 transition-opacity hover:opacity-90"
-                  aria-label="Moneo home"
-                >
-                  <Logo variant="horizontal" theme="dark" size={36} showTagline />
-                </Link>
-                {!ui.authUser ? (
-                  <LandingHeaderNav variant="inline" className="hidden md:flex" />
-                ) : null}
-              </div>
-
-              <div className="flex shrink-0 items-center justify-end gap-1.5 sm:gap-2">
-                {ui.authUser ? (
-                  <>
-                    <Link
-                      href={routes.oauth.mypage}
-                      className="max-w-[80px] truncate px-1 text-sm font-medium text-indigo-300 hover:underline sm:max-w-none sm:px-2"
-                    >
-                      {ui.authUser.nickname}
-                    </Link>
-                    <button
-                      type="button"
-                      onClick={handleLogout}
-                      className="inline-flex items-center rounded-lg border border-white/10 bg-white/5 px-2.5 py-2 text-xs font-medium text-indigo-100 transition-colors hover:bg-white/10 sm:px-3 sm:text-sm"
-                    >
-                      로그아웃
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => scrollToLandingSection(LANDING_SECTION_IDS.features)}
-                      className="inline-flex items-center rounded-lg border border-white/10 bg-white/5 px-2.5 py-2 text-xs font-medium text-indigo-100 transition-colors hover:border-indigo-400/30 hover:bg-white/10 sm:hidden md:inline-flex sm:px-3 sm:text-sm"
-                    >
-                      기능 살펴보기
-                    </button>
-                    <Link
-                      href={routes.oauth.login}
-                      className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2.5 py-2 text-xs font-medium text-indigo-100 transition-colors hover:bg-white/10 sm:px-3 sm:text-sm"
-                    >
-                      로그인
-                      <span className="hidden rounded border border-amber-400/30 bg-amber-400/10 px-1.5 py-0.5 text-[10px] font-medium text-amber-200/90 sm:inline-flex">
-                        수업중
-                      </span>
-                    </Link>
-                    <Link
-                      href={routes.oauth.signup}
-                      className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-500 px-2.5 py-2 text-xs font-medium text-white shadow-[0_0_20px_rgba(99,102,241,0.35)] transition-colors hover:bg-indigo-400 sm:px-3 sm:text-sm"
-                    >
-                      회원가입
-                      <span className="rounded border border-white/20 bg-white/10 px-1 py-0.5 text-[10px] font-medium text-white/90 sm:hidden">
-                        수업
-                      </span>
-                    </Link>
-                  </>
-                )}
-                {ui.authUser ? (
-                  <Link
-                    href="/lesson"
-                    className="hidden items-center rounded border border-amber-400/30 bg-amber-400/10 px-2 py-1 text-[10px] font-medium text-amber-200/90 hover:bg-amber-400/15 sm:inline-flex"
-                  >
-                    수업중
-                  </Link>
-                ) : null}
-              </div>
-            </div>
-
-            {!ui.authUser ? (
-              <LandingHeaderNav
-                variant="pills"
-                className="hidden pb-2 sm:flex md:hidden sm:pb-2.5"
-              />
-            ) : null}
-          </div>
-        </header>
+        <LandingSiteHeader
+          sidebarOpen={ui.sidebarOpen}
+          onSidebarToggle={() => patchUi({ sidebarOpen: !ui.sidebarOpen })}
+          authUser={ui.authUser}
+          onLogout={handleLogout}
+        />
 
         <section className="relative pb-16 sm:pb-20">
-          <div className={`${PAGE_SHELL} py-10 sm:py-14 lg:py-16`}>
+          <div className={`${LANDING_PAGE_SHELL} py-10 sm:py-14 lg:py-16`}>
             <div className="grid items-center gap-8 lg:grid-cols-[minmax(0,0.45fr)_minmax(0,0.55fr)] lg:gap-10">
               <div className="min-w-0">
                 <Logo variant="stacked" theme="dark" size={88} className="mb-2" />
@@ -233,7 +144,6 @@ export default function MoneoHomePage() {
             </div>
 
             <div
-              id={LANDING_SECTION_IDS.features}
               className="mt-12 scroll-mt-20 sm:mt-14 grid grid-cols-1 items-start gap-4 md:grid-cols-3 md:gap-5"
               aria-label="기능 소개"
             >

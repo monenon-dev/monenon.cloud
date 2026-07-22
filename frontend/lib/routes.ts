@@ -1,6 +1,7 @@
 /** App Router paths — `app/` 폴더 구조와 동기화 */
 export const routes = {
   home: "/",
+  about: "/about",
   demo: "/demo",
   showcase: "/showcase",
   addressbook: "/addressbook",

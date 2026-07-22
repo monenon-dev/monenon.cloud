@@ -1,5 +1,9 @@
 import { getChatUserId } from "@/lib/chat-user";
-import { loadMyPagePreferences, type UserType } from "@/lib/mypage-preferences";
+import {
+  INDUSTRY_OPTIONS,
+  loadMyPagePreferences,
+  type UserType,
+} from "@/lib/mypage-preferences";
 
 export type AgentSettingsTab = "profile" | "integrations" | "briefing";
 
@@ -19,6 +23,10 @@ export type IntegrationConnection = {
 export type AgentWorkProfile = {
   userType: UserType | null;
   workTone: WorkTone;
+  /** 단일 선택 업종 라벨 */
+  industry: string | null;
+  /** 사용자가 추가한 업종 옵션 */
+  customIndustries: string[];
 };
 
 export type AgentIntegrations = Record<IntegrationId, IntegrationConnection>;
@@ -35,7 +43,36 @@ export type AgentSettings = {
   briefing: AgentBriefingSettings;
 };
 
-const STORAGE_PREFIX = "monenon_agent_settings_";
+export const PREDEFINED_INDUSTRIES = [
+  "IT·개발",
+  "마케팅",
+  "디자인",
+  "기획·전략",
+  "영업",
+  "인사·HR",
+  "금융",
+  "교육",
+  "의료",
+  "제조·생산",
+  "프리랜서·기타",
+] as const;
+
+export function mergeIndustryOptions(customIndustries: string[]): string[] {
+  const seen = new Set<string>();
+  const merged: string[] = [];
+  for (const label of [...PREDEFINED_INDUSTRIES, ...customIndustries]) {
+    const trimmed = label.trim();
+    if (!trimmed || seen.has(trimmed)) continue;
+    seen.add(trimmed);
+    merged.push(trimmed);
+  }
+  return merged;
+}
+
+export function normalizeCustomIndustries(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.filter((item): item is string => typeof item === "string" && item.trim().length > 0);
+}
 
 export const WORK_TONE_OPTIONS: { value: WorkTone; label: string }[] = [
   { value: "formal", label: "공식적으로" },
@@ -78,6 +115,8 @@ export function defaultAgentSettings(): AgentSettings {
     profile: {
       userType: null,
       workTone: "formal",
+      industry: null,
+      customIndustries: [],
     },
     integrations: {
       slack: { connected: true, lastSyncedAt: minutesAgoIso(5) },
@@ -96,7 +135,13 @@ function mergeSettings(raw: Partial<AgentSettings> | null): AgentSettings {
   const base = defaultAgentSettings();
   if (!raw) return base;
   return {
-    profile: { ...base.profile, ...raw.profile },
+    profile: {
+      ...base.profile,
+      ...raw.profile,
+      customIndustries: normalizeCustomIndustries(
+        raw.profile?.customIndustries ?? base.profile.customIndustries
+      ),
+    },
     integrations: {
       slack: { ...base.integrations.slack, ...raw.integrations?.slack },
       calendar: { ...base.integrations.calendar, ...raw.integrations?.calendar },
@@ -117,9 +162,13 @@ export function loadAgentSettings(userId: number): AgentSettings {
     const raw = localStorage.getItem(storageKey(userId));
     const parsed = raw ? (JSON.parse(raw) as Partial<AgentSettings>) : null;
     const merged = mergeSettings(parsed);
-    const onboardingType = loadMyPagePreferences(userId).userType;
-    if (onboardingType && !merged.profile.userType) {
-      merged.profile.userType = onboardingType;
+    const onboardingPrefs = loadMyPagePreferences(userId);
+    if (onboardingPrefs.userType && !merged.profile.userType) {
+      merged.profile.userType = onboardingPrefs.userType;
+    }
+    if (!merged.profile.industry && onboardingPrefs.industry) {
+      const label = INDUSTRY_OPTIONS.find((o) => o.value === onboardingPrefs.industry)?.label;
+      if (label) merged.profile.industry = label;
     }
     return merged;
   } catch {
