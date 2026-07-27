@@ -52,7 +52,10 @@ class Keymaker:
         return self._backend_root / ".env"
 
     def load_environment(self) -> None:
-        """`backend/.env` 로드 (개발 중 .env 수정 반영을 위해 override)."""
+        """`backend/.env` 우선 로드. 저장소 루트 `.env`는 보완용(override 없음)."""
+        repo_root_env = self._backend_root.parent / ".env"
+        if repo_root_env.is_file():
+            load_dotenv(repo_root_env, override=False)
         load_dotenv(self.env_file, override=True)
         self._env_loaded = True
 
@@ -105,6 +108,37 @@ class Keymaker:
         return (
             os.getenv("REDIS_URL") or "redis://redis:6379/0"
         ).strip()
+
+    def aws_access_key_id(self) -> str:
+        """IAM 액세스 키 ID (`AWS_ACCESS_KEY_ID`)."""
+        self.load_environment()
+        return (os.getenv("AWS_ACCESS_KEY_ID") or "").strip()
+
+    def aws_secret_access_key(self) -> str:
+        """IAM 시크릿 액세스 키 (`AWS_SECRET_ACCESS_KEY`)."""
+        self.load_environment()
+        return (os.getenv("AWS_SECRET_ACCESS_KEY") or "").strip()
+
+    def aws_default_region(self) -> str:
+        """기본 리전 (`AWS_DEFAULT_REGION`, 기본 ap-northeast-2)."""
+        self.load_environment()
+        return (os.getenv("AWS_DEFAULT_REGION") or "ap-northeast-2").strip()
+
+    def aws_s3_bucket(self) -> str:
+        """기본 S3 버킷 (`AWS_S3_BUCKET`)."""
+        self.load_environment()
+        return (os.getenv("AWS_S3_BUCKET") or "").strip()
+
+    def require_aws_credentials(self) -> tuple[str, str, str]:
+        """S3 등 AWS 호출용 (access_key, secret_key, region). 없으면 RuntimeError."""
+        access_key = self.aws_access_key_id()
+        secret_key = self.aws_secret_access_key()
+        region = self.aws_default_region()
+        if not access_key or not secret_key:
+            raise RuntimeError(
+                "AWS_ACCESS_KEY_ID 와 AWS_SECRET_ACCESS_KEY 를 .env 에 설정하세요."
+            )
+        return access_key, secret_key, region
 
     def ensure_gemini_sdk_configured(self) -> None:
         """`google.generativeai.configure(api_key=…)` 멱등 적용."""
