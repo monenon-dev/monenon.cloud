@@ -1,7 +1,9 @@
 """
 AwsTank — S3 객체 스토리지 어댑터.
 
-자격·리전은 Keymaker(.env)만 사용한다. 코드에 키를 하드코딩하지 않는다.
+os.getenv / IAM 키는 읽지 않는다.
+자격·리전·기본 버킷·boto3 클라이언트는 Keymaker
+(`vault_keymaker_secret_manager`)가 제공한다. (gemini_caller 와 동일 패턴)
 """
 
 from __future__ import annotations
@@ -11,7 +13,6 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any, BinaryIO
 
-import boto3
 from botocore.client import BaseClient
 from botocore.exceptions import ClientError
 
@@ -21,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 
 class AwsTankS3Manager:
-    """IAM ACCESS KEY 기반 S3 업로드·다운로드·목록·삭제·presigned URL."""
+    """Keymaker 제공 S3 클라이언트로 업로드·다운로드·목록·삭제·presigned URL."""
 
     def __init__(
         self,
@@ -30,15 +31,15 @@ class AwsTankS3Manager:
         keymaker: Keymaker | None = None,
     ) -> None:
         self._km = keymaker or get_keymaker()
-        access_key, secret_key, region = self._km.require_aws_credentials()
-        self.region = region
         self.bucket = (bucket or self._km.aws_s3_bucket()).strip()
-        self._client: BaseClient = boto3.client(
-            "s3",
-            aws_access_key_id=access_key,
-            aws_secret_access_key=secret_key,
-            region_name=region,
-        )
+        self.region = self._km.aws_default_region()
+        self._client: BaseClient | None = None
+
+    def _get_client(self) -> BaseClient:
+        """지연 생성 — IAM ACCESS KEY 는 Keymaker.provide_aws_s3_client 만 사용."""
+        if self._client is None:
+            self._client = self._km.provide_aws_s3_client()
+        return self._client
 
     def _require_bucket(self, bucket: str | None = None) -> str:
         name = (bucket or self.bucket).strip()
@@ -59,7 +60,7 @@ class AwsTankS3Manager:
         """로컬 파일 → S3. 반환: s3://bucket/key"""
         bucket_name = self._require_bucket(bucket)
         path = Path(local_path)
-        self._client.upload_file(
+        self._get_client().upload_file(
             str(path),
             bucket_name,
             key,
@@ -79,7 +80,7 @@ class AwsTankS3Manager:
     ) -> str:
         """파일 객체(스트림) → S3."""
         bucket_name = self._require_bucket(bucket)
-        self._client.upload_fileobj(
+        self._get_client().upload_fileobj(
             fileobj,
             bucket_name,
             key,
@@ -100,14 +101,14 @@ class AwsTankS3Manager:
         bucket_name = self._require_bucket(bucket)
         path = Path(local_path)
         path.parent.mkdir(parents=True, exist_ok=True)
-        self._client.download_file(bucket_name, key, str(path))
+        self._get_client().download_file(bucket_name, key, str(path))
         logger.info("[AwsTank] download_file ok s3://%s/%s → %s", bucket_name, key, path)
         return path
 
     def get_object_bytes(self, key: str, *, bucket: str | None = None) -> bytes:
         """S3 객체 본문을 bytes로 반환."""
         bucket_name = self._require_bucket(bucket)
-        response = self._client.get_object(Bucket=bucket_name, Key=key)
+        response = self._get_client().get_object(Bucket=bucket_name, Key=key)
         body = response["Body"].read()
         return body if isinstance(body, bytes) else bytes(body)
 
@@ -120,7 +121,7 @@ class AwsTankS3Manager:
     ) -> list[str]:
         """프리픽스 아래 객체 키 목록."""
         bucket_name = self._require_bucket(bucket)
-        response = self._client.list_objects_v2(
+        response = self._get_client().list_objects_v2(
             Bucket=bucket_name,
             Prefix=prefix,
             MaxKeys=max_keys,
@@ -130,13 +131,13 @@ class AwsTankS3Manager:
 
     def delete_object(self, key: str, *, bucket: str | None = None) -> None:
         bucket_name = self._require_bucket(bucket)
-        self._client.delete_object(Bucket=bucket_name, Key=key)
+        self._get_client().delete_object(Bucket=bucket_name, Key=key)
         logger.info("[AwsTank] delete_object s3://%s/%s", bucket_name, key)
 
     def object_exists(self, key: str, *, bucket: str | None = None) -> bool:
         bucket_name = self._require_bucket(bucket)
         try:
-            self._client.head_object(Bucket=bucket_name, Key=key)
+            self._get_client().head_object(Bucket=bucket_name, Key=key)
             return True
         except ClientError as exc:
             code = (exc.response.get("Error") or {}).get("Code")
@@ -154,7 +155,7 @@ class AwsTankS3Manager:
     ) -> str:
         """다운로드(get_object) 또는 업로드(put_object)용 presigned URL."""
         bucket_name = self._require_bucket(bucket)
-        return self._client.generate_presigned_url(
+        return self._get_client().generate_presigned_url(
             ClientMethod=method,
             Params={"Bucket": bucket_name, "Key": key},
             ExpiresIn=expires_in,

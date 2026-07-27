@@ -140,6 +140,21 @@ class Keymaker:
             )
         return access_key, secret_key, region
 
+    def provide_aws_s3_client(self):
+        """
+        boto3 S3 클라이언트.
+        IAM 키는 Keymaker만 읽고 AwsTank 등 호출부는 키 문자열을 다루지 않는다.
+        """
+        import boto3
+
+        access_key, secret_key, region = self.require_aws_credentials()
+        return boto3.client(
+            "s3",
+            aws_access_key_id=access_key,
+            aws_secret_access_key=secret_key,
+            region_name=region,
+        )
+
     def ensure_gemini_sdk_configured(self) -> None:
         """`google.generativeai.configure(api_key=…)` 멱등 적용."""
         if self._gemini_sdk_configured:
