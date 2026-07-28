@@ -123,6 +123,13 @@ except ModuleNotFoundError as exc:
     logging.getLogger(__name__).warning(
         "gateway router disabled (ModuleNotFoundError): %s", exc
     )
+try:
+    from silicon_valley.adapter.inbound.api import silicon_valley_api_router
+except ModuleNotFoundError as exc:
+    silicon_valley_api_router = None
+    logging.getLogger(__name__).warning(
+        "silicon_valley router disabled (ModuleNotFoundError): %s", exc
+    )
 # Titanic CSV 자동 시드는 사용자가 업로드할 때만 실행
 UPLOAD_DIR = Path(__file__).resolve().parent / "uploads"
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
@@ -339,6 +346,8 @@ if moneyball_router is not None:
     app.include_router(moneyball_router)
 if gateway_api_router is not None:
     app.include_router(gateway_api_router)
+if silicon_valley_api_router is not None:
+    app.include_router(silicon_valley_api_router)
 
 
 @app.get("/")
