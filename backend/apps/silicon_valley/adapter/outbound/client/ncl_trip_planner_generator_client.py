@@ -73,15 +73,27 @@ class NclTripPlannerGeneratorClient(NclTripPlannerGeneratorPort):
 
     async def plan(self, *, profile: CustomerProfile, question: str) -> str:
         chain = self._get_chain()
-        text = await chain.ainvoke(
-            {
-                "customer_id": profile.customer_id,
-                "preferred_destinations": _join(profile.preferred_destinations),
-                "cabin_class": profile.cabin_class or "(미지정)",
-                "budget_range": profile.budget_range or "(미지정)",
-                "recent_browsing": _join(profile.recent_browsing),
-                "past_bookings": _join(profile.past_bookings),
-                "question": question.strip(),
-            }
-        )
+        try:
+            text = await chain.ainvoke(
+                {
+                    "customer_id": profile.customer_id,
+                    "preferred_destinations": _join(profile.preferred_destinations),
+                    "cabin_class": profile.cabin_class or "(미지정)",
+                    "budget_range": profile.budget_range or "(미지정)",
+                    "recent_browsing": _join(profile.recent_browsing),
+                    "past_bookings": _join(profile.past_bookings),
+                    "question": question.strip(),
+                }
+            )
+        except Exception as exc:  # noqa: BLE001 — Ollama 미기동 등
+            logger.warning(
+                "[ncl/generator] Ollama 호출 실패 base_url=%s model=%s: %s",
+                self._base_url,
+                self._model,
+                exc,
+            )
+            raise RuntimeError(
+                f"Ollama에 연결할 수 없습니다 ({self._base_url}). "
+                "OLLAMA_BASE_URL 을 확인하고 ollama serve / 모델 pull 후 다시 시도하세요."
+            ) from exc
         return (text or "").strip()

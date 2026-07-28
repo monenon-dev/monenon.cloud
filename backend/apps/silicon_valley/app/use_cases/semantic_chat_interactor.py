@@ -115,9 +115,21 @@ class SemanticChatInteractor(SemanticChatUseCase):
                 reason=routed.reason,
             )
 
-        recommendation = await self._ncl_generator.plan(
-            profile=profile, question=query.message
-        )
+        try:
+            recommendation = await self._ncl_generator.plan(
+                profile=profile, question=query.message
+            )
+        except RuntimeError as exc:
+            return SemanticChatResult(
+                ok=False,
+                intent=intent.value,
+                handler=routed.handler,
+                confidence=routed.confidence,
+                reply=str(exc),
+                channel="ncl",
+                reason="ollama_unavailable",
+            )
+
         return SemanticChatResult(
             ok=True,
             intent=intent.value,
