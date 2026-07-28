@@ -33,7 +33,7 @@ services:
       SERVICE_AUD: ${SERVICE_AUD:-monenon-api}
       # Docker 네트워크 안 Ollama (backend/.env 의 host.docker.internal 무시)
       OLLAMA_BASE_URL: http://ollama:11434
-      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5:1.5b-instruct}
+      OLLAMA_MODEL: qwen2.5:1.5b-instruct
     depends_on:
       - pgvector
       - neo4j

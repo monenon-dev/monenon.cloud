@@ -31,10 +31,12 @@ def get_ncl_customer_profile_repository() -> NclCustomerProfileRepositoryPort:
 
 def get_ncl_trip_planner_generator() -> NclTripPlannerGeneratorPort:
     # LangChain 은 여기서만 로드 (라우터 import 시 실패 방지)
+    from core.matrix.vault_keymaker_secret_manager import get_keymaker
     from silicon_valley.adapter.outbound.client.ncl_trip_planner_generator_client import (
         NclTripPlannerGeneratorClient,
     )
 
+    get_keymaker().load_environment()
     return NclTripPlannerGeneratorClient()
 
 

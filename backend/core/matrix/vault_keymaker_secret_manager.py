@@ -52,11 +52,12 @@ class Keymaker:
         return self._backend_root / ".env"
 
     def load_environment(self) -> None:
-        """`backend/.env` 우선 로드. 저장소 루트 `.env`는 보완용(override 없음)."""
+        """`.env` 로드. 이미 있는 OS env(Docker Compose 등)는 덮어쓰지 않는다."""
         repo_root_env = self._backend_root.parent / ".env"
         if repo_root_env.is_file():
             load_dotenv(repo_root_env, override=False)
-        load_dotenv(self.env_file, override=True)
+        # override=False: compose 의 OLLAMA_BASE_URL=http://ollama:11434 유지
+        load_dotenv(self.env_file, override=False)
         self._env_loaded = True
 
     def require_gemini_api_key(self) -> str:
