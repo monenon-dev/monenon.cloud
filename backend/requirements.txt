@@ -13,6 +13,7 @@ google-auth==2.38.0
 kiwipiepy==0.23.2
 ollama==0.6.2
 neo4j==5.28.1
+neo4j-graphrag==1.18.0
 pgvector==0.3.6
 httpx==0.28.1
 langchain==0.3.25
