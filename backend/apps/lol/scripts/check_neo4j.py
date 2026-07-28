@@ -27,7 +27,12 @@ async def main() -> int:
 
     get_keymaker().load_environment()
 
+    from lol.config import get_neo4j_uri
     from lol.neo4j import close_driver, get_driver
+
+    uri = get_neo4j_uri()
+    scheme = uri.split("://", 1)[0] if "://" in uri else "(unknown)"
+    print(f"neo4j scheme: {scheme}  uri: {uri}")
 
     driver = get_driver()
     try:
