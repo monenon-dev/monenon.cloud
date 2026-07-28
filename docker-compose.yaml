@@ -31,10 +31,14 @@ services:
       NEO4J_PASSWORD: ${NEO4J_PASSWORD:-monenon2026}
       REDIS_URL: redis://redis:6379
       SERVICE_AUD: ${SERVICE_AUD:-monenon-api}
+      # Docker 네트워크 안 Ollama (호스트 ollama 쓰면 .env 에서 덮어쓰기)
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://ollama:11434}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5:1.5b-instruct}
     depends_on:
       - pgvector
       - neo4j
       - redis
+      - ollama
     volumes:
       - backend_uploads:/app/uploads
     healthcheck:
@@ -198,6 +202,17 @@ services:
       pgvector:
         condition: service_healthy
 
+  # ── Ollama (LangChain / Hub LLM) ───────────────────────────────────────────
+  # backend → http://ollama:11434 (동일 compose 네트워크)
+  # 호스트에 이미 ollama(11434)가 있으면 ports 를 열지 않음 — 충돌 방지
+  # 모델 pull: docker compose exec ollama ollama pull qwen2.5:1.5b-instruct
+  ollama:
+    image: ollama/ollama:latest
+    container_name: monenon-ollama
+    restart: unless-stopped
+    volumes:
+      - ollama_data:/root/.ollama
+
 volumes:
   # 예전 스택(cloudmonenon) n8n 워크플로우 보존 — name 변경 시 새 볼륨 생기지 않도록
   n8n_data:
@@ -209,3 +224,4 @@ volumes:
   qdrant_data:
   backend_uploads:
   pgadmin_data:
+  ollama_data:
