@@ -125,10 +125,10 @@ except ModuleNotFoundError as exc:
     )
 try:
     from silicon_valley.adapter.inbound.api import silicon_valley_api_router
-except ModuleNotFoundError as exc:
+except Exception as exc:
     silicon_valley_api_router = None
     logging.getLogger(__name__).warning(
-        "silicon_valley router disabled (ModuleNotFoundError): %s", exc
+        "silicon_valley router disabled: %s", exc
     )
 # Titanic CSV 자동 시드는 사용자가 업로드할 때만 실행
 UPLOAD_DIR = Path(__file__).resolve().parent / "uploads"
