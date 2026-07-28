@@ -271,6 +271,12 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning("Startup DB bootstrap skipped: %s", e)
     yield
+    try:
+        from lol.neo4j import close_driver
+
+        await close_driver()
+    except Exception as e:
+        logger.warning("Neo4j driver shutdown skipped: %s", e)
     await dispose_engine()
 
 

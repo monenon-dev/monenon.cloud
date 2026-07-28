@@ -110,3 +110,8 @@ Desktop.ini
 # ===== 기타 로컬 도구 =====
 *.local
 .cache/
+
+# ===== Nginx + Certbot (EC2 로컬) =====
+certbot/conf/
+certbot/www/
+nginx/conf.d/default.conf
