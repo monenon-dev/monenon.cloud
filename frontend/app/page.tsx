@@ -15,6 +15,7 @@ import {
 import { AgentPreview } from "@/components/home/agent-preview";
 import { HomeCtaSection } from "@/components/home/home-cta-section";
 import { HomeFooter } from "@/components/home/home-footer";
+import { IntroOverlay } from "@/components/home/intro-overlay";
 import {
   LANDING_PAGE_SHELL,
   LandingSiteHeader,
@@ -94,6 +95,7 @@ export default function MoneoHomePage() {
 
   return (
     <div className="relative flex min-h-dvh items-start moneo-grid-bg text-[var(--moneo-text)]">
+      <IntroOverlay />
       <div className="moneo-noise pointer-events-none absolute inset-0 -z-10" aria-hidden />
       <NetworkDecor />
 
