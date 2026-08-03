@@ -118,13 +118,10 @@ services:
     command: tunnel --no-autoupdate run
     environment:
       TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:?set CLOUDFLARE_TUNNEL_TOKEN in root .env}
+    # auth/n8n healthy 대기는 t2.micro에서 compose가 멈추는 원인이므로 제거.
+    # Public Hostname 만 맞으면 backend/auth/n8n 기동 여부와 무관하게 터널은 붙는다.
     depends_on:
-      backend:
-        condition: service_healthy
-      auth:
-        condition: service_healthy
-      n8n:
-        condition: service_started
+      - backend
 
   # ── PostgreSQL + pgvector (관계형 DB + 벡터 검색) ────────────────────────────
   pgvector:
