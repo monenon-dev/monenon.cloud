@@ -1,0 +1,10 @@
+---
+description: 테스트 작성·실행 규칙 (내용 채우기용 스텁 — watson .claude에서 이식)
+globs: "{backend,frontend}/**/*.{py,ts,tsx}"
+alwaysApply: false
+---
+
+# Testing
+
+> watson `.claude/rules/testing.md`에서 이식한 자리. pytest / frontend 테스트 규칙을 여기에 채운다.
+> Titanic 단위 테스트 패턴은 `backend/apps/titanic/_docs/CLAUDE.md`를 참고한다.

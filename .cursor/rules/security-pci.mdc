@@ -1,0 +1,9 @@
+---
+description: 보안·민감정보 취급 (내용 채우기용 스텁 — watson .claude pci에서 이식)
+alwaysApply: false
+---
+
+# Security / PCI
+
+> watson `.claude/rules/security/pci.md`에서 이식한 자리.
+> 비밀·키는 `.env` + Keymaker만 사용하고 코드·커밋에 하드코딩하지 않는다 (`.cursorrules`).
