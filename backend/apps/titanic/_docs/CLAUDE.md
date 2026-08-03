@@ -7,7 +7,7 @@
 
 | 문서 | 내용 |
 |------|------|
-| [../../../../CLAUDE.md](../../../../CLAUDE.md) | 공통 행동 원칙 |
+| [../../../../.cursorrules](../../../../.cursorrules) | 공통 행동 원칙·제품 방향 |
 | [../../../CLAUDE.md](../../../CLAUDE.md) | 백엔드·시블링 앱 구조 |
 | [../../../../_docs/BACKEND_RULES.md](../../../../_docs/BACKEND_RULES.md) | FastAPI 규칙 |
 | [../../../../frontend/CLAUDE.md](../../../../frontend/CLAUDE.md) | Titanic 프론트 경로·`getTitanicApiBaseUrl` |
@@ -185,5 +185,5 @@ CSV 업로드: `crew_james_director_pg_repository`
 ### Cursor 멘션 (권장)
 
 ```text
-@CLAUDE.md @backend/CLAUDE.md @backend/apps/titanic/_docs/CLAUDE.md @backend/_docs/BACKEND_RULES.md
+@.cursorrules @backend/CLAUDE.md @backend/apps/titanic/_docs/CLAUDE.md @backend/_docs/BACKEND_RULES.md
 ```

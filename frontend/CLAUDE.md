@@ -6,8 +6,7 @@
 
 | 문서 | 내용 |
 |------|------|
-| [../CLAUDE.md](../CLAUDE.md) | 구현 전 사고, 단순성, 정밀한 수정, 목표 중심 실행 |
-| [../.cursorrules](../.cursorrules) | Cursor 하네스, 산출물 제한 |
+| [../.cursorrules](../.cursorrules) | 제품 방향·행동 원칙·Cursor 하네스, 산출물 제한 |
 | [./_docs/REACT_RULES.md](./_docs/REACT_RULES.md) | React·Next.js 코딩 규칙 **(구현 전 필수)** |
 
 백엔드 API·도메인은 [../backend/CLAUDE.md](../backend/CLAUDE.md)를 따른다.  
@@ -68,7 +67,7 @@ Titanic 화면·경로는 [../backend/apps/titanic/_docs/CLAUDE.md](../backend/a
 ### Cursor 멘션 (권장)
 
 ```text
-@CLAUDE.md @frontend/CLAUDE.md @frontend/_docs/REACT_RULES.md
+@.cursorrules @frontend/CLAUDE.md @frontend/_docs/REACT_RULES.md
 ```
 
 Titanic UI 작업 시 추가:

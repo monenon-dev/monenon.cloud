@@ -32,7 +32,7 @@ links:
 # Claude Code 프롬프트 — Moneyball ERD → Alembic (pgvector)
 
 > **용도:** Claude Code에 그대로 붙여 넣어 실행하는 **작업 지시 프롬프트**.  
-> **원칙:** 저장소 루트 `CLAUDE.md` / `.cursorrules` 카파시 하네스 (Think → Simplicity → Surgical → Goal-driven).  
+> **원칙:** 저장소 루트 `.cursorrules` 카파시 하네스 (Think → Simplicity → Surgical → Goal-driven).  
 > **이 파일은 프롬프트 본문이다.** 구현 전에 아래를 끝까지 읽고, 가정을 숨기지 말 것.
 
 ---
@@ -60,7 +60,7 @@ links:
 
 ## 2. 반드시 읽을 문서·파일 (순서)
 
-1. `CLAUDE.md`, `.cursorrules`
+1. `.cursorrules`
 2. `vault/backend/BACKEND_RULES.md` (또는 `docs/DevOps/backend/BACKEND_RULES.md`가 있으면 그것)
 3. `vault/backend/ENTITY_RULE.md` — **신규 테이블 PK = `id` int 자동증감**
 4. `backend/apps/moneyball/_docs/moneyball.casting.md` — 본 프롬프트(단일 문서)
@@ -232,7 +232,7 @@ alembic upgrade head
 ```text
  monenon.cloud Moneyball: Ubuntu 24 + Docker pgvector PostgreSQL에 Alembic으로 ERD 테이블을 생성하라.
 
-필수 선행 읽기: CLAUDE.md, .cursorrules, vault/backend/ENTITY_RULE.md, vault/backend/BACKEND_RULES.md,
+필수 선행 읽기: .cursorrules, vault/backend/ENTITY_RULE.md, vault/backend/BACKEND_RULES.md,
 backend/apps/moneyball/_docs/moneyball.casting.md, backend/apps/resources/DB.png, backend/alembic/env.py,
 backend/alembic/versions/*, docker-compose.yaml pgvector, DATABASE_URL (.env / resolved_database_url).
 
@@ -254,7 +254,6 @@ FK는 업무 키 컬럼으로 stadium←team/schedule, team←player.
 
 ## 출처 · 하네스
 
-- 행동 원칙: 저장소 `CLAUDE.md` (Karpathy / forrestchang 정리)
-- Cursor 실행: `.cursorrules`
+- 행동 원칙·Cursor 실행: 저장소 `.cursorrules` (Karpathy / forrestchang 정리)
 - DB 엔티티: `vault/backend/ENTITY_RULE.md`
 - ERD 이미지: `backend/apps/resources/DB.png`

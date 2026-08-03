@@ -8,12 +8,11 @@
 
 | 파일 | 역할 |
 |------|------|
-| [`CLAUDE.md`](CLAUDE.md) | 행동 원칙 네 가지: 구현 전 사고, 단순성 우선, 정밀한 수정, 목표 중심 실행 |
-| [`.cursorrules`](.cursorrules) | Cursor 에이전트용 실행 규칙(검증 고리, diff 경계 등) |
-| [`CURSOR.md`](CURSOR.md) | Cursor IDE에서 사람이 컨텍스트·요청을 어떻게 줄지 |
+| [`.cursorrules`](../.cursorrules) | 제품 방향·행동 원칙·Cursor 실행 규칙(검증 고리, diff 경계 등) |
+| [`CURSOR.md`](../CURSOR.md) | Cursor IDE에서 사람이 컨텍스트·요청을 어떻게 줄지 |
 | (선택) `.cursor/rules/` | 경로·스택별로 규칙을 더 쪼갤 때 |
 
-원칙을 바꿀 때는 **`CLAUDE.md`부터** 손본 뒤 `.cursorrules`, `CURSOR.md`를 맞춘다. 문서끼리 충돌이 나면 **더 구체적이고 저장소에 가까운 규칙**이 우선한다([`CURSOR.md`](CURSOR.md)와 동일).
+원칙을 바꿀 때는 **`.cursorrules`부터** 손본 뒤 `CURSOR.md`를 맞춘다. 문서끼리 충돌이 나면 **더 구체적이고 저장소에 가까운 규칙**이 우선한다([`CURSOR.md`](../CURSOR.md)와 동일).
 
 ## Cursor로 이 저장소를 쓸 때
 

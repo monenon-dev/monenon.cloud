@@ -303,6 +303,6 @@ curl -s -X POST http://127.0.0.1:8000/star-craft/hub/route \
 | `backend/_docs/BACKEND_RULES.md` | FastAPI·Keymaker·비동기 세션 |
 | `backend/_docs/docker-rules.md` | DB/컨테이너 **생성 전** 존재 체크·승인 |
 | `backend/_docs/ENTITY_RULE.md` | 테이블·ORM 변경 시 |
-| `CLAUDE.md` (루트) | Monenon 제품·시블링 앱 경계 |
+| `.cursorrules` (루트) | Monenon 제품·시블링 앱 경계 |
 
 교육·실습 코드는 `star_craft` / `/lesson` / `/star-craft` 경계 안에 두고, `lifestyle` 코어를 오염시키지 않는다.

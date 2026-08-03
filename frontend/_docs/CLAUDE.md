@@ -71,7 +71,7 @@
 
 | 문서 | 용도 |
 |------|------|
-| [../../CLAUDE.md](../../CLAUDE.md) | 저장소 루트 행동 지침 |
+| [../../.cursorrules](../../.cursorrules) | 저장소 루트 행동 지침·Cursor 하네스 |
 | [../../frontend/CLAUDE.md](../../frontend/CLAUDE.md) | 프론트 코드 실행·라우트·API |
 | [./REACT_RULES.md](./REACT_RULES.md) | React 구현 규칙 |
 | [../backend/CLAUDE.md](../backend/CLAUDE.md) | 백엔드 vault 가이드 |
