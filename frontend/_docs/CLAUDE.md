@@ -2,7 +2,7 @@
 
 이 파일은 `vault/frontend/`(프론트엔드 지식 구역)에서 작업할 때 에이전트(Claude)가 반드시 준수해야 하는 규칙과 컨텍스트를 정의합니다.
 
-코드 구현·Next.js 수정은 **[../../frontend/CLAUDE.md](../../frontend/CLAUDE.md)** 를 따릅니다. 본 문서는 **지식 정제·문서화·탐색**에 초점을 둡니다.
+코드 구현·Next.js 수정은 **[../.cursorrules](../.cursorrules)** 를 따릅니다. 본 문서는 **지식 정제·문서화·탐색**에 초점을 둡니다.
 
 ---
 
@@ -51,7 +51,7 @@
 4. **미디어·엑셀 추상화:**
    - 이미지(jpg 등): 메타데이터·촬영일·UI 맥락을 묘사한 `.md` 요약본을 위키 구역에 만든다.
    - 엑셀(xlsx): 화면 목록·라우트 표 등 핵심을 마크다운 표로 위키에 기록한다.
-5. **프론트·백엔드 경계:** API 경로·prefix는 [../../frontend/CLAUDE.md](../../frontend/CLAUDE.md)와 백엔드 `_docs/CLAUDE.md`를 단일 출처로 맞춘다. vault 문서에 잘못된 URL을 새로 만들지 않는다.
+5. **프론트·백엔드 경계:** API 경로·prefix는 [../.cursorrules](../.cursorrules)와 백엔드 `_docs/CLAUDE.md`를 단일 출처로 맞춘다. vault 문서에 잘못된 URL을 새로 만들지 않는다.
 6. **단순성:** `components/ui/`(shadcn 자동 생성) 내용을 vault에 복사하지 않는다. 규칙·패턴만 문서화한다.
 
 ---
@@ -63,7 +63,7 @@
   1. `vault/1_Raw_Assets` 및 `vault/frontend/`에서 관련 파일을 먼저 스캔한다.
   2. 필요 시 `frontend/app/`, `frontend/components/` 코드와 대조한다.
   3. 출처를 밝히고 답변을 재구성한다.
-- **코드를 고칠 때**는 본 문서만 보지 말고 [`REACT_RULES.md`](./REACT_RULES.md)와 [../../frontend/CLAUDE.md](../../frontend/CLAUDE.md)를 함께 따른다.
+- **코드를 고칠 때**는 본 문서만 보지 말고 [`REACT_RULES.md`](./REACT_RULES.md)와 [../.cursorrules](../.cursorrules)를 함께 따른다.
 
 ---
 
@@ -72,6 +72,6 @@
 | 문서 | 용도 |
 |------|------|
 | [../../.cursorrules](../../.cursorrules) | 저장소 루트 행동 지침·Cursor 하네스 |
-| [../../frontend/CLAUDE.md](../../frontend/CLAUDE.md) | 프론트 코드 실행·라우트·API |
+| [../.cursorrules](../.cursorrules) | 프론트 코드 실행·라우트·API |
 | [./REACT_RULES.md](./REACT_RULES.md) | React 구현 규칙 |
 | [../backend/CLAUDE.md](../backend/CLAUDE.md) | 백엔드 vault 가이드 |

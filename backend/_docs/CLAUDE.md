@@ -78,4 +78,4 @@
 | [../../.cursorrules](../../.cursorrules) | 저장소 루트 행동 지침·Cursor 하네스 |
 | [../../backend/CLAUDE.md](../../backend/CLAUDE.md) | 백엔드 코드 실행·구조 |
 | [./BACKEND_RULES.md](./BACKEND_RULES.md) | FastAPI 구현 규칙 |
-| [../frontend/CLAUDE.md](../frontend/CLAUDE.md) | 프론트 vault 가이드 |
+| [../../frontend/_docs/CLAUDE.md](../../frontend/_docs/CLAUDE.md) | 프론트 vault 가이드 |

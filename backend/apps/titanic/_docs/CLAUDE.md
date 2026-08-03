@@ -10,7 +10,7 @@
 | [../../../../.cursorrules](../../../../.cursorrules) | 공통 행동 원칙·제품 방향 |
 | [../../../CLAUDE.md](../../../CLAUDE.md) | 백엔드·시블링 앱 구조 |
 | [../../../../_docs/BACKEND_RULES.md](../../../../_docs/BACKEND_RULES.md) | FastAPI 규칙 |
-| [../../../../frontend/CLAUDE.md](../../../../frontend/CLAUDE.md) | Titanic 프론트 경로·`getTitanicApiBaseUrl` |
+| [../../../../frontend/.cursorrules](../../../../frontend/.cursorrules) | Titanic 프론트 경로·`getTitanicApiBaseUrl` |
 
 ---
 

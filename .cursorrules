@@ -5,7 +5,7 @@
 | 문서 | 범위 |
 |------|------|
 | `backend/CLAUDE.md` | FastAPI, `backend/apps` 시블링 앱 |
-| `frontend/CLAUDE.md` | Next.js, UI·API 호출 |
+| `frontend/.cursorrules` | Next.js, UI·API 호출 |
 | `backend/apps/titanic/_docs/CLAUDE.md` | Titanic 교육 도메인 (헥사고날) |
 | `backend/_docs/BACKEND_RULES.md` · `frontend/_docs/REACT_RULES.md` | 코딩 규칙 본문 |
 | `CURSOR.md` | Cursor에서 사람이 컨텍스트·요청을 어떻게 줄지 |

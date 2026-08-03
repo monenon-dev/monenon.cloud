@@ -11,7 +11,7 @@
 | [./_docs/ENTITY_RULE.md](./_docs/ENTITY_RULE.md) | ORM·테이블 추가·수정 시 |
 | [./_docs/docker-rules.md](./_docs/docker-rules.md) | Docker·DB·백엔드 생성 전 존재 체크·승인 |
 
-프론트 작업은 [../frontend/CLAUDE.md](../frontend/CLAUDE.md)를 따른다.
+프론트 작업은 [../frontend/.cursorrules](../frontend/.cursorrules)를 따른다.
 
 ---
 
