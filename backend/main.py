@@ -39,6 +39,7 @@ except ModuleNotFoundError:
 try:
     import orchestration.adapter.outbound.orm.orchestration_orm  # noqa: F401 — 오케스트레이션 테이블 metadata
     import orchestration.adapter.outbound.orm.daily_briefing_orm  # noqa: F401 — daily_briefings
+    import orchestration.adapter.outbound.orm.user_integration_orm  # noqa: F401 — user_integrations
 except ModuleNotFoundError:
     pass
 try:

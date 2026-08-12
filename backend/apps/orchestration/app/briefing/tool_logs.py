@@ -15,6 +15,8 @@ _TOOL_NAME = {
     "calendar": "calendar.list",
     "docs": "docs.search",
     "history": "history.digest",
+    "slack": "slack.digest",
+    "gmail": "gmail.digest",
     "synthesizer": "briefing.synthesize",
     "validator": "briefing.validate",
 }
@@ -23,6 +25,8 @@ _RESULT_TYPE = {
     "calendar": "list",
     "docs": "rag",
     "history": "list",
+    "slack": "list",
+    "gmail": "list",
     "synthesizer": "draft",
     "validator": "list",
     "router": "list",
@@ -104,6 +108,9 @@ def detail_for_tool(node: str, result: dict[str, Any] | None) -> str:
     items = result.get("items") if isinstance(result.get("items"), list) else []
     n = len(items)
     if status == "skipped":
+        detail = result.get("detail")
+        if isinstance(detail, str) and detail.strip():
+            return detail.strip()
         reason = result.get("reason") or "건너뜀"
         return f"{node} 건너뜀 ({reason})"
     if status == "empty":
@@ -116,6 +123,10 @@ def detail_for_tool(node: str, result: dict[str, Any] | None) -> str:
         return f"문서 검색 완료, 히트 {n}건"
     if node == "history":
         return f"최근 대화 요약 완료, 메시지 {n}건"
+    if node == "slack":
+        return f"Slack digest 완료, {n}건"
+    if node == "gmail":
+        return f"Gmail digest 완료, 미읽음 {n}건"
     return f"{node} 완료 ({n}건)"
 
 

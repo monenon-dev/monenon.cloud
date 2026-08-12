@@ -33,7 +33,9 @@ async def run_briefing(
         "synth_retries": 0,
     }
     final = await graph.ainvoke(initial)
-    history = final.get("history_result") or final.get("slack_result")
+    history = final.get("history_result")
+    slack = final.get("slack_summary") or final.get("slack_result")
+    gmail = final.get("gmail_summary")
     tool_logs = final.get("tool_logs")
     if not isinstance(tool_logs, list) or not tool_logs:
         tool_logs = build_tool_logs(
@@ -50,6 +52,7 @@ async def run_briefing(
             "calendar": final.get("calendar_result"),
             "docs": final.get("docs_result"),
             "history": history,
-            "slack": final.get("slack_result"),
+            "slack": slack,
+            "gmail": gmail,
         },
     }

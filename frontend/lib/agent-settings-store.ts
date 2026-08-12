@@ -13,7 +13,7 @@ export type BriefingFrequency = "daily" | "weekdays" | "weekly";
 
 export type BriefingChannel = "email" | "in_app" | "slack_dm";
 
-export type IntegrationId = "slack" | "calendar" | "docs";
+export type IntegrationId = "slack" | "gmail" | "calendar" | "docs";
 
 export type IntegrationConnection = {
   connected: boolean;
@@ -98,6 +98,7 @@ export const INTEGRATION_META: {
   name: string;
 }[] = [
   { id: "slack", tool: "slack.digest", name: "Slack" },
+  { id: "gmail", tool: "gmail.digest", name: "Gmail" },
   { id: "calendar", tool: "calendar.list", name: "Calendar" },
   { id: "docs", tool: "docs.search", name: "문서 저장소" },
 ];
@@ -119,8 +120,9 @@ export function defaultAgentSettings(): AgentSettings {
       customIndustries: [],
     },
     integrations: {
-      slack: { connected: true, lastSyncedAt: minutesAgoIso(5) },
-      calendar: { connected: true, lastSyncedAt: minutesAgoIso(12) },
+      slack: { connected: false, lastSyncedAt: null },
+      gmail: { connected: false, lastSyncedAt: null },
+      calendar: { connected: false, lastSyncedAt: null },
       docs: { connected: false, lastSyncedAt: null },
     },
     briefing: {
@@ -144,6 +146,7 @@ function mergeSettings(raw: Partial<AgentSettings> | null): AgentSettings {
     },
     integrations: {
       slack: { ...base.integrations.slack, ...raw.integrations?.slack },
+      gmail: { ...base.integrations.gmail, ...raw.integrations?.gmail },
       calendar: { ...base.integrations.calendar, ...raw.integrations?.calendar },
       docs: { ...base.integrations.docs, ...raw.integrations?.docs },
     },

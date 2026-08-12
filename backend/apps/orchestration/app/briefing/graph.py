@@ -9,8 +9,10 @@ from langgraph.graph import END, START, StateGraph
 from orchestration.app.briefing.nodes import (
     calendar_tool_node,
     docs_tool_node,
+    gmail_tool_node,
     history_tool_node,
     router_node,
+    slack_tool_node,
     synthesizer_node,
     validator_node,
 )
@@ -28,7 +30,7 @@ def _after_validator(state: BriefingState) -> str:
 @lru_cache(maxsize=1)
 def build_briefing_graph():
     """
-    router → calendar → docs → history → synthesizer → validator
+    router → calendar → docs → history → slack → gmail → synthesizer → validator
     (validator 실패 시 synthesizer 최대 2회 재호출)
     """
     graph = StateGraph(BriefingState)
@@ -36,6 +38,8 @@ def build_briefing_graph():
     graph.add_node("calendar", calendar_tool_node)
     graph.add_node("docs", docs_tool_node)
     graph.add_node("history", history_tool_node)
+    graph.add_node("slack", slack_tool_node)
+    graph.add_node("gmail", gmail_tool_node)
     graph.add_node("synthesizer", synthesizer_node)
     graph.add_node("validator", validator_node)
 
@@ -43,7 +47,9 @@ def build_briefing_graph():
     graph.add_edge("router", "calendar")
     graph.add_edge("calendar", "docs")
     graph.add_edge("docs", "history")
-    graph.add_edge("history", "synthesizer")
+    graph.add_edge("history", "slack")
+    graph.add_edge("slack", "gmail")
+    graph.add_edge("gmail", "synthesizer")
     graph.add_edge("synthesizer", "validator")
     graph.add_conditional_edges(
         "validator",

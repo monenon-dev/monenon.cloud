@@ -12,7 +12,9 @@ from gemini_caller import call_gemini
 from orchestration.app.agent_system_prompt import with_agent_system_prompt
 from orchestration.app.briefing.calendar_source import fetch_today_calendar
 from orchestration.app.briefing.docs_source import fetch_recent_docs
+from orchestration.app.briefing.gmail_source import fetch_gmail_digest
 from orchestration.app.briefing.history_source import fetch_recent_history
+from orchestration.app.briefing.slack_source import fetch_slack_digest
 from orchestration.app.briefing.state import BriefingState
 from orchestration.app.briefing.tool_logs import (
     events_for_tool_node,
@@ -21,7 +23,7 @@ from orchestration.app.briefing.tool_logs import (
 
 logger = logging.getLogger(__name__)
 
-_ALL_TOOLS = ("calendar", "docs", "history")
+_ALL_TOOLS = ("calendar", "docs", "history", "slack", "gmail")
 
 # 데모/면접용: docs 비어 있을 때 1차 synthesizer가 문서 근거를 지어내도록 삽입
 _DOCS_HALLUCINATION_SNIPPET = (
@@ -85,8 +87,9 @@ async def router_node(state: BriefingState) -> dict:
     query = (state.get("query") or "").strip()
     system = (
         "[역할] 브리핑 라우터. 사용자 요청과 맥락을 보고 실행할 도구만 고릅니다.\n"
-        '형식: {"selected_tools":["calendar","docs","history"], "reason":"..."}\n'
-        "도구: calendar(오늘 일정), docs(문서 변경), history(최근 대화)."
+        '형식: {"selected_tools":["calendar","docs","history","slack","gmail"], "reason":"..."}\n'
+        "도구: calendar(오늘 일정), docs(문서 변경), history(최근 대화), "
+        "slack(Slack digest), gmail(미읽음 메일)."
     )
     user = f"브리핑 요청: {query or '오늘의 업무 브리핑'}"
     try:
@@ -232,7 +235,6 @@ async def history_tool_node(state: BriefingState) -> dict:
         }
         return {
             "history_result": result,
-            "slack_result": result,
             "tool_logs": events_for_tool_node("history", result, seq_base=30),
             "trace": [_trace("history", status="skipped", tool="history.digest")],
         }
@@ -243,7 +245,6 @@ async def history_tool_node(state: BriefingState) -> dict:
         result = await fetch_recent_history(session, user_id)
         return {
             "history_result": result,
-            "slack_result": result,
             "tool_logs": events_for_tool_node("history", result, seq_base=30),
             "trace": [
                 _trace(
@@ -265,15 +266,133 @@ async def history_tool_node(state: BriefingState) -> dict:
     result.setdefault("tool", "history.digest")
     return {
         "history_result": result,
-        "slack_result": result,
         "tool_logs": events_for_tool_node("history", result, seq_base=30),
         "trace": [_trace("history", tool="history.digest")],
     }
 
 
+async def slack_tool_node(state: BriefingState) -> dict:
+    if "slack" not in (state.get("selected_tools") or _ALL_TOOLS):
+        result = {
+            "source": "slack",
+            "status": "skipped",
+            "tool": "slack.digest",
+            "items": [],
+            "reason": "not_selected",
+            "detail": "Slack 연동 안 됨",
+        }
+        return {
+            "slack_summary": result,
+            "slack_result": result,
+            "tool_logs": events_for_tool_node("slack", result, seq_base=35),
+            "trace": [_trace("slack", status="skipped", tool="slack.digest")],
+        }
+
+    user_id = state.get("user_id")
+    session = state.get("db_session")
+    if user_id is not None and session is not None:
+        result = await fetch_slack_digest(session, user_id)
+        return {
+            "slack_summary": result,
+            "slack_result": result,
+            "tool_logs": events_for_tool_node("slack", result, seq_base=35),
+            "trace": [
+                _trace(
+                    "slack",
+                    tool="slack.digest",
+                    status=result.get("status"),
+                )
+            ],
+        }
+
+    result = {
+        "source": "slack",
+        "status": "skipped",
+        "tool": "slack.digest",
+        "items": [],
+        "reason": "not_connected",
+        "detail": "Slack 연동 안 됨",
+    }
+    return {
+        "slack_summary": result,
+        "slack_result": result,
+        "tool_logs": events_for_tool_node("slack", result, seq_base=35),
+        "trace": [_trace("slack", status="skipped")],
+    }
+
+
+async def gmail_tool_node(state: BriefingState) -> dict:
+    if "gmail" not in (state.get("selected_tools") or _ALL_TOOLS):
+        result = {
+            "source": "gmail",
+            "status": "skipped",
+            "tool": "gmail.digest",
+            "items": [],
+            "reason": "not_selected",
+            "detail": "Gmail 연동 안 됨",
+        }
+        return {
+            "gmail_summary": result,
+            "tool_logs": events_for_tool_node("gmail", result, seq_base=38),
+            "trace": [_trace("gmail", status="skipped", tool="gmail.digest")],
+        }
+
+    user_id = state.get("user_id")
+    session = state.get("db_session")
+    if user_id is not None and session is not None:
+        result = await fetch_gmail_digest(session, user_id)
+        return {
+            "gmail_summary": result,
+            "tool_logs": events_for_tool_node("gmail", result, seq_base=38),
+            "trace": [
+                _trace(
+                    "gmail",
+                    tool="gmail.digest",
+                    status=result.get("status"),
+                )
+            ],
+        }
+
+    result = {
+        "source": "gmail",
+        "status": "skipped",
+        "tool": "gmail.digest",
+        "items": [],
+        "reason": "not_connected",
+        "detail": "Gmail 연동 안 됨",
+    }
+    return {
+        "gmail_summary": result,
+        "tool_logs": events_for_tool_node("gmail", result, seq_base=38),
+        "trace": [_trace("gmail", status="skipped")],
+    }
+
+
+def _source_skipped(data: dict | None) -> bool:
+    if not isinstance(data, dict):
+        return True
+    return data.get("status") == "skipped"
+
+
+def _source_empty(data: dict | None) -> bool:
+    if not isinstance(data, dict):
+        return True
+    if data.get("status") == "skipped":
+        return True
+    items = data.get("items")
+    return not isinstance(items, list) or len(items) == 0
+
+
 def _evidence_blobs(state: BriefingState) -> list[str]:
     blobs: list[str] = []
-    for key in ("calendar_result", "docs_result", "history_result", "slack_result"):
+    for key in (
+        "calendar_result",
+        "docs_result",
+        "history_result",
+        "slack_summary",
+        "slack_result",
+        "gmail_summary",
+    ):
         data = state.get(key) or {}
         if not isinstance(data, dict):
             continue
@@ -292,7 +411,9 @@ def _evidence_blobs(state: BriefingState) -> list[str]:
 async def synthesizer_node(state: BriefingState) -> dict:
     calendar = state.get("calendar_result") or {}
     docs = state.get("docs_result") or {}
-    history = state.get("history_result") or state.get("slack_result") or {}
+    history = state.get("history_result") or {}
+    slack = state.get("slack_summary") or state.get("slack_result") or {}
+    gmail = state.get("gmail_summary") or {}
     notes = (state.get("validation_notes") or "").strip()
     pass_n = int(state.get("synth_pass") or 0) + 1
     is_retry = bool(notes) or pass_n > 1
@@ -312,10 +433,19 @@ async def synthesizer_node(state: BriefingState) -> dict:
         seq=40 + pass_n * 10,
     )
 
-    context = (
-        f"[캘린더]\n{json.dumps(calendar, ensure_ascii=False)}\n\n"
-        f"[문서]\n{json.dumps(docs, ensure_ascii=False)}\n\n"
-        f"[최근 대화]\n{json.dumps(history, ensure_ascii=False)}"
+    context_parts = [
+        ("캘린더", calendar),
+        ("문서", docs),
+        ("최근 대화", history),
+    ]
+    if not _source_skipped(slack):
+        context_parts.append(("Slack", slack))
+    if not _source_skipped(gmail):
+        context_parts.append(("Gmail", gmail))
+
+    context = "\n\n".join(
+        f"[{label}]\n{json.dumps(payload, ensure_ascii=False)}"
+        for label, payload in context_parts
     )
     repair = ""
     if notes:
@@ -327,6 +457,7 @@ async def synthesizer_node(state: BriefingState) -> dict:
     user_prompt = (
         f"{(state.get('query') or '오늘의 업무 브리핑을 작성해 줘').strip()}\n\n"
         "아래 도구 수집 결과만 근거로 스탠드업 브리핑을 작성하세요.\n"
+        "연동되지 않은 소스(Slack/Gmail 등 skipped)는 언급하지 말고 자연스럽게 생략하세요.\n"
         "마크다운 헤딩·불릿을 쓰고, 근거 없는 추측은 넣지 마세요.\n\n"
         f"{context}{repair}"
     )
@@ -455,9 +586,28 @@ async def validator_node(state: BriefingState) -> dict:
             "문서 인용 근거 없음 (문서 소스가 비어 있는데 문서·로드맵 서술이 포함됨)"
         )
 
+    if _source_empty(state.get("slack_summary") or state.get("slack_result")):
+        if re.search(r"슬랙|slack|#\w+", answer, re.IGNORECASE):
+            failure_reasons.append(
+                "Slack 인용 근거 없음 (Slack 연동·메시지 없이 Slack 서술 포함)"
+            )
+
+    if _source_empty(state.get("gmail_summary")):
+        if re.search(r"gmail|이메일\s*함|메일\s*함|inbox", answer, re.IGNORECASE):
+            failure_reasons.append(
+                "Gmail 인용 근거 없음 (Gmail 연동·메일 없이 메일함 서술 포함)"
+            )
+
     any_items = any(
         isinstance(state.get(k), dict) and (state.get(k) or {}).get("items")
-        for k in ("calendar_result", "docs_result", "history_result", "slack_result")
+        for k in (
+            "calendar_result",
+            "docs_result",
+            "history_result",
+            "slack_summary",
+            "slack_result",
+            "gmail_summary",
+        )
     )
 
     ratio = 1.0
@@ -475,7 +625,7 @@ async def validator_node(state: BriefingState) -> dict:
     notes = ""
     if not ok:
         notes = " · ".join(failure_reasons)
-        notes += " — 캘린더·문서·대화 JSON에 없는 고유명사/사실은 제거하세요."
+        notes += " — 캘린더·문서·대화·Slack·Gmail JSON에 없는 고유명사/사실은 제거하세요."
 
     if ok:
         detail = f"{pass_n}차 검증 통과 (근거 일치)"

@@ -21,6 +21,8 @@ langchain-community==0.3.24
 langsmith==0.2.6
 langgraph==0.2.70
 apscheduler==3.10.4
+slack-sdk==3.34.0
+google-api-python-client==2.160.0
 transformers>=4.40.0
 torch>=2.2.0
 ultralytics>=8.3.0

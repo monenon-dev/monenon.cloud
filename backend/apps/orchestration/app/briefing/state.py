@@ -17,6 +17,8 @@ class BriefingState(TypedDict, total=False):
     calendar_result: dict
     docs_result: dict
     history_result: dict
+    slack_summary: dict
+    gmail_summary: dict
     # legacy alias kept for older callers
     slack_result: dict
     answer: str

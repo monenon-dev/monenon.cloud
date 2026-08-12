@@ -9,6 +9,7 @@ import {
   Calendar,
   FileSearch,
   Loader2,
+  Mail,
   Plug,
   Save,
   UserCircle,
@@ -16,6 +17,13 @@ import {
 } from "lucide-react";
 
 import { WorkProfileTab } from "@/components/settings/work-profile-tab";
+import { getApiBaseUrl } from "@/lib/api-base";
+import {
+  fetchIntegrations,
+  integrationOAuthStartUrl,
+  patchIntegration as patchIntegrationApi,
+  type IntegrationProvider,
+} from "@/lib/integrations-api";
 import { getChatUserId } from "@/lib/chat-user";
 import {
   BRIEFING_CHANNEL_OPTIONS,
@@ -38,9 +46,12 @@ import { routes } from "@/lib/routes";
 
 const INTEGRATION_ICONS: Record<IntegrationId, LucideIcon> = {
   slack: Plug,
+  gmail: Mail,
   calendar: Calendar,
   docs: FileSearch,
 };
+
+const OAUTH_INTEGRATIONS = new Set<IntegrationId>(["slack", "gmail"]);
 
 const SETTINGS_TABS: {
   id: AgentSettingsTab;
@@ -150,9 +161,21 @@ function AgentSettingsFormInner({
     }
     patchUi({ loading: true, error: null, savedSection: null });
     try {
-      // TODO: GET /api/agent/settings — 현재는 localStorage mock
       await new Promise((r) => setTimeout(r, 200));
       const loaded = loadAgentSettings(userId);
+      try {
+        const remote = await fetchIntegrations(userId, getApiBaseUrl());
+        for (const row of remote) {
+          const id = row.provider as IntegrationId;
+          if (id !== "slack" && id !== "gmail") continue;
+          loaded.integrations[id] = {
+            connected: row.connected && row.enabled,
+            lastSyncedAt: row.connected_at,
+          };
+        }
+      } catch {
+        /* API 미배포 시 localStorage mock 유지 */
+      }
       setSettings(loaded);
     } catch (e) {
       patchUi({ error: e instanceof Error ? e.message : "불러오기 실패" });
@@ -164,6 +187,14 @@ function AgentSettingsFormInner({
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    const err = searchParams.get("error");
+    if (err) patchUi({ error: decodeURIComponent(err) });
+    if (searchParams.get("connected") === "1") {
+      void load();
+    }
+  }, [searchParams, load, patchUi]);
 
   const patchProfile = (patch: Partial<AgentWorkProfile>) => {
     setSettings((prev) => ({ ...prev, profile: { ...prev.profile, ...patch } }));
@@ -181,12 +212,49 @@ function AgentSettingsFormInner({
     patchUi({ savedSection: null });
   };
 
-  const toggleIntegration = (id: IntegrationId) => {
+  const toggleIntegrationLocal = (id: IntegrationId) => {
     const connected = !settings.integrations[id].connected;
     patchIntegration(id, {
       connected,
       lastSyncedAt: connected ? new Date().toISOString() : null,
     });
+  };
+
+  const handleIntegrationAction = async (id: IntegrationId) => {
+    const userId = getChatUserId();
+    if (!userId) return;
+
+    if (OAUTH_INTEGRATIONS.has(id)) {
+      const conn = settings.integrations[id];
+      if (conn.connected) {
+        patchUi({ savingSection: "integrations", error: null });
+        try {
+          await patchIntegrationApi(userId, id as IntegrationProvider, false, getApiBaseUrl());
+          patchIntegration(id, { connected: false, lastSyncedAt: null });
+          saveAgentSettings(userId, {
+            ...settings,
+            integrations: {
+              ...settings.integrations,
+              [id]: { connected: false, lastSyncedAt: null },
+            },
+          });
+        } catch (e) {
+          patchUi({ error: e instanceof Error ? e.message : "연동 해제 실패" });
+        } finally {
+          patchUi({ savingSection: null });
+        }
+        return;
+      }
+      const next = `${routes.lifestyle.settings}?tab=integrations`;
+      window.location.href = integrationOAuthStartUrl(
+        id as IntegrationProvider,
+        userId,
+        next
+      );
+      return;
+    }
+
+    toggleIntegrationLocal(id);
   };
 
   const patchBriefing = (patch: Partial<AgentBriefingSettings>) => {
@@ -210,8 +278,16 @@ function AgentSettingsFormInner({
     if (!userId) return;
     patchUi({ savingSection: section, error: null, savedSection: null });
     try {
-      // TODO: PATCH /api/agent/settings/profile — userType, workTone, industry, customIndustries
-      await new Promise((r) => setTimeout(r, 450));
+      if (section === "integrations") {
+        for (const id of ["slack", "gmail"] as IntegrationProvider[]) {
+          const conn = settings.integrations[id];
+          if (conn.connected) {
+            await patchIntegrationApi(userId, id, true, getApiBaseUrl());
+          }
+        }
+      } else {
+        await new Promise((r) => setTimeout(r, 450));
+      }
       saveAgentSettings(userId, settings);
       patchUi({ savedSection: section });
     } catch (e) {
@@ -385,7 +461,7 @@ function AgentSettingsFormInner({
                         </div>
                         <button
                           type="button"
-                          onClick={() => toggleIntegration(id)}
+                          onClick={() => void handleIntegrationAction(id)}
                           className={`shrink-0 rounded-xl px-4 py-2 text-sm font-medium transition-colors ${
                             conn.connected
                               ? "border border-gray-300 text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-800"
