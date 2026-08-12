@@ -19,6 +19,10 @@ IMPORTANT_KEYWORDS = re.compile(
     r"deadline|urgent|asap|review|리뷰|긴급|마감|회신|확인\s*부탁",
     re.IGNORECASE,
 )
+URGENT_KEYWORDS = re.compile(
+    r"deadline|urgent|asap|긴급|마감",
+    re.IGNORECASE,
+)
 
 
 def _skipped(reason: str = "not_connected", *, detail: str = "Slack 연동 안 됨") -> dict[str, Any]:
@@ -39,12 +43,14 @@ def _collect_slack_digest(
     *,
     channel_ids: list[str],
     slack_user_id: str | None,
-) -> tuple[list[dict[str, str]], int]:
+    since_seconds: float = 86400,
+    urgent_only: bool = False,
+) -> tuple[list[dict[str, str]], int, list[dict[str, str]]]:
     from slack_sdk import WebClient
     from slack_sdk.errors import SlackApiError
 
     client = WebClient(token=token)
-    oldest = str(time.time() - 86400)
+    oldest = str(time.time() - since_seconds)
 
     if not channel_ids:
         try:
@@ -68,6 +74,7 @@ def _collect_slack_digest(
             raise
 
     items: list[dict[str, str]] = []
+    urgent_hits: list[dict[str, str]] = []
     seen: set[str] = set()
 
     for channel_id in channel_ids[:8]:
@@ -104,7 +111,11 @@ def _collect_slack_digest(
                 continue
 
             category = ""
-            if slack_user_id and f"<@{slack_user_id}>" in text:
+            has_mention = bool(slack_user_id and f"<@{slack_user_id}>" in text)
+            has_urgent = bool(URGENT_KEYWORDS.search(text))
+            if has_mention and has_urgent:
+                category = "urgent_mention"
+            elif slack_user_id and has_mention:
                 category = "mention"
             elif slack_user_id and msg_user == slack_user_id:
                 reply_count = int(msg.get("reply_count") or 0)
@@ -113,6 +124,8 @@ def _collect_slack_digest(
             elif IMPORTANT_KEYWORDS.search(text):
                 category = "keyword"
 
+            if urgent_only and category != "urgent_mention":
+                continue
             if not category:
                 continue
 
@@ -133,14 +146,26 @@ def _collect_slack_digest(
                     "title": preview[:60] or "메시지",
                     "meta": meta,
                     "preview": preview,
+                    "channel_id": channel_id,
+                    "ts": str(ts or ""),
                 }
             )
+            if category == "urgent_mention":
+                urgent_hits.append(
+                    {
+                        "title": preview[:60] or "메시지",
+                        "meta": meta,
+                        "preview": preview,
+                        "channel_id": channel_id,
+                        "ts": str(ts or ""),
+                    }
+                )
             if len(items) >= 15:
                 break
         if len(items) >= 15:
             break
 
-    return items, len(channel_ids)
+    return items, len(channel_ids), urgent_hits
 
 
 async def fetch_slack_digest(session: AsyncSession, user_id: int) -> dict[str, Any]:
@@ -161,7 +186,7 @@ async def fetch_slack_digest(session: AsyncSession, user_id: int) -> dict[str, A
     uid = slack_user_id if isinstance(slack_user_id, str) else None
 
     try:
-        items, channel_count = await asyncio.to_thread(
+        items, channel_count, _ = await asyncio.to_thread(
             _collect_slack_digest,
             token,
             channel_ids=channel_ids,
@@ -195,4 +220,61 @@ async def fetch_slack_digest(session: AsyncSession, user_id: int) -> dict[str, A
         "params": {"channels": channel_count, "since": "24h", "hits": len(items)},
         "items": items,
         "summary": f"Slack 요약 {len(items)}건 (멘션·미응답·키워드)",
+    }
+
+
+async def fetch_slack_urgent_since(
+    session: AsyncSession,
+    user_id: int,
+    *,
+    since_seconds: float,
+) -> dict[str, Any]:
+    """감시 주기 내 긴급 키워드 + 본인 멘션 Slack 메시지."""
+    from orchestration.app.watcher.types import DetectedIssue
+
+    repo = IntegrationPgRepository(session)
+    row = await repo.get(user_id, "slack")
+    if not repo._is_connected(row):
+        return {"source": "slack", "status": "skipped", "issues": []}
+
+    token = (row.access_token or "").strip()
+    meta = row.metadata_json if isinstance(row.metadata_json, dict) else {}
+    channel_ids = [
+        str(x).strip()
+        for x in (meta.get("channel_ids") or [])
+        if isinstance(x, str) and str(x).strip()
+    ]
+    slack_user_id = meta.get("slack_user_id")
+    uid = slack_user_id if isinstance(slack_user_id, str) else None
+
+    try:
+        _, channel_count, urgent_hits = await asyncio.to_thread(
+            _collect_slack_digest,
+            token,
+            channel_ids=channel_ids,
+            slack_user_id=uid,
+            since_seconds=since_seconds,
+            urgent_only=True,
+        )
+    except Exception as exc:
+        logger.warning("[slack_urgent] fetch failed user_id=%s: %s", user_id, exc)
+        return {"source": "slack", "status": "error", "issues": []}
+
+    issues: list[DetectedIssue] = []
+    for hit in urgent_hits:
+        cid = hit.get("channel_id") or "?"
+        ts = hit.get("ts") or "?"
+        issues.append(
+            DetectedIssue(
+                alert_type="slack_urgent",
+                trigger_key=f"slack:{cid}:{ts}",
+                summary="Slack 긴급 멘션",
+                detail=hit.get("preview") or hit.get("title") or "긴급 메시지",
+            )
+        )
+    return {
+        "source": "slack",
+        "status": "success",
+        "params": {"channels": channel_count, "since_seconds": since_seconds},
+        "issues": issues,
     }

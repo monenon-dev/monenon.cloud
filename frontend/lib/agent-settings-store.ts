@@ -37,6 +37,10 @@ export type AgentBriefingSettings = {
   channels: BriefingChannel[];
   /** 매일 아침 Slack DM / 이메일로 브리핑 요약 수신 */
   morningNotify: boolean;
+  /** 일정 밀집·겹침 감지 시 능동 알림 */
+  alertCalendarDensity: boolean;
+  /** 긴급 Slack/메일 감지 시 능동 알림 */
+  alertUrgentMessages: boolean;
 };
 
 export type AgentSettings = {
@@ -134,6 +138,8 @@ export function defaultAgentSettings(): AgentSettings {
       time: "09:00",
       channels: ["in_app"],
       morningNotify: false,
+      alertCalendarDensity: false,
+      alertUrgentMessages: false,
     },
   };
 }
@@ -160,6 +166,10 @@ function mergeSettings(raw: Partial<AgentSettings> | null): AgentSettings {
       ...raw.briefing,
       channels: raw.briefing?.channels ?? base.briefing.channels,
       morningNotify: raw.briefing?.morningNotify ?? base.briefing.morningNotify,
+      alertCalendarDensity:
+        raw.briefing?.alertCalendarDensity ?? base.briefing.alertCalendarDensity,
+      alertUrgentMessages:
+        raw.briefing?.alertUrgentMessages ?? base.briefing.alertUrgentMessages,
     },
   };
 }

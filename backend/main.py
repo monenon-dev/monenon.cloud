@@ -40,6 +40,8 @@ try:
     import orchestration.adapter.outbound.orm.orchestration_orm  # noqa: F401 — 오케스트레이션 테이블 metadata
     import orchestration.adapter.outbound.orm.daily_briefing_orm  # noqa: F401 — daily_briefings
     import orchestration.adapter.outbound.orm.user_integration_orm  # noqa: F401 — user_integrations
+    import orchestration.adapter.outbound.orm.proactive_alert_orm  # noqa: F401
+    import orchestration.adapter.outbound.orm.user_notification_settings_orm  # noqa: F401
 except ModuleNotFoundError:
     pass
 try:
@@ -289,7 +291,19 @@ async def lifespan(app: FastAPI):
         start_briefing_scheduler()
     except Exception as e:
         logger.warning("Briefing scheduler start skipped: %s", e)
+    try:
+        from orchestration.app.watcher.scheduler import start_watcher_scheduler
+
+        start_watcher_scheduler()
+    except Exception as e:
+        logger.warning("Watcher scheduler start skipped: %s", e)
     yield
+    try:
+        from orchestration.app.watcher.scheduler import stop_watcher_scheduler
+
+        stop_watcher_scheduler()
+    except Exception as e:
+        logger.warning("Watcher scheduler shutdown skipped: %s", e)
     try:
         from orchestration.app.briefing.scheduler import stop_briefing_scheduler
 

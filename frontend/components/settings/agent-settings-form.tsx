@@ -25,6 +25,7 @@ import {
   patchIntegration as patchIntegrationApi,
   type IntegrationProvider,
 } from "@/lib/integrations-api";
+import { fetchNotificationSettings, patchNotificationSettings } from "@/lib/notification-settings-api";
 import { getChatUserId } from "@/lib/chat-user";
 import {
   BRIEFING_CHANNEL_OPTIONS,
@@ -178,6 +179,13 @@ function AgentSettingsFormInner({
       } catch {
         /* API 미배포 시 localStorage mock 유지 */
       }
+      try {
+        const notify = await fetchNotificationSettings(userId, getApiBaseUrl());
+        loaded.briefing.alertCalendarDensity = notify.alert_calendar_density;
+        loaded.briefing.alertUrgentMessages = notify.alert_urgent_messages;
+      } catch {
+        /* notification settings API 미배포 시 local 유지 */
+      }
       setSettings(loaded);
     } catch (e) {
       patchUi({ error: e instanceof Error ? e.message : "불러오기 실패" });
@@ -291,6 +299,14 @@ function AgentSettingsFormInner({
         await patchBriefingNotify(
           userId,
           settings.briefing.morningNotify,
+          getApiBaseUrl()
+        );
+        await patchNotificationSettings(
+          userId,
+          {
+            alert_calendar_density: settings.briefing.alertCalendarDensity,
+            alert_urgent_messages: settings.briefing.alertUrgentMessages,
+          },
           getApiBaseUrl()
         );
         await new Promise((r) => setTimeout(r, 200));
@@ -598,6 +614,52 @@ function AgentSettingsFormInner({
                       />
                     </button>
                   </div>
+                </div>
+
+                <div className="space-y-3 rounded-xl border border-gray-200 bg-gray-50/80 p-4 dark:border-gray-700 dark:bg-gray-900/50">
+                  <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                    상황 감지 알림
+                  </p>
+                  {[
+                    {
+                      key: "alertCalendarDensity" as const,
+                      label: "일정이 몰리면 미리 알려주기",
+                      hint: "3시간 내 미팅이 몰리거나 일정이 겹치면 알림",
+                    },
+                    {
+                      key: "alertUrgentMessages" as const,
+                      label: "긴급 메시지/메일 감지 시 알려주기",
+                      hint: "Slack 긴급 멘션·마감 임박 메일을 감지하면 알림",
+                    },
+                  ].map((item) => (
+                    <div key={item.key} className="flex items-start justify-between gap-4">
+                      <div>
+                        <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                          {item.label}
+                        </p>
+                        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{item.hint}</p>
+                      </div>
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={settings.briefing[item.key]}
+                        onClick={() =>
+                          patchBriefing({ [item.key]: !settings.briefing[item.key] })
+                        }
+                        className={`relative inline-flex h-7 w-12 shrink-0 rounded-full transition-colors ${
+                          settings.briefing[item.key]
+                            ? "bg-indigo-600"
+                            : "bg-gray-300 dark:bg-gray-600"
+                        }`}
+                      >
+                        <span
+                          className={`absolute top-0.5 size-6 rounded-full bg-white shadow transition-transform ${
+                            settings.briefing[item.key] ? "left-5" : "left-0.5"
+                          }`}
+                        />
+                      </button>
+                    </div>
+                  ))}
                 </div>
               </div>
 
