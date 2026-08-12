@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 
 import { AgentPreview } from "@/components/home/agent-preview";
+import { WeeklyReportPanel } from "@/components/home/weekly-report-panel";
 import { HomeCtaSection } from "@/components/home/home-cta-section";
 import { HomeFooter } from "@/components/home/home-footer";
 import { IntroOverlay } from "@/components/home/intro-overlay";
@@ -29,6 +30,7 @@ import {
   needsProfileOnboarding,
 } from "@/lib/mypage-preferences";
 import { routes } from "@/lib/routes";
+import { fetchWeeklyReport, type WeeklyReport } from "@/lib/weekly-report-api";
 
 type AuthUser = { nickname: string; role: string };
 
@@ -38,6 +40,7 @@ const FEATURE_PROMO_CARDS: {
   description: string;
   href?: string;
   prompt?: string;
+  action?: "weekly-report";
 }[] = [
   {
     icon: BriefcaseBusiness,
@@ -58,7 +61,7 @@ const FEATURE_PROMO_CARDS: {
     title: "업무 리포트 생성",
     description:
       "진행 현황·리스크·다음 액션을 한 페이지 리포트로 뽑아 공유 준비를 마칩니다.",
-    prompt: "이번 주 업무 진행 상황을 리포트로 정리해 줘",
+    action: "weekly-report",
   },
 ];
 
@@ -67,6 +70,10 @@ export default function MoneoHomePage() {
   const [ui, setUi] = useState({
     sidebarOpen: false,
     authUser: null as AuthUser | null,
+    weeklyReportOpen: false,
+    weeklyReportLoading: false,
+    weeklyReportError: null as string | null,
+    weeklyReport: null as WeeklyReport | null,
   });
 
   const patchUi = (patch: Partial<typeof ui>) =>
@@ -75,6 +82,35 @@ export default function MoneoHomePage() {
   const navigateToChat = (prompt: string) => {
     const nonce = saveChatStarter(prompt);
     router.push(buildChatsUrl(prompt, nonce));
+  };
+
+  const openWeeklyReport = async () => {
+    const session = getAuthSession();
+    if (!session) {
+      router.push(routes.oauth.login);
+      return;
+    }
+    patchUi({
+      weeklyReportOpen: true,
+      weeklyReportLoading: true,
+      weeklyReportError: null,
+      weeklyReport: null,
+    });
+    try {
+      const prefs = loadMyPagePreferences(session.user_id);
+      const report = await fetchWeeklyReport(session.user_id, {
+        speechTone: prefs.speech_tone,
+        userType: prefs.user_type,
+        industry: prefs.industry,
+      });
+      patchUi({ weeklyReportLoading: false, weeklyReport: report });
+    } catch (err) {
+      patchUi({
+        weeklyReportLoading: false,
+        weeklyReportError:
+          err instanceof Error ? err.message : "주간 리포트를 생성하지 못했습니다.",
+      });
+    }
   };
 
   useEffect(() => {
@@ -178,6 +214,14 @@ export default function MoneoHomePage() {
                     key={card.title}
                     type="button"
                     onClick={() => {
+                      if (card.action === "weekly-report") {
+                        if (!ui.authUser) {
+                          router.push(routes.oauth.login);
+                          return;
+                        }
+                        void openWeeklyReport();
+                        return;
+                      }
                       if (!card.prompt) return;
                       if (!ui.authUser) {
                         const nonce = saveChatStarter(card.prompt);
@@ -200,6 +244,20 @@ export default function MoneoHomePage() {
         <HomeCtaSection />
         <HomeFooter />
       </div>
+
+      <WeeklyReportPanel
+        open={ui.weeklyReportOpen}
+        loading={ui.weeklyReportLoading}
+        error={ui.weeklyReportError}
+        report={ui.weeklyReport}
+        onClose={() =>
+          patchUi({
+            weeklyReportOpen: false,
+            weeklyReportLoading: false,
+            weeklyReportError: null,
+          })
+        }
+      />
     </div>
   );
 }

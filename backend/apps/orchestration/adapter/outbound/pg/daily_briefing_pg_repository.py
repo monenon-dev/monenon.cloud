@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import date
+from datetime import date, timedelta
 from typing import Any
 
 from sqlalchemy import select
@@ -27,6 +27,28 @@ class DailyBriefingPgRepository:
             )
         )
         return result.scalar_one_or_none()
+
+    async def list_recent_for_user(
+        self,
+        user_id: int,
+        *,
+        days: int = 7,
+    ) -> list[DailyBriefing]:
+        """최근 N일(오늘 포함) daily_briefings를 날짜 오름차순으로 반환."""
+        from orchestration.app.use_cases.get_or_create_today_briefing import today_seoul
+
+        end = today_seoul()
+        start = end - timedelta(days=max(days, 1) - 1)
+        result = await self._session.execute(
+            select(DailyBriefing)
+            .where(
+                DailyBriefing.user_id == user_id,
+                DailyBriefing.briefing_date >= start,
+                DailyBriefing.briefing_date <= end,
+            )
+            .order_by(DailyBriefing.briefing_date.asc())
+        )
+        return list(result.scalars().all())
 
     async def insert_idempotent(
         self,

@@ -44,8 +44,12 @@ except ModuleNotFoundError:
     pass
 try:
     from orchestration.adapter.inbound.api.v1 import orchestration_router
+    from orchestration.adapter.inbound.api.schemas.weekly_report_schema import (
+        WeeklyReportRequest,
+    )
 except ModuleNotFoundError:
     orchestration_router = None
+    WeeklyReportRequest = None  # type: ignore[misc, assignment]
 try:
     from secretary.adapter.inbound.api.v1 import secretary_router
 except Exception as e:
@@ -570,6 +574,44 @@ async def agent_briefing_today(
     except Exception as e:
         logger.exception("[agent_briefing_today] failed: %s", e)
         return JSONResponse({"detail": "오늘의 브리핑을 불러오지 못했습니다."}, status_code=502)
+    return payload
+
+
+@app.post("/agent/report/weekly")
+async def agent_weekly_report(
+    body: WeeklyReportRequest,
+    session: AsyncSession = Depends(get_db),
+):
+    """최근 7일 daily_briefings를 종합한 주간 업무 리포트 (동기 생성)."""
+    from orchestration.app.use_cases.run_weekly_report import run_weekly_report
+    from secretary.adapter.outbound.orm.user_model import User
+    from sqlalchemy import select
+
+    user_row = await session.execute(select(User).where(User.id == body.user_id))
+    if user_row.scalar_one_or_none() is None:
+        return JSONResponse({"detail": "사용자를 찾을 수 없습니다."}, status_code=404)
+
+    speech_tone = body.speech_tone
+    user_type = body.user_type
+    industry = body.industry
+
+    try:
+        payload = await run_weekly_report(
+            session=session,
+            user_id=body.user_id,
+            speech_tone=speech_tone,
+            user_type=user_type,
+            industry=industry,
+        )
+    except ValueError as e:
+        return JSONResponse({"detail": str(e)}, status_code=400)
+    except GeminiQuotaError as e:
+        return JSONResponse({"detail": str(e)}, status_code=429)
+    except RuntimeError as e:
+        return JSONResponse({"detail": str(e)}, status_code=503)
+    except Exception as e:
+        logger.exception("[agent_weekly_report] failed: %s", e)
+        return JSONResponse({"detail": "주간 리포트 생성에 실패했습니다."}, status_code=502)
     return payload
 
 
