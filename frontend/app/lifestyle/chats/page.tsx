@@ -33,6 +33,7 @@ import {
   GUEST_DAILY_LIMIT,
 } from "@/lib/guest-chat";
 import { loadMyPagePreferences } from "@/lib/mypage-preferences";
+import { callAgentChatApi } from "@/lib/agent-chat-api";
 import { routes, chatsSessionUrl } from "@/lib/routes";
 import { getApiBaseUrl } from "@/lib/api-base";
 import { fetchTodayBriefing } from "@/lib/briefing-api";
@@ -48,39 +49,20 @@ const GUEST_SUGGESTIONS = [
 
 async function callAgentChat(text: string, userId: number): Promise<GeminiChatMessage> {
   const prefs = loadMyPagePreferences(userId);
-  const { speechTone, userType, industry } = prefs;
-  const res = await fetch(`${apiBaseUrl.replace(/\/$/, "")}/agent/chat`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      prompt: text,
-      user_id: userId,
-      speech_tone: speechTone,
-      user_type: userType,
-      industry,
-    }),
+  const data = await callAgentChatApi(text, userId, {
+    apiBaseUrl,
+    speechTone: prefs.speechTone,
+    userType: prefs.userType,
+    industry: prefs.industry,
   });
-  const raw: unknown = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    const detail =
-      typeof raw === "object" &&
-      raw !== null &&
-      "detail" in raw &&
-      typeof (raw as { detail: unknown }).detail === "string"
-        ? (raw as { detail: string }).detail
-        : `요청 실패 (${res.status})`;
-    throw new Error(detail);
-  }
-  if (typeof raw !== "object" || raw === null || typeof (raw as { answer?: unknown }).answer !== "string") {
-    throw new Error("응답에 answer가 없습니다.");
-  }
-  const data = raw as { answer: string; confidence?: number; sources?: string[] };
   return {
     role: "assistant",
-    text: data.answer,
+    text: data.content,
     ts: new Date().toISOString(),
     confidence: data.confidence,
     sources: data.sources,
+    responseType: data.type,
+    toolLogs: data.tool_logs,
   };
 }
 

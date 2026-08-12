@@ -29,6 +29,8 @@ export type AgentMessageContentProps = {
   className?: string;
   onRegenerate?: () => void;
   onSaveDocument?: () => void;
+  /** 지정 시 텍스트 추론 대신 고정 카드 스타일(briefing/report) 적용 */
+  kind?: ResponseKind;
 };
 
 type ResponseKind = "briefing" | "organize" | "report" | "general";
@@ -354,8 +356,12 @@ export function AgentMessageContent({
   className = "",
   onRegenerate,
   onSaveDocument,
+  kind: kindProp,
 }: AgentMessageContentProps) {
-  const kind = useMemo(() => inferKind(text), [text]);
+  const kind = useMemo(
+    () => kindProp ?? inferKind(text),
+    [kindProp, text]
+  );
   const summary = useMemo(() => summarize(kind, text), [kind, text]);
   const parsed = useMemo(() => splitByH2(text), [text]);
   const collapsible = parsed.sections.length >= 3;

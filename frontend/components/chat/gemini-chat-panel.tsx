@@ -16,6 +16,8 @@ import {
   AgentMessageContent,
   AgentStreamingPlaceholder,
 } from "@/components/chat/agent-message-content";
+import { ChatToolStreamPanel } from "@/components/chat/chat-tool-stream-panel";
+import type { AgentChatResponseType } from "@/lib/agent-chat-api";
 import {
   Tooltip,
   TooltipContent,
@@ -24,6 +26,7 @@ import {
 import { getTitanicApiBaseUrl } from "@/lib/api-base";
 import { formatMessageTime } from "@/lib/chat-sessions";
 import { type PdfBlobUploadResult, uploadPdfToBlob } from "@/lib/pdf-blob-api";
+import type { ToolCallResult } from "@/components/home/tool-stream";
 
 export interface GeminiChatMessage {
   role: "user" | "assistant";
@@ -32,6 +35,8 @@ export interface GeminiChatMessage {
   model?: string;
   confidence?: number;
   sources?: string[];
+  responseType?: AgentChatResponseType;
+  toolLogs?: ToolCallResult[];
 }
 
 interface ChatApiResponse {
@@ -41,8 +46,11 @@ interface ChatApiResponse {
 
 interface AgentChatResponse {
   answer: string;
+  content?: string;
+  type?: AgentChatResponseType;
   confidence: number;
   sources: string[];
+  tool_logs?: ToolCallResult[];
 }
 
 export interface GeminiChatPanelProps {
@@ -111,19 +119,35 @@ function buildRequestBody(
 function parseAssistantReply(
   path: string,
   raw: unknown
-): Pick<GeminiChatMessage, "text" | "confidence" | "sources"> & { model?: string } {
+): Pick<
+  GeminiChatMessage,
+  "text" | "confidence" | "sources" | "responseType" | "toolLogs"
+> & { model?: string } {
   if (typeof raw !== "object" || raw === null) {
     throw new Error("응답 형식이 올바르지 않습니다.");
   }
   if (isAgentChatPath(path)) {
     const data = raw as AgentChatResponse;
-    if (typeof data.answer !== "string") {
-      throw new Error("응답에 answer가 없습니다.");
+    const text =
+      typeof data.content === "string"
+        ? data.content
+        : typeof data.answer === "string"
+          ? data.answer
+          : "";
+    if (!text) {
+      throw new Error("응답에 content가 없습니다.");
     }
+    const responseType =
+      data.type === "briefing" || data.type === "report" || data.type === "chat"
+        ? data.type
+        : "chat";
+    const toolLogs = Array.isArray(data.tool_logs) ? data.tool_logs : [];
     return {
-      text: data.answer,
+      text,
       confidence: data.confidence,
       sources: data.sources,
+      responseType,
+      toolLogs,
     };
   }
   const data = raw as ChatApiResponse;
@@ -267,6 +291,8 @@ export function GeminiChatPanel({
           model: parsed.model,
           confidence: parsed.confidence,
           sources: parsed.sources,
+          responseType: parsed.responseType,
+          toolLogs: parsed.toolLogs,
         };
       }
 
@@ -316,6 +342,12 @@ export function GeminiChatPanel({
   const confidencePct =
     (c: number | undefined) =>
       `${(typeof c === "number" && c <= 1 ? c * 100 : Number(c ?? 0)).toFixed(1)}%`;
+
+  const messageKind = (msg: GeminiChatMessage): "briefing" | "report" | undefined => {
+    if (msg.responseType === "briefing") return "briefing";
+    if (msg.responseType === "report") return "report";
+    return undefined;
+  };
 
   return (
     <div className={`flex h-full min-h-0 flex-col overflow-hidden gap-3 ${className}`}>
@@ -404,9 +436,19 @@ export function GeminiChatPanel({
                 ) : (
                   <AgentMessageContent
                     text={msg.text}
+                    kind={messageKind(msg)}
                     onRegenerate={isLastAssistant ? regenerate : undefined}
                   />
                 )}
+                {msg.role === "assistant" &&
+                  msg.toolLogs &&
+                  msg.toolLogs.length > 0 &&
+                  isLastAssistant ? (
+                  <ChatToolStreamPanel
+                    toolLogs={msg.toolLogs}
+                    className="mt-3"
+                  />
+                ) : null}
                 {msg.role === "assistant" &&
                   (msg.model ||
                     (msg.confidence !== undefined && msg.confidence > 0) ||

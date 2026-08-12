@@ -515,31 +515,27 @@ def chat_guest(body: ChatMessageBody, request: Request):
 
 @app.post("/agent/chat")
 async def agent_chat(body: AgentChatBody, session: AsyncSession = Depends(get_db)):
-    """프론트 Monenon 채팅 — 응답 우선 모델로 Gemini 호출."""
-    from orchestration.app.agent_system_prompt import with_agent_system_prompt
-    from orchestration.app.chat_context import augment_prompt_with_user_context
+    """프론트 Monenon 채팅 — 의도 분류 후 브리핑·리포트 그래프 또는 Gemini."""
+    from orchestration.app.use_cases.run_agent_chat import run_agent_chat
 
-    prompt = body.prompt
     if body.user_id is not None:
-        prompt = await augment_prompt_with_user_context(session, body.user_id, prompt)
         logger.info(
             "[agent_chat] user_id=%s speech_tone=%s user_type=%s industry=%s prompt_chars=%s",
             body.user_id,
             body.speech_tone,
             body.user_type,
             body.industry,
-            len(prompt),
+            len(body.prompt),
         )
-    prompt = with_agent_system_prompt(
-        prompt,
-        speech_tone=body.speech_tone,
-        user_type=body.user_type,
-        industry=body.industry,
-    )
     try:
-        km = get_keymaker()
-        chat_model = km.gemini_chat_model_id()
-        answer = call_gemini(prompt, model=chat_model)
+        return await run_agent_chat(
+            session,
+            prompt=body.prompt,
+            user_id=body.user_id,
+            speech_tone=body.speech_tone,
+            user_type=body.user_type,
+            industry=body.industry,
+        )
     except ValueError as e:
         return JSONResponse({"detail": str(e)}, status_code=400)
     except GeminiQuotaError as e:
@@ -547,8 +543,8 @@ async def agent_chat(body: AgentChatBody, session: AsyncSession = Depends(get_db
     except RuntimeError as e:
         return JSONResponse({"detail": str(e)}, status_code=503)
     except Exception as e:
+        logger.exception("[agent_chat] failed: %s", e)
         return JSONResponse({"detail": str(e)}, status_code=502)
-    return {"answer": answer, "confidence": 0.0, "sources": []}
 
 
 @app.get("/agent/briefing/today")
