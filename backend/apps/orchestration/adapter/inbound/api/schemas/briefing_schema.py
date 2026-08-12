@@ -17,3 +17,12 @@ class BriefingResponse(BaseModel):
     answer: str
     trace: list[dict]
     agent_results: dict
+    tool_logs: list[dict] = Field(default_factory=list)
+
+
+class TodayBriefingResponse(BaseModel):
+    content: str
+    tool_logs: list[dict] = Field(default_factory=list)
+    briefing_date: str
+    created: bool = Field(description="이번 요청에서 새로 생성했는지")
+    id: int | None = None

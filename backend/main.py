@@ -38,6 +38,7 @@ except ModuleNotFoundError:
     pass
 try:
     import orchestration.adapter.outbound.orm.orchestration_orm  # noqa: F401 — 오케스트레이션 테이블 metadata
+    import orchestration.adapter.outbound.orm.daily_briefing_orm  # noqa: F401 — daily_briefings
 except ModuleNotFoundError:
     pass
 try:
@@ -277,7 +278,19 @@ async def lifespan(app: FastAPI):
                 await build_admin_use_case(session).seed_defaults_if_empty()
     except Exception as e:
         logger.warning("Startup DB bootstrap skipped: %s", e)
+    try:
+        from orchestration.app.briefing.scheduler import start_briefing_scheduler
+
+        start_briefing_scheduler()
+    except Exception as e:
+        logger.warning("Briefing scheduler start skipped: %s", e)
     yield
+    try:
+        from orchestration.app.briefing.scheduler import stop_briefing_scheduler
+
+        stop_briefing_scheduler()
+    except Exception as e:
+        logger.warning("Briefing scheduler shutdown skipped: %s", e)
     try:
         from lol.neo4j import close_driver
 
@@ -517,6 +530,46 @@ async def agent_chat(body: AgentChatBody, session: AsyncSession = Depends(get_db
     except Exception as e:
         return JSONResponse({"detail": str(e)}, status_code=502)
     return {"answer": answer, "confidence": 0.0, "sources": []}
+
+
+@app.get("/agent/briefing/today")
+async def agent_briefing_today(
+    user_id: int,
+    speech_tone: str | None = None,
+    user_type: str | None = None,
+    industry: str | None = None,
+    session: AsyncSession = Depends(get_db),
+):
+    """오늘자 능동적 브리핑 — 없으면 LangGraph로 동기 생성 후 반환."""
+    from orchestration.app.use_cases.get_or_create_today_briefing import (
+        get_or_create_today_briefing,
+    )
+    from secretary.adapter.outbound.orm.user_model import User
+    from sqlalchemy import select
+
+    if user_id < 1:
+        return JSONResponse({"detail": "user_id가 필요합니다."}, status_code=400)
+    user_row = await session.execute(select(User).where(User.id == user_id))
+    if user_row.scalar_one_or_none() is None:
+        return JSONResponse({"detail": "사용자를 찾을 수 없습니다."}, status_code=404)
+    try:
+        payload = await get_or_create_today_briefing(
+            session,
+            user_id=user_id,
+            speech_tone=speech_tone,
+            user_type=user_type,
+            industry=industry,
+        )
+    except ValueError as e:
+        return JSONResponse({"detail": str(e)}, status_code=400)
+    except GeminiQuotaError as e:
+        return JSONResponse({"detail": str(e)}, status_code=429)
+    except RuntimeError as e:
+        return JSONResponse({"detail": str(e)}, status_code=503)
+    except Exception as e:
+        logger.exception("[agent_briefing_today] failed: %s", e)
+        return JSONResponse({"detail": "오늘의 브리핑을 불러오지 못했습니다."}, status_code=502)
+    return payload
 
 
 @app.get("/agent/logs")

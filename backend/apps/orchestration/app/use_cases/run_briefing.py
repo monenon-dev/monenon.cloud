@@ -7,6 +7,7 @@ from typing import Any
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from orchestration.app.briefing.graph import build_briefing_graph
+from orchestration.app.briefing.tool_logs import build_tool_logs
 
 
 async def run_briefing(
@@ -29,12 +30,23 @@ async def run_briefing(
         "trace": [],
     }
     final = await graph.ainvoke(initial)
+    history = final.get("history_result") or final.get("slack_result")
+    tool_logs = final.get("tool_logs")
+    if not isinstance(tool_logs, list) or not tool_logs:
+        tool_logs = build_tool_logs(
+            calendar=final.get("calendar_result"),
+            docs=final.get("docs_result"),
+            history=history if isinstance(history, dict) else None,
+            selected_tools=final.get("selected_tools"),
+        )
     return {
         "answer": final.get("answer", ""),
         "trace": final.get("trace") or [],
+        "tool_logs": tool_logs,
         "agent_results": {
             "calendar": final.get("calendar_result"),
             "docs": final.get("docs_result"),
+            "history": history,
             "slack": final.get("slack_result"),
         },
     }

@@ -35,8 +35,10 @@ import {
 import { loadMyPagePreferences } from "@/lib/mypage-preferences";
 import { routes, chatsSessionUrl } from "@/lib/routes";
 import { getApiBaseUrl } from "@/lib/api-base";
+import { fetchTodayBriefing } from "@/lib/briefing-api";
 
 const apiBaseUrl = getApiBaseUrl();
+const BRIEFING_INJECTED_KEY = "moneo.today_briefing_injected";
 
 const GUEST_SUGGESTIONS = [
   "오늘 일정 정리해줘",
@@ -248,6 +250,67 @@ function ChatsPageContent() {
     if (!mounted) return;
     void loadSessions();
   }, [mounted, loadSessions]);
+
+  /** 로그인 후 빈 세션에 오늘의 브리핑을 자동 표시 (하루 1회 주입). */
+  useEffect(() => {
+    if (!mounted || !userId || !activeSessionId) return;
+    if (messagesLoading || starterPrompt) return;
+    if (sessionMessages.length > 0) return;
+
+    const dayKey = new Date().toISOString().slice(0, 10);
+    const storageKey = `${BRIEFING_INJECTED_KEY}.${userId}.${dayKey}.${activeSessionId}`;
+    if (typeof window !== "undefined" && sessionStorage.getItem(storageKey)) {
+      return;
+    }
+
+    let cancelled = false;
+    const prefs = loadMyPagePreferences(userId);
+
+    void (async () => {
+      try {
+        const briefing = await fetchTodayBriefing(userId, {
+          apiBaseUrl,
+          speechTone: prefs.speechTone,
+          userType: prefs.userType,
+          industry: prefs.industry,
+        });
+        if (cancelled) return;
+        const text = `## 오늘의 브리핑\n\n${briefing.content}`.trim();
+        const assistantMsg: GeminiChatMessage = {
+          role: "assistant",
+          text,
+          ts: new Date().toISOString(),
+        };
+        setSessionMessages([assistantMsg]);
+        setMessagesEpoch((n) => n + 1);
+        sessionStorage.setItem(storageKey, "1");
+        try {
+          await saveSessionMessage(
+            activeSessionId,
+            userId,
+            "assistant",
+            text,
+            apiBaseUrl
+          );
+        } catch {
+          /* 표시는 유지 — 저장 실패는 무시 */
+        }
+      } catch {
+        /* 브리핑 실패 시 빈 채팅 유지 */
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    mounted,
+    userId,
+    activeSessionId,
+    messagesLoading,
+    starterPrompt,
+    sessionMessages.length,
+  ]);
 
   useEffect(() => {
     if (!userId || !isNewFromHome) return;

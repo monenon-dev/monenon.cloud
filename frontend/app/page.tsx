@@ -139,7 +139,11 @@ export default function MoneoHomePage() {
               </div>
 
               <div className="min-w-0 w-full">
-                <AgentPreview className="w-full" href={routes.demo} />
+                <AgentPreview
+                  className="w-full"
+                  live={Boolean(ui.authUser)}
+                  href={ui.authUser ? undefined : routes.demo}
+                />
               </div>
             </div>
 

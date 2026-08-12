@@ -7,12 +7,15 @@ import {
   ToolStream,
   type ToolCallResult,
 } from "@/components/home/tool-stream";
+import { getAuthSession } from "@/lib/auth-api";
+import { fetchTodayBriefing } from "@/lib/briefing-api";
+import { loadMyPagePreferences } from "@/lib/mypage-preferences";
 
 const CHAT_LINES = [
   { role: "user" as const, text: "오늘 오전 스탠드업 브리핑 요약해 줘." },
   {
     role: "agent" as const,
-    text: "캘린더 · Slack · 문서에서 컨텍스트를 모으는 중…",
+    text: "캘린더 · 문서 · 최근 대화에서 컨텍스트를 모으는 중…",
   },
   {
     role: "agent" as const,
@@ -20,7 +23,7 @@ const CHAT_LINES = [
   },
 ];
 
-/** Demo fixtures — injected into ToolStream (not defined inside the UI component). */
+/** Demo fixtures — 비로그인 미리보기용. */
 const TOOL_CALL_FIXTURES: Omit<ToolCallResult, "id" | "timestamp">[] = [
   {
     toolName: "calendar.list",
@@ -42,25 +45,16 @@ const TOOL_CALL_FIXTURES: Omit<ToolCallResult, "id" | "timestamp">[] = [
     params: { q: "Q3 plan", top_k: 5 },
   },
   {
-    toolName: "email.draft",
+    toolName: "history.digest",
     status: "success",
-    params: { to: "team@moneo.ai" },
+    params: { limit: 12 },
     result: {
-      type: "draft",
+      type: "list",
       items: [
-        {
-          title: "Re: Morning standup brief",
-          meta: "team@moneo.ai",
-          preview:
-            "팀 여러분, 오늘 스탠드업에서 나온 액션 아이템 3건과 리스크 1건을 공유합니다…",
-        },
+        { title: "나", meta: "user", preview: "오늘 일정 정리해줘" },
+        { title: "에이전트", meta: "assistant", preview: "오전 스탠드업과 디자인 싱크가 있습니다." },
       ],
     },
-  },
-  {
-    toolName: "slack.digest",
-    status: "pending",
-    params: { channels: 3, since: "08:00" },
   },
   {
     toolName: "docs.search",
@@ -71,42 +65,9 @@ const TOOL_CALL_FIXTURES: Omit<ToolCallResult, "id" | "timestamp">[] = [
       items: [
         {
           title: "q3-roadmap.md",
-          preview:
-            "North-star: reduce time-to-brief for ops agents under 45s…",
+          preview: "North-star: reduce time-to-brief for ops agents under 45s…",
           score: 0.91,
         },
-        {
-          title: "planning/notes-0612.txt",
-          preview: "Risk: vendor SLA drift on calendar sync path…",
-          score: 0.74,
-        },
-        {
-          title: "archive/old-okr.md",
-          preview: "Legacy OKR draft — mostly superseded by roadmap.",
-          score: 0.41,
-        },
-      ],
-    },
-  },
-  {
-    toolName: "vector.query",
-    status: "error",
-    params: { top_k: 8, collection: "ops_docs" },
-    error: {
-      code: "VECTOR_TIMEOUT",
-      message: "Timed out waiting for embedding index (ops_docs).",
-    },
-  },
-  {
-    toolName: "slack.digest",
-    status: "success",
-    params: { channels: 3 },
-    result: {
-      type: "list",
-      items: [
-        { title: "#ops-alerts", meta: "14 msgs" },
-        { title: "#product", meta: "6 msgs" },
-        { title: "#moneo-agent", meta: "9 msgs" },
       ],
     },
   },
@@ -120,6 +81,8 @@ const STREAM_LIST_MIN_H = "16.5rem";
 const PREVIEW_BODY_HEIGHT = `calc(${STREAM_LIST_MIN_H} + 3.75rem)`;
 
 type LiveToolItem = ToolCallResult & { exiting?: boolean };
+
+type PreviewChatLine = { role: "user" | "agent"; text: string };
 
 function clockStamp(): string {
   const d = new Date();
@@ -147,39 +110,121 @@ function scrollPanelBottom(el: HTMLElement | null) {
 export function AgentPreview({
   className = "",
   href,
+  live = false,
 }: {
   className?: string;
   /** When set, the whole preview becomes a link to the demo page. */
   href?: string;
+  /** 로그인 사용자 — /agent/briefing/today 실데이터 */
+  live?: boolean;
 }) {
+  const [ui, setUi] = useState({
+    mode: "demo" as "demo" | "live" | "loading" | "error",
+    chatLines: CHAT_LINES as PreviewChatLine[],
+    toolLogs: [] as ToolCallResult[],
+    error: null as string | null,
+  });
   const [chat, setChat] = useState({ chars: 0, line: 0 });
   const chatScrollRef = useRef<HTMLDivElement>(null);
 
-  const line = CHAT_LINES[chat.line] ?? CHAT_LINES[0];
+  useEffect(() => {
+    if (!live) {
+      setUi({
+        mode: "demo",
+        chatLines: CHAT_LINES,
+        toolLogs: [],
+        error: null,
+      });
+      return;
+    }
+
+    const session = getAuthSession();
+    if (!session) {
+      setUi({
+        mode: "demo",
+        chatLines: CHAT_LINES,
+        toolLogs: [],
+        error: null,
+      });
+      return;
+    }
+
+    let cancelled = false;
+    setUi((prev) => ({ ...prev, mode: "loading", error: null }));
+    const prefs = loadMyPagePreferences(session.user_id);
+
+    void (async () => {
+      try {
+        const briefing = await fetchTodayBriefing(session.user_id, {
+          speechTone: prefs.speechTone,
+          userType: prefs.userType,
+          industry: prefs.industry,
+        });
+        if (cancelled) return;
+        setUi({
+          mode: "live",
+          chatLines: [
+            { role: "agent", text: "오늘의 브리핑" },
+            { role: "agent", text: briefing.content },
+          ],
+          toolLogs: briefing.tool_logs,
+          error: null,
+        });
+        setChat({ chars: 0, line: 0 });
+      } catch (e) {
+        if (cancelled) return;
+        setUi({
+          mode: "error",
+          chatLines: [
+            {
+              role: "agent",
+              text:
+                e instanceof Error
+                  ? e.message
+                  : "오늘의 브리핑을 불러오지 못했습니다.",
+            },
+          ],
+          toolLogs: [],
+          error: e instanceof Error ? e.message : "briefing_error",
+        });
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [live]);
+
+  const lines = ui.chatLines.length > 0 ? ui.chatLines : CHAT_LINES;
+  const line = lines[Math.min(chat.line, lines.length - 1)] ?? lines[0];
   const visibleText = line.text.slice(0, chat.chars);
+  const isLive = ui.mode === "live" || ui.mode === "loading" || ui.mode === "error";
 
   useEffect(() => {
+    if (ui.mode === "loading") return;
     const full = line.text;
     if (chat.chars < full.length) {
       const id = window.setTimeout(() => {
         setChat((prev) => ({ ...prev, chars: prev.chars + 1 }));
-      }, 28);
+      }, isLive ? 12 : 28);
       return () => window.clearTimeout(id);
     }
+    if (chat.line >= lines.length - 1) return;
     const id = window.setTimeout(() => {
       setChat((prev) => ({
-        line: (prev.line + 1) % CHAT_LINES.length,
+        line: prev.line + 1,
         chars: 0,
       }));
-    }, 1200);
+    }, isLive ? 400 : 1200);
     return () => window.clearTimeout(id);
-  }, [chat.chars, chat.line, line.text]);
+  }, [chat.chars, chat.line, line.text, lines.length, ui.mode, isLive]);
 
   useEffect(() => {
     scrollPanelBottom(chatScrollRef.current);
   }, [chat.chars, chat.line]);
 
   const panelClassName = `relative flex flex-col rounded-2xl border border-white/10 bg-[rgba(18,18,28,0.72)] shadow-[0_0_40px_rgba(99,102,241,0.18)] backdrop-blur-md [overflow-anchor:none] ${className}`;
+  const linkHref = isLive ? undefined : href;
 
   const inner = (
     <>
@@ -188,7 +233,11 @@ export function AgentPreview({
         <span className="size-2.5 rounded-full bg-amber-400/80" />
         <span className="size-2.5 rounded-full bg-emerald-400/80" />
         <span className="ml-2 font-mono text-[11px] tracking-wide text-indigo-200/70">
-          agent · live session
+          {ui.mode === "live"
+            ? "agent · today briefing"
+            : ui.mode === "loading"
+              ? "agent · loading briefing…"
+              : "agent · live session"}
         </span>
       </div>
 
@@ -200,20 +249,26 @@ export function AgentPreview({
           ref={chatScrollRef}
           className="moneo-thin-scrollbar space-y-3 overflow-y-auto overscroll-contain border-b border-white/10 p-4 [overflow-anchor:none] md:min-h-0 md:border-b-0 md:border-r"
         >
-          {CHAT_LINES.slice(0, chat.line).map((msg, i) => (
-            <PreviewBubble key={`${msg.role}-${i}`} role={msg.role} text={msg.text} done />
-          ))}
-          <PreviewBubble
-            role={line.role}
-            text={visibleText}
-            typing={chat.chars < line.text.length}
-          />
+          {ui.mode === "loading" ? (
+            <PreviewBubble role="agent" text="오늘의 브리핑을 준비하는 중…" typing />
+          ) : (
+            <>
+              {lines.slice(0, chat.line).map((msg, i) => (
+                <PreviewBubble key={`${msg.role}-${i}`} role={msg.role} text={msg.text} done />
+              ))}
+              <PreviewBubble
+                role={line.role}
+                text={visibleText}
+                typing={chat.chars < line.text.length}
+              />
+            </>
+          )}
         </div>
 
-        <ToolStreamPanel />
+        <ToolStreamPanel liveLogs={ui.mode === "live" ? ui.toolLogs : null} />
       </div>
 
-      {href ? (
+      {linkHref ? (
         <span
           className="pointer-events-none absolute bottom-3 right-3 rounded-md border border-indigo-400/30 bg-indigo-500/15 px-2 py-1 text-[11px] font-medium text-indigo-200 opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-visible:opacity-100"
           aria-hidden
@@ -224,10 +279,10 @@ export function AgentPreview({
     </>
   );
 
-  if (href) {
+  if (linkHref) {
     return (
       <Link
-        href={href}
+        href={linkHref}
         className={`group block w-full text-left transition-[transform,box-shadow,border-color] duration-200 ease-out hover:scale-[1.01] hover:border-indigo-400/35 hover:shadow-[0_0_48px_rgba(99,102,241,0.28)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500/60 ${panelClassName}`}
         aria-label="멀티에이전트 오케스트레이션 데모 보기"
       >
@@ -243,7 +298,7 @@ export function AgentPreview({
   );
 }
 
-function ToolStreamPanel() {
+function ToolStreamPanel({ liveLogs }: { liveLogs: ToolCallResult[] | null }) {
   const [stream, setStream] = useState({
     items: [] as LiveToolItem[],
     seq: 0,
@@ -251,6 +306,52 @@ function ToolStreamPanel() {
   const streamScrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    if (liveLogs === null) return;
+    if (liveLogs.length === 0) {
+      setStream({ items: [], seq: 0 });
+      return;
+    }
+
+    let cancelled = false;
+    setStream({ items: [], seq: 0 });
+    let index = 0;
+
+    const pushNext = () => {
+      if (cancelled || index >= liveLogs.length) return;
+      const fixture = liveLogs[index]!;
+      index += 1;
+      setStream((prev) => {
+        const next: LiveToolItem = { ...fixture };
+        const active = prev.items.filter((i) => !i.exiting);
+        const exiting = prev.items.filter((i) => i.exiting);
+        let activeNext = [next, ...active];
+        let overflow: LiveToolItem[] = [];
+        if (activeNext.length > MAX_VISIBLE) {
+          overflow = activeNext.slice(MAX_VISIBLE).map((item) => ({
+            ...item,
+            exiting: true,
+          }));
+          activeNext = activeNext.slice(0, MAX_VISIBLE);
+        }
+        return {
+          items: [...activeNext, ...overflow, ...exiting],
+          seq: prev.seq + 1,
+        };
+      });
+      if (index < liveLogs.length) {
+        window.setTimeout(pushNext, 900);
+      }
+    };
+
+    pushNext();
+    return () => {
+      cancelled = true;
+    };
+  }, [liveLogs]);
+
+  useEffect(() => {
+    if (liveLogs !== null) return;
+
     const spawn = () => {
       setStream((prev) => {
         const fixture = pickFixture(prev.seq);
@@ -280,7 +381,7 @@ function ToolStreamPanel() {
     spawn();
     const id = window.setInterval(spawn, ADD_INTERVAL_MS);
     return () => window.clearInterval(id);
-  }, []);
+  }, [liveLogs]);
 
   useEffect(() => {
     const exiting = stream.items.filter((i) => i.exiting);
@@ -294,8 +395,8 @@ function ToolStreamPanel() {
     return () => window.clearTimeout(id);
   }, [stream.items]);
 
-  // Promote pending fixtures that have a success payload in the catalog
   useEffect(() => {
+    if (liveLogs !== null) return;
     const pending = stream.items.find(
       (i) => !i.exiting && i.status === "pending"
     );
@@ -319,30 +420,6 @@ function ToolStreamPanel() {
                       "North-star: reduce time-to-brief for ops agents under 45s…",
                     score: 0.88,
                   },
-                  {
-                    title: "standup-template.md",
-                    preview: "Agenda · blockers · owners — keep under 8 min.",
-                    score: 0.63,
-                  },
-                  {
-                    title: "noise/wiki-dump.md",
-                    preview: "Unrelated wiki dump — low relevance.",
-                    score: 0.37,
-                  },
-                ],
-              },
-            };
-          }
-          if (item.toolName === "slack.digest") {
-            return {
-              ...item,
-              status: "success" as const,
-              result: {
-                type: "list" as const,
-                items: [
-                  { title: "#ops-alerts", meta: "11 msgs" },
-                  { title: "#product", meta: "4 msgs" },
-                  { title: "#moneo-agent", meta: "7 msgs" },
                 ],
               },
             };
@@ -352,7 +429,7 @@ function ToolStreamPanel() {
       }));
     }, PROMOTE_PENDING_MS);
     return () => window.clearTimeout(id);
-  }, [stream.items]);
+  }, [stream.items, liveLogs]);
 
   useEffect(() => {
     scrollPanelTop(streamScrollRef.current, 0);
@@ -372,21 +449,25 @@ function ToolStreamPanel() {
       >
         <ToolStream
           items={visibleItems}
-          onRetry={(item) => {
-            setStream((prev) => ({
-              ...prev,
-              items: prev.items.map((row) =>
-                row.id === item.id
-                  ? {
-                      ...row,
-                      status: "pending",
-                      error: undefined,
-                      result: undefined,
-                    }
-                  : row
-              ),
-            }));
-          }}
+          onRetry={
+            liveLogs
+              ? undefined
+              : (item) => {
+                  setStream((prev) => ({
+                    ...prev,
+                    items: prev.items.map((row) =>
+                      row.id === item.id
+                        ? {
+                            ...row,
+                            status: "pending",
+                            error: undefined,
+                            result: undefined,
+                          }
+                        : row
+                    ),
+                  }));
+                }
+          }
         />
       </div>
     </div>
@@ -413,7 +494,7 @@ function PreviewBubble({
         </div>
       )}
       <div
-        className={`max-w-[92%] rounded-xl px-3 py-2 text-sm leading-relaxed ${
+        className={`max-w-[92%] rounded-xl px-3 py-2 text-sm leading-relaxed whitespace-pre-wrap ${
           isUser
             ? "bg-indigo-500/25 text-indigo-50 border border-indigo-400/20"
             : "bg-white/[0.04] text-zinc-200 border border-white/10"
