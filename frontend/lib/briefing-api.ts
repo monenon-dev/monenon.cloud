@@ -1,5 +1,5 @@
 import { getApiBaseUrl } from "@/lib/api-base";
-import type { ToolCallResult } from "@/components/home/tool-stream";
+import type { ToolCallResult, ToolNodeStatus } from "@/components/home/tool-stream";
 
 export type TodayBriefing = {
   content: string;
@@ -9,17 +9,40 @@ export type TodayBriefing = {
   id?: number | null;
 };
 
+const NODE_STATUSES: ToolNodeStatus[] = [
+  "success",
+  "error",
+  "pending",
+  "running",
+  "failed",
+  "retrying",
+];
+
 function isToolCallResult(value: unknown): value is ToolCallResult {
   if (typeof value !== "object" || value === null) return false;
   const row = value as Record<string, unknown>;
-  return (
-    typeof row.id === "string" &&
-    typeof row.timestamp === "string" &&
-    typeof row.toolName === "string" &&
-    (row.status === "success" || row.status === "error" || row.status === "pending") &&
-    typeof row.params === "object" &&
-    row.params !== null
-  );
+  if (
+    typeof row.id !== "string" ||
+    typeof row.timestamp !== "string" ||
+    typeof row.toolName !== "string" ||
+    typeof row.params !== "object" ||
+    row.params === null
+  ) {
+    return false;
+  }
+  if (!NODE_STATUSES.includes(row.status as ToolNodeStatus)) return false;
+  return true;
+}
+
+function normalizeToolLog(value: unknown): ToolCallResult | null {
+  if (!isToolCallResult(value)) return null;
+  const row = value as ToolCallResult & Record<string, unknown>;
+  return {
+    ...row,
+    node: typeof row.node === "string" ? row.node : undefined,
+    attempt: typeof row.attempt === "number" ? row.attempt : undefined,
+    detail: typeof row.detail === "string" ? row.detail : undefined,
+  };
 }
 
 export async function fetchTodayBriefing(
@@ -60,7 +83,9 @@ export async function fetchTodayBriefing(
     throw new Error("브리핑 본문이 없습니다.");
   }
   const logsRaw = Array.isArray(data.tool_logs) ? data.tool_logs : [];
-  const tool_logs = logsRaw.filter(isToolCallResult);
+  const tool_logs = logsRaw
+    .map(normalizeToolLog)
+    .filter((x): x is ToolCallResult => x !== null);
   return {
     content: data.content,
     tool_logs,

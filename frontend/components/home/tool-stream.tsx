@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
+  AlertTriangle,
   CheckCircle2,
   ChevronRight,
   Loader2,
@@ -9,11 +10,19 @@ import {
   XCircle,
 } from "lucide-react";
 
+export type ToolNodeStatus =
+  | "success"
+  | "error"
+  | "pending"
+  | "running"
+  | "failed"
+  | "retrying";
+
 export interface ToolCallResult {
   id: string;
   timestamp: string;
   toolName: string;
-  status: "success" | "error" | "pending";
+  status: ToolNodeStatus;
   params: Record<string, string | number>;
   result?: {
     type: "rag" | "list" | "draft";
@@ -28,6 +37,12 @@ export interface ToolCallResult {
     code: string;
     message: string;
   };
+  /** LangGraph 노드명 (확장) */
+  node?: string;
+  /** synthesizer/validator 재시도 회차 */
+  attempt?: number;
+  /** 짧은 상태 설명 */
+  detail?: string;
 }
 
 export type ToolStreamProps = {
@@ -46,6 +61,54 @@ function formatParams(params: Record<string, string | number>): string {
   return Object.entries(params)
     .map(([k, v]) => `${k}=${v}`)
     .join(" · ");
+}
+
+function nodeKey(item: ToolCallResult): string {
+  return item.node || item.toolName;
+}
+
+function isTerminalSuccess(status: ToolNodeStatus): boolean {
+  return status === "success";
+}
+
+function isFailedLike(status: ToolNodeStatus): boolean {
+  return status === "failed" || status === "error";
+}
+
+function isBusy(status: ToolNodeStatus): boolean {
+  return status === "pending" || status === "running" || status === "retrying";
+}
+
+/** 같은 노드의 이후 성공이 있으면 이전 실패 시도를 흐리게 */
+function computeSuperseded(items: ToolCallResult[]): Set<string> {
+  const superseded = new Set<string>();
+  const latestSuccessAttempt = new Map<string, number>();
+
+  for (const item of items) {
+    if (!isTerminalSuccess(item.status)) continue;
+    const key = nodeKey(item);
+    const attempt = item.attempt ?? 1;
+    const prev = latestSuccessAttempt.get(key) ?? 0;
+    if (attempt >= prev) latestSuccessAttempt.set(key, attempt);
+  }
+
+  for (const item of items) {
+    const key = nodeKey(item);
+    const attempt = item.attempt ?? 1;
+    const successAt = latestSuccessAttempt.get(key);
+    if (successAt == null) continue;
+    if (isFailedLike(item.status) && attempt < successAt) {
+      superseded.add(item.id);
+    }
+    if (item.status === "retrying" && attempt <= successAt) {
+      superseded.add(item.id);
+    }
+    // running that was followed by success on same attempt — keep visible unless older pass
+    if (isBusy(item.status) && attempt < successAt) {
+      superseded.add(item.id);
+    }
+  }
+  return superseded;
 }
 
 function SimilarityBadge({ score }: { score: number }) {
@@ -214,27 +277,39 @@ function ResultBody({
   item: ToolCallResult;
   onRagItemClick?: ToolStreamProps["onRagItemClick"];
 }) {
-  if (item.status === "pending") {
+  if (isBusy(item.status)) {
+    const label =
+      item.status === "retrying"
+        ? "재시도 중…"
+        : item.detail || "실행 중…";
     return (
       <div className="flex items-center gap-2 text-[11px] text-sky-300/80">
         <Loader2 className="size-3.5 animate-spin" aria-hidden />
-        <span>검색 중…</span>
+        <span>{label}</span>
       </div>
     );
   }
 
-  if (item.status === "error" && item.error) {
+  if (isFailedLike(item.status) && (item.error || item.detail)) {
     return (
       <div className="space-y-2">
         <div className="rounded-md border border-rose-400/20 bg-rose-500/10 px-2.5 py-2">
-          <p className="font-mono text-[10px] text-rose-300/90">
-            {item.error.code}
-          </p>
+          {item.error?.code ? (
+            <p className="font-mono text-[10px] text-rose-300/90">
+              {item.error.code}
+            </p>
+          ) : null}
           <p className="mt-1 font-mono text-[11px] leading-relaxed text-rose-100/80">
-            {item.error.message}
+            {item.error?.message || item.detail}
           </p>
         </div>
       </div>
+    );
+  }
+
+  if (item.detail && !item.result) {
+    return (
+      <p className="text-[11px] leading-relaxed text-indigo-200/70">{item.detail}</p>
     );
   }
 
@@ -254,32 +329,87 @@ function ResultBody({
   }
   if (type === "list") return <ListResultBody items={items} />;
   if (type === "draft") return <DraftResultBody items={items} />;
+  if (item.detail) {
+    return (
+      <p className="text-[11px] leading-relaxed text-indigo-200/70">{item.detail}</p>
+    );
+  }
   return (
     <p className="text-[11px] text-indigo-200/50">결과 페이로드 없음</p>
   );
 }
 
-function StatusIcon({ status }: { status: ToolCallResult["status"] }) {
+function StatusIcon({ status }: { status: ToolNodeStatus }) {
+  const busy = isBusy(status);
+  const failed = isFailedLike(status);
+  const ok = isTerminalSuccess(status);
   return (
     <span className="relative mt-0.5 size-3.5 shrink-0">
       <Loader2
         className={`absolute inset-0 size-3.5 animate-spin text-sky-400 transition-opacity duration-300 ${
-          status === "pending" ? "opacity-100" : "opacity-0"
+          busy ? "opacity-100" : "opacity-0"
         }`}
         aria-hidden
       />
       <XCircle
         className={`absolute inset-0 size-3.5 text-rose-400 transition-opacity duration-300 ${
-          status === "error" ? "opacity-100" : "opacity-0"
+          failed ? "opacity-100" : "opacity-0"
         }`}
         aria-hidden
       />
       <CheckCircle2
         className={`absolute inset-0 size-3.5 text-emerald-400 transition-opacity duration-300 ${
-          status === "success" ? "opacity-100" : "opacity-0"
+          ok ? "opacity-100" : "opacity-0"
         }`}
         aria-hidden
       />
+    </span>
+  );
+}
+
+function AttemptBadge({
+  attempt,
+  status,
+  superseded,
+}: {
+  attempt?: number;
+  status: ToolNodeStatus;
+  superseded: boolean;
+}) {
+  if (attempt == null || attempt < 1) return null;
+  const label = `${attempt}차 시도`;
+  return (
+    <span
+      className={`inline-flex shrink-0 items-center rounded border px-1 py-0.5 font-mono text-[9px] tracking-wide ${
+        superseded
+          ? "border-white/10 text-indigo-200/40 line-through"
+          : status === "retrying"
+            ? "border-amber-400/35 bg-amber-500/10 text-amber-200/90"
+            : isFailedLike(status)
+              ? "border-rose-400/30 bg-rose-500/10 text-rose-200/80"
+              : "border-indigo-400/25 bg-indigo-500/10 text-indigo-200/80"
+      }`}
+    >
+      {label}
+    </span>
+  );
+}
+
+function AutoRecheckBadge({ item }: { item: ToolCallResult }) {
+  const node = nodeKey(item);
+  const isValidator = node === "validator" || item.toolName.includes("validate");
+  if (!isValidator) return null;
+  const detail = item.detail || "";
+  const show =
+    isFailedLike(item.status) ||
+    detail.includes("재호출") ||
+    detail.includes("자동 재검증") ||
+    detail.includes("경고");
+  if (!show) return null;
+  return (
+    <span className="inline-flex shrink-0 items-center gap-0.5 rounded border border-amber-400/35 bg-amber-500/15 px-1 py-0.5 text-[9px] font-medium text-amber-100/90">
+      <AlertTriangle className="size-2.5" aria-hidden />
+      {isFailedLike(item.status) ? "검증 실패" : "자동 재검증됨"}
     </span>
   );
 }
@@ -298,6 +428,8 @@ export function ToolStream({
     expanded: {} as Record<string, boolean>,
   });
 
+  const supersededIds = useMemo(() => computeSuperseded(items), [items]);
+
   const toggle = (id: string) => {
     setUi((prev) => ({
       expanded: { ...prev.expanded, [id]: !prev.expanded[id] },
@@ -309,13 +441,17 @@ export function ToolStream({
       {items.map((item) => {
         const open = Boolean(ui.expanded[item.id]);
         const paramLine = formatParams(item.params);
+        const superseded = supersededIds.has(item.id);
+        const subtitle = item.detail || paramLine || "—";
         return (
           <div
             key={item.id}
-            className={`tool-stream-row overflow-hidden rounded-lg border transition-colors duration-200 ease-out ${
-              open
-                ? "border-indigo-400/25 bg-white/[0.03]"
-                : "border-white/5 bg-white/[0.02] hover:bg-white/[0.035]"
+            className={`tool-stream-row overflow-hidden rounded-lg border transition-[colors,opacity] duration-200 ease-out ${
+              superseded
+                ? "border-white/[0.04] bg-white/[0.01] opacity-45"
+                : open
+                  ? "border-indigo-400/25 bg-white/[0.03]"
+                  : "border-white/5 bg-white/[0.02] hover:bg-white/[0.035]"
             }`}
           >
             <button
@@ -326,12 +462,30 @@ export function ToolStream({
             >
               <StatusIcon status={item.status} />
               <div className="min-w-0 flex-1 font-mono text-[11px] leading-snug">
-                <p className="truncate text-indigo-100/45">{item.timestamp}</p>
-                <p className="truncate text-indigo-100" title={item.toolName}>
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <p className="truncate text-indigo-100/45">{item.timestamp}</p>
+                  <AttemptBadge
+                    attempt={item.attempt}
+                    status={item.status}
+                    superseded={superseded}
+                  />
+                  <AutoRecheckBadge item={item} />
+                </div>
+                <p
+                  className={`truncate text-indigo-100 ${
+                    superseded ? "line-through decoration-indigo-200/40" : ""
+                  }`}
+                  title={item.toolName}
+                >
                   {item.toolName}
                 </p>
-                <p className="truncate text-indigo-200/55" title={paramLine}>
-                  {paramLine || "—"}
+                <p
+                  className={`truncate text-indigo-200/55 ${
+                    superseded ? "line-through decoration-indigo-200/30" : ""
+                  }`}
+                  title={subtitle}
+                >
+                  {subtitle}
                 </p>
               </div>
               <ChevronRight
@@ -356,7 +510,7 @@ export function ToolStream({
                     />
                     <div className="min-w-0 flex-1 space-y-2">
                       <ResultBody item={item} onRagItemClick={onRagItemClick} />
-                      {item.status === "error" && onRetry ? (
+                      {isFailedLike(item.status) && onRetry ? (
                         <button
                           type="button"
                           onClick={(e) => {

@@ -28,6 +28,9 @@ async def run_briefing(
         "user_type": user_type,
         "industry": industry,
         "trace": [],
+        "tool_logs": [],
+        "synth_pass": 0,
+        "synth_retries": 0,
     }
     final = await graph.ainvoke(initial)
     history = final.get("history_result") or final.get("slack_result")

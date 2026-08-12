@@ -1,12 +1,32 @@
-"""브리핑 트레이스 → 프론트 ToolStream용 tool_logs 변환."""
+"""브리핑 노드 이벤트 → 프론트 ToolStream용 tool_logs."""
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
-from typing import Any
+from datetime import datetime
+from typing import Any, Literal
 from zoneinfo import ZoneInfo
 
 SEOUL = ZoneInfo("Asia/Seoul")
+
+NodeStatus = Literal["running", "success", "failed", "retrying"]
+
+_TOOL_NAME = {
+    "router": "briefing.route",
+    "calendar": "calendar.list",
+    "docs": "docs.search",
+    "history": "history.digest",
+    "synthesizer": "briefing.synthesize",
+    "validator": "briefing.validate",
+}
+
+_RESULT_TYPE = {
+    "calendar": "list",
+    "docs": "rag",
+    "history": "list",
+    "synthesizer": "draft",
+    "validator": "list",
+    "router": "list",
+}
 
 
 def _clock(ts: datetime | None = None) -> str:
@@ -38,23 +58,127 @@ def _items_from_agent(result: dict[str, Any] | None) -> list[dict[str, Any]]:
     return out
 
 
-def _result_type(tool_name: str) -> str:
-    if tool_name.startswith("docs."):
-        return "rag"
-    return "list"
+def make_node_event(
+    node: str,
+    *,
+    status: NodeStatus,
+    detail: str,
+    attempt: int = 1,
+    params: dict[str, str | int | float] | None = None,
+    result: dict[str, Any] | None = None,
+    error: dict[str, str] | None = None,
+    seq: int | None = None,
+    now: datetime | None = None,
+) -> dict[str, Any]:
+    """기존 ToolCallResult 필드 + node/attempt/detail 확장."""
+    stamp = _clock(now)
+    suffix = seq if seq is not None else f"{attempt}-{status}-{stamp.replace(':', '')}"
+    entry: dict[str, Any] = {
+        "id": f"briefing-{node}-{suffix}",
+        "timestamp": stamp,
+        "toolName": _TOOL_NAME.get(node, f"briefing.{node}"),
+        "status": status,
+        "params": params or {},
+        "node": node,
+        "attempt": attempt,
+        "detail": detail,
+    }
+    if error is not None:
+        entry["error"] = error
+    elif result is not None:
+        entry["result"] = result
+    elif status in ("running", "retrying"):
+        pass
+    elif status == "failed":
+        entry["error"] = {
+            "code": "NODE_FAILED",
+            "message": detail,
+        }
+    return entry
 
 
-def _status_from_agent(result: dict[str, Any] | None) -> str:
+def detail_for_tool(node: str, result: dict[str, Any] | None) -> str:
     if not isinstance(result, dict):
-        return "error"
+        return f"{node} 실행 완료"
     status = result.get("status")
-    if status in ("success", "simulated"):
-        return "success"
-    if status in ("skipped", "empty"):
-        return "success"
+    items = result.get("items") if isinstance(result.get("items"), list) else []
+    n = len(items)
+    if status == "skipped":
+        reason = result.get("reason") or "건너뜀"
+        return f"{node} 건너뜀 ({reason})"
+    if status == "empty":
+        return f"{node} 조회 완료, 항목 없음"
     if status == "error":
-        return "error"
-    return "success"
+        return f"{node} 실패: {result.get('reason') or '오류'}"
+    if node == "calendar":
+        return f"캘린더 조회 완료, 이벤트 {n}건"
+    if node == "docs":
+        return f"문서 검색 완료, 히트 {n}건"
+    if node == "history":
+        return f"최근 대화 요약 완료, 메시지 {n}건"
+    return f"{node} 완료 ({n}건)"
+
+
+def tool_result_payload(node: str, result: dict[str, Any] | None) -> dict[str, Any]:
+    items = _items_from_agent(result)
+    return {
+        "type": _RESULT_TYPE.get(node, "list"),
+        "items": items,
+    }
+
+
+def events_for_tool_node(
+    node: str,
+    result: dict[str, Any] | None,
+    *,
+    attempt: int = 1,
+    seq_base: int = 0,
+) -> list[dict[str, Any]]:
+    """running → success|failed 한 쌍."""
+    params: dict[str, str | int | float] = {}
+    if isinstance(result, dict) and isinstance(result.get("params"), dict):
+        params = {
+            k: v
+            for k, v in result["params"].items()
+            if isinstance(v, (str, int, float))
+        }
+
+    detail = detail_for_tool(node, result)
+    agent_status = (result or {}).get("status") if isinstance(result, dict) else None
+    failed = agent_status == "error"
+
+    running = make_node_event(
+        node,
+        status="running",
+        detail=f"{node} 실행 중…",
+        attempt=attempt,
+        params=params,
+        seq=seq_base,
+    )
+    if failed:
+        done = make_node_event(
+            node,
+            status="failed",
+            detail=detail,
+            attempt=attempt,
+            params=params,
+            error={
+                "code": "TOOL_ERROR",
+                "message": str((result or {}).get("reason") or detail),
+            },
+            seq=seq_base + 1,
+        )
+    else:
+        done = make_node_event(
+            node,
+            status="success",
+            detail=detail,
+            attempt=attempt,
+            params=params,
+            result=tool_result_payload(node, result),
+            seq=seq_base + 1,
+        )
+    return [running, done]
 
 
 def build_tool_logs(
@@ -65,44 +189,19 @@ def build_tool_logs(
     selected_tools: list[str] | None = None,
     now: datetime | None = None,
 ) -> list[dict[str, Any]]:
-    """ToolCallResult 호환 dict 목록."""
-    stamp = now or datetime.now(timezone.utc)
+    """레거시 폴백 — 도구 결과만 요약 이벤트로 변환."""
     selected = set(selected_tools or ["calendar", "docs", "history"])
-    sources: list[tuple[str, str, dict[str, Any] | None]] = []
-    if "calendar" in selected:
-        sources.append(("calendar.list", "calendar", calendar))
-    if "docs" in selected:
-        sources.append(("docs.search", "docs", docs))
-    if "history" in selected:
-        sources.append(("history.digest", "history", history))
-
     logs: list[dict[str, Any]] = []
-    for idx, (tool_name, _key, result) in enumerate(sources):
-        params: dict[str, Any] = {}
-        if isinstance(result, dict) and isinstance(result.get("params"), dict):
-            params = {
-                k: v
-                for k, v in result["params"].items()
-                if isinstance(v, (str, int, float))
-            }
-        items = _items_from_agent(result)
-        status = _status_from_agent(result)
-        entry: dict[str, Any] = {
-            "id": f"briefing-{tool_name}-{idx}",
-            "timestamp": _clock(stamp.astimezone(SEOUL)),
-            "toolName": tool_name,
-            "status": status,
-            "params": params,
-        }
-        if status == "error":
-            entry["error"] = {
-                "code": "TOOL_ERROR",
-                "message": str((result or {}).get("reason") or "도구 실행 실패"),
-            }
-        else:
-            entry["result"] = {
-                "type": _result_type(tool_name),
-                "items": items,
-            }
-        logs.append(entry)
+    idx = 0
+    for key, result in (
+        ("calendar", calendar),
+        ("docs", docs),
+        ("history", history),
+    ):
+        if key not in selected:
+            continue
+        pair = events_for_tool_node(key, result, attempt=1, seq_base=idx * 2)
+        # running 생략하고 완료만 (폴백 단순화)
+        logs.append(pair[-1])
+        idx += 1
     return logs

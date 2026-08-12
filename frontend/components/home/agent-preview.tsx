@@ -73,12 +73,13 @@ const TOOL_CALL_FIXTURES: Omit<ToolCallResult, "id" | "timestamp">[] = [
   },
 ];
 
-const MAX_VISIBLE = 5;
+const MAX_VISIBLE = 8;
 const ADD_INTERVAL_MS = 4800;
 const PROMOTE_PENDING_MS = 1600;
 const FADE_OUT_MS = 900;
-const STREAM_LIST_MIN_H = "16.5rem";
+const STREAM_LIST_MIN_H = "18.5rem";
 const PREVIEW_BODY_HEIGHT = `calc(${STREAM_LIST_MIN_H} + 3.75rem)`;
+const LIVE_PUSH_MS = 520;
 
 type LiveToolItem = ToolCallResult & { exiting?: boolean };
 
@@ -339,7 +340,7 @@ function ToolStreamPanel({ liveLogs }: { liveLogs: ToolCallResult[] | null }) {
         };
       });
       if (index < liveLogs.length) {
-        window.setTimeout(pushNext, 900);
+        window.setTimeout(pushNext, LIVE_PUSH_MS);
       }
     };
 

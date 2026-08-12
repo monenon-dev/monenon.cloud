@@ -23,5 +23,7 @@ class BriefingState(TypedDict, total=False):
     validation_ok: bool
     validation_notes: str
     synth_retries: int
-    tool_logs: list[dict]
+    synth_pass: int
+    # 노드마다 append (재시도 포함 전체 타임라인)
+    tool_logs: Annotated[list[dict], operator.add]
     trace: Annotated[list[dict], operator.add]
