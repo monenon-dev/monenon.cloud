@@ -35,6 +35,8 @@ export type AgentBriefingSettings = {
   frequency: BriefingFrequency;
   time: string;
   channels: BriefingChannel[];
+  /** 매일 아침 Slack DM / 이메일로 브리핑 요약 수신 */
+  morningNotify: boolean;
 };
 
 export type AgentSettings = {
@@ -103,6 +105,8 @@ export const INTEGRATION_META: {
   { id: "docs", tool: "docs.search", name: "문서 저장소" },
 ];
 
+const STORAGE_PREFIX = "moneo-agent-settings:";
+
 function storageKey(userId: number): string {
   return `${STORAGE_PREFIX}${userId}`;
 }
@@ -129,6 +133,7 @@ export function defaultAgentSettings(): AgentSettings {
       frequency: "weekdays",
       time: "09:00",
       channels: ["in_app"],
+      morningNotify: false,
     },
   };
 }
@@ -154,6 +159,7 @@ function mergeSettings(raw: Partial<AgentSettings> | null): AgentSettings {
       ...base.briefing,
       ...raw.briefing,
       channels: raw.briefing?.channels ?? base.briefing.channels,
+      morningNotify: raw.briefing?.morningNotify ?? base.briefing.morningNotify,
     },
   };
 }

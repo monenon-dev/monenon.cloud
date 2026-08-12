@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 from typing import Any
 
 from sqlalchemy import select
@@ -93,3 +93,23 @@ class DailyBriefingPgRepository:
             briefing_date,
         )
         return created
+
+    async def mark_notified(
+        self,
+        briefing_id: int,
+        *,
+        channel: str,
+    ) -> DailyBriefing | None:
+        row = await self._session.get(DailyBriefing, briefing_id)
+        if row is None:
+            return None
+        row.notified_at = datetime.now(timezone.utc)
+        row.notification_channel = channel[:32]
+        await self._session.flush()
+        await self._session.refresh(row)
+        logger.info(
+            "[DailyBriefingPgRepository] notified id=%s channel=%s",
+            briefing_id,
+            channel,
+        )
+        return row

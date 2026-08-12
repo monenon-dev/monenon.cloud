@@ -8,12 +8,18 @@ export type IntegrationStatus = {
   enabled: boolean;
   connected_at: string | null;
   last_sync_hint: string | null;
+  briefing_notify?: boolean;
+};
+
+export type IntegrationsListResult = {
+  integrations: IntegrationStatus[];
+  briefing_notify: boolean;
 };
 
 export async function fetchIntegrations(
   userId: number,
   apiBaseUrl?: string
-): Promise<IntegrationStatus[]> {
+): Promise<IntegrationsListResult> {
   const base = (apiBaseUrl ?? getApiBaseUrl()).replace(/\/$/, "");
   const res = await fetch(`${base}/orchestration/integrations?user_id=${userId}`, {
     headers: { Accept: "application/json" },
@@ -29,14 +35,17 @@ export async function fetchIntegrations(
         : `연동 상태 조회 실패 (${res.status})`;
     throw new Error(detail);
   }
-  if (
-    typeof raw !== "object" ||
-    raw === null ||
-    !Array.isArray((raw as { integrations?: unknown }).integrations)
-  ) {
-    return [];
+  if (typeof raw !== "object" || raw === null) {
+    return { integrations: [], briefing_notify: false };
   }
-  return (raw as { integrations: IntegrationStatus[] }).integrations;
+  const data = raw as { integrations?: unknown; briefing_notify?: unknown };
+  const integrations = Array.isArray(data.integrations)
+    ? (data.integrations as IntegrationStatus[])
+    : [];
+  return {
+    integrations,
+    briefing_notify: Boolean(data.briefing_notify),
+  };
 }
 
 export async function patchIntegration(
@@ -63,6 +72,40 @@ export async function patchIntegration(
     throw new Error(detail);
   }
   return raw as IntegrationStatus;
+}
+
+export async function patchBriefingNotify(
+  userId: number,
+  enabled: boolean,
+  apiBaseUrl?: string
+): Promise<IntegrationsListResult> {
+  const base = (apiBaseUrl ?? getApiBaseUrl()).replace(/\/$/, "");
+  const res = await fetch(`${base}/orchestration/integrations/briefing-notify`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify({ user_id: userId, enabled }),
+  });
+  const raw: unknown = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const detail =
+      typeof raw === "object" &&
+      raw !== null &&
+      "detail" in raw &&
+      typeof (raw as { detail: unknown }).detail === "string"
+        ? (raw as { detail: string }).detail
+        : `브리핑 알림 설정 저장 실패 (${res.status})`;
+    throw new Error(detail);
+  }
+  if (typeof raw !== "object" || raw === null) {
+    return { integrations: [], briefing_notify: enabled };
+  }
+  const data = raw as { integrations?: unknown; briefing_notify?: unknown };
+  return {
+    integrations: Array.isArray(data.integrations)
+      ? (data.integrations as IntegrationStatus[])
+      : [],
+    briefing_notify: Boolean(data.briefing_notify),
+  };
 }
 
 export function integrationOAuthStartUrl(

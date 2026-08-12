@@ -33,13 +33,18 @@ async def run_morning_briefing_job() -> None:
     from orchestration.app.use_cases.get_or_create_today_briefing import (
         generate_briefings_for_active_users,
     )
+    from orchestration.app.use_cases.notify_daily_briefings import (
+        notify_briefings_for_active_users,
+    )
 
     if db.async_session_factory is None:
         logger.warning("[briefing_cron] session factory 없음 — 스킵")
         return
     async with db.async_session_factory() as session:
         stats = await generate_briefings_for_active_users(session)
-        logger.info("[briefing_cron] done %s", stats)
+        logger.info("[briefing_cron] generation done %s", stats)
+        notify_stats = await notify_briefings_for_active_users(session)
+        logger.info("[briefing_cron] notify done %s", notify_stats)
 
 
 def start_briefing_scheduler() -> AsyncIOScheduler | None:

@@ -8,7 +8,10 @@ from typing import Any
 
 import httpx
 
-GMAIL_SCOPES = ("https://www.googleapis.com/auth/gmail.readonly",)
+GMAIL_SCOPES = (
+    "https://www.googleapis.com/auth/gmail.readonly",
+    "https://www.googleapis.com/auth/gmail.send",
+)
 TOKEN_URL = "https://oauth2.googleapis.com/token"
 
 

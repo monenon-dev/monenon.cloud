@@ -21,6 +21,7 @@ import { getApiBaseUrl } from "@/lib/api-base";
 import {
   fetchIntegrations,
   integrationOAuthStartUrl,
+  patchBriefingNotify,
   patchIntegration as patchIntegrationApi,
   type IntegrationProvider,
 } from "@/lib/integrations-api";
@@ -165,7 +166,7 @@ function AgentSettingsFormInner({
       const loaded = loadAgentSettings(userId);
       try {
         const remote = await fetchIntegrations(userId, getApiBaseUrl());
-        for (const row of remote) {
+        for (const row of remote.integrations) {
           const id = row.provider as IntegrationId;
           if (id !== "slack" && id !== "gmail") continue;
           loaded.integrations[id] = {
@@ -173,6 +174,7 @@ function AgentSettingsFormInner({
             lastSyncedAt: row.connected_at,
           };
         }
+        loaded.briefing.morningNotify = remote.briefing_notify;
       } catch {
         /* API 미배포 시 localStorage mock 유지 */
       }
@@ -285,6 +287,13 @@ function AgentSettingsFormInner({
             await patchIntegrationApi(userId, id, true, getApiBaseUrl());
           }
         }
+      } else if (section === "briefing") {
+        await patchBriefingNotify(
+          userId,
+          settings.briefing.morningNotify,
+          getApiBaseUrl()
+        );
+        await new Promise((r) => setTimeout(r, 200));
       } else {
         await new Promise((r) => setTimeout(r, 450));
       }
@@ -553,6 +562,41 @@ function AgentSettingsFormInner({
                         </button>
                       );
                     })}
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-gray-200 bg-gray-50/80 p-4 dark:border-gray-700 dark:bg-gray-900/50">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                        매일 아침 브리핑을 Slack/이메일로 받기
+                      </p>
+                      <p className="mt-1 text-xs leading-relaxed text-gray-500 dark:text-gray-400">
+                        연동된 Slack DM 또는 Gmail로 요약 3줄과 전체 브리핑 링크를 보냅니다.
+                        Slack·Gmail 연동이 필요하며, 발송 권한은 OAuth 재연동 시 반영됩니다.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={settings.briefing.morningNotify}
+                      onClick={() =>
+                        patchBriefing({
+                          morningNotify: !settings.briefing.morningNotify,
+                        })
+                      }
+                      className={`relative inline-flex h-7 w-12 shrink-0 rounded-full transition-colors ${
+                        settings.briefing.morningNotify
+                          ? "bg-indigo-600"
+                          : "bg-gray-300 dark:bg-gray-600"
+                      }`}
+                    >
+                      <span
+                        className={`absolute top-0.5 size-6 rounded-full bg-white shadow transition-transform ${
+                          settings.briefing.morningNotify ? "left-5" : "left-0.5"
+                        }`}
+                      />
+                    </button>
                   </div>
                 </div>
               </div>

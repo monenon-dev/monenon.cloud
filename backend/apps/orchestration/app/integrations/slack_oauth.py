@@ -11,7 +11,7 @@ SLACK_OAUTH_URL = "https://slack.com/api/oauth.v2.access"
 
 DEFAULT_SCOPES = (
     "channels:history,channels:read,groups:history,groups:read,"
-    "im:history,mpim:history,users:read"
+    "im:history,mpim:history,users:read,chat:write,im:write"
 )
 
 

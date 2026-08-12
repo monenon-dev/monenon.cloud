@@ -155,3 +155,30 @@ class IntegrationPgRepository:
         await self._session.flush()
         await self._session.refresh(row)
         return row
+
+    async def set_briefing_notify(
+        self,
+        user_id: int,
+        *,
+        enabled: bool,
+    ) -> list[UserIntegration]:
+        """연동된 slack/gmail 행의 metadata.briefing_notify 토글."""
+        updated: list[UserIntegration] = []
+        for provider in ("slack", "gmail"):
+            row = await self.get(user_id, provider)
+            if row is None:
+                continue
+            meta = dict(row.metadata_json or {})
+            meta["briefing_notify"] = enabled
+            row.metadata_json = meta
+            updated.append(row)
+        if updated:
+            await self._session.flush()
+        return updated
+
+    @staticmethod
+    def briefing_notify_enabled(row: UserIntegration | None) -> bool:
+        if row is None:
+            return False
+        meta = row.metadata_json if isinstance(row.metadata_json, dict) else {}
+        return bool(meta.get("briefing_notify"))

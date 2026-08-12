@@ -17,9 +17,14 @@ const SLACK_SCOPES = [
   "im:history",
   "mpim:history",
   "users:read",
+  "chat:write",
+  "im:write",
 ].join(",");
 
-const GMAIL_SCOPES = "https://www.googleapis.com/auth/gmail.readonly";
+const GMAIL_SCOPES = [
+  "https://www.googleapis.com/auth/gmail.readonly",
+  "https://www.googleapis.com/auth/gmail.send",
+].join(" ");
 
 function readSlackClientId(): string {
   return (
