@@ -1,4 +1,9 @@
-"""브리핑용 Gmail digest — 최근 24시간 미읽음."""
+"""브리핑·능동 감시용 Gmail 소스 — OAuth 미읽음 digest.
+
+브리핑: 최근 24h 미읽음 메일 요약.
+watcher: 감시 주기 내 마감 임박 키워드가 있는 미읽음만 ``DetectedIssue`` 로 추출.
+미연동·토큰 만료 → ``skipped``. OAuth 미설정·API 오류 → ``error``.
+"""
 
 from __future__ import annotations
 
@@ -132,7 +137,10 @@ def _fetch_gmail(
 
 
 async def fetch_gmail_digest(session: AsyncSession, user_id: int) -> dict[str, Any]:
-    """Gmail OAuth로 최근 24시간 미읽음. 연동 없으면 skipped."""
+    """브리핑 그래프용 — 최근 24시간 미읽음 Gmail digest.
+
+    미연동·토큰 만료 → ``skipped``. 메일 없음 → ``empty``. API/OAuth 설정 오류 → ``error``.
+    """
     import os
 
     repo = IntegrationPgRepository(session)
@@ -213,7 +221,10 @@ async def fetch_gmail_deadline_since(
     *,
     since_hours: float,
 ) -> dict[str, Any]:
-    """감시 주기 내 마감 임박 표현이 있는 미읽음 메일."""
+    """watcher용 — ``since_hours`` 이내 마감 임박 표현이 있는 미읽음 메일.
+
+    미연동·토큰 만료 → ``skipped`` + 빈 issues. API/OAuth 오류 → ``error`` + 빈 issues.
+    """
     import os
 
     from orchestration.app.watcher.types import DetectedIssue

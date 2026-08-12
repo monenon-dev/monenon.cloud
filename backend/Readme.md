@@ -28,6 +28,13 @@
 - 로컬 실행: (기입)
 - 검증: (기입)
 
+## Moneo 오케스트레이션 (브리핑 · 능동 알림)
+
+LangGraph 브리핑, APScheduler cron, Slack/Gmail 연동, 상황 감시형 알림의 구조는 저장소 루트 문서를 참고한다.
+
+- **[`docs/ARCHITECTURE.md`](../docs/ARCHITECTURE.md)** — 그래프 노드 순서, 설계 결정(synthesizer/validator 분리, skip 처리, 24h 억제), Mermaid 데이터 흐름도
+- 환경 변수 목록: [`backend/.env.example`](.env.example)
+
 ## 출처
 
 행동 가이드의 근간은 카파시의 관찰을 바탕으로 정리된 [forrestchang/andrej-karpathy-skills](https://github.com/forrestchang/andrej-karpathy-skills)의 `CLAUDE.md`와 같다.

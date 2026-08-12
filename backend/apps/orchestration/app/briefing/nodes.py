@@ -134,6 +134,12 @@ async def router_node(state: BriefingState) -> dict:
 
 
 async def calendar_tool_node(state: BriefingState) -> dict:
+    """LangGraph calendar 노드 — 오늘 톡캘린더 일정을 수집한다.
+
+    router가 선택하지 않았으면 ``not_selected`` 로 skip.
+    DB·user_id 없으면 Gemini 시뮬레이션 fallback.
+    연동 없음은 소스 레벨 ``skipped`` — 그래프는 계속 진행한다.
+    """
     if "calendar" not in (state.get("selected_tools") or _ALL_TOOLS):
         result = {
             "source": "calendar",
@@ -272,6 +278,11 @@ async def history_tool_node(state: BriefingState) -> dict:
 
 
 async def slack_tool_node(state: BriefingState) -> dict:
+    """LangGraph slack 노드 — 최근 24h Slack digest를 수집한다.
+
+    미선택·미연동은 ``skipped`` (실패가 아님). synthesizer는 skipped 소스를 언급하지 않는다.
+    API 오류만 ``error`` 이며, 그래프는 synthesizer까지 계속 진행한다.
+    """
     if "slack" not in (state.get("selected_tools") or _ALL_TOOLS):
         result = {
             "source": "slack",
@@ -322,6 +333,11 @@ async def slack_tool_node(state: BriefingState) -> dict:
 
 
 async def gmail_tool_node(state: BriefingState) -> dict:
+    """LangGraph gmail 노드 — 최근 24h 미읽음 Gmail digest를 수집한다.
+
+    미선택·미연동은 ``skipped``. 토큰 만료·OAuth 미설정은 소스가 skip/error 처리.
+    브리핑 전체 실패로 이어지지 않으며, validator는 근거 없는 메일 언급을 걸러낸다.
+    """
     if "gmail" not in (state.get("selected_tools") or _ALL_TOOLS):
         result = {
             "source": "gmail",
@@ -409,6 +425,11 @@ def _evidence_blobs(state: BriefingState) -> list[str]:
 
 
 async def synthesizer_node(state: BriefingState) -> dict:
+    """LangGraph synthesizer 노드 — 수집된 도구 JSON만 근거로 브리핑 초안을 작성한다.
+
+    validator 피드백(``validation_notes``)이 있으면 재합성(최대 validator 쪽에서 2회 재시도).
+    skipped 소스는 프롬프트·컨텍스트에서 제외한다. Gemini 오류 시 사용자용 오류 문구를 반환한다.
+    """
     calendar = state.get("calendar_result") or {}
     docs = state.get("docs_result") or {}
     history = state.get("history_result") or {}
@@ -521,7 +542,12 @@ async def synthesizer_node(state: BriefingState) -> dict:
 
 
 async def validator_node(state: BriefingState) -> dict:
-    """Synthesizer 결과가 도구 근거에 기반하는지 검사."""
+    """LangGraph validator 노드 — synthesizer 초안이 도구 근거와 일치하는지 검사한다.
+
+    synthesizer와 역할을 분리해 생성 측이 스스로 완료를 과대 보고하지 않게 한다.
+    실패 시 ``validation_ok=False`` + 피드백으로 synthesizer 재호출(최대 2회).
+    재시도 한도 초과 시 경고와 함께 강제 승인한다.
+    """
     answer = (state.get("answer") or "").strip()
     evidence = _evidence_blobs(state)
     pass_n = max(1, int(state.get("synth_pass") or 1))

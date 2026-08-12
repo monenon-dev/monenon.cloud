@@ -1,4 +1,9 @@
-"""브리핑용 캘린더 데이터 — 톡캘린더 연동 우선."""
+"""브리핑·능동 감시용 캘린더 소스 — 톡캘린더(Kakao) 연동.
+
+브리핑 그래프의 calendar 노드와 watcher의 일정 밀집/겹침 감지가 공용한다.
+연동이 꺼져 있거나 동의가 없으면 ``status: skipped`` 로 반환해 그래프 전체는 계속 진행한다.
+API·토큰 오류만 ``status: error`` 이다.
+"""
 
 from __future__ import annotations
 
@@ -85,7 +90,10 @@ async def fetch_calendar_window(
     *,
     hours_ahead: float = 3.0,
 ) -> dict[str, Any]:
-    """지금부터 hours_ahead 시간 내 일정 (감시·브리핑 공용)."""
+    """지금부터 ``hours_ahead`` 시간 내 일정을 조회한다 (watcher·브리핑 공용).
+
+    연동 off / 동의 없음 → ``skipped``. API 실패 → ``error``. 일정 없음 → ``success`` + 빈 items.
+    """
     now = datetime.now(SEOUL)
     end = now + timedelta(hours=hours_ahead)
     events, err = await _load_calendar_events(session, user_id, from_at=now, to_at=end)
@@ -109,6 +117,10 @@ def detect_calendar_density(
     threshold: int,
     hours_ahead: float = 3.0,
 ) -> list[Any]:
+    """앞 ``hours_ahead`` 시간 내 일정 수가 ``threshold`` 이상이면 ``DetectedIssue`` 목록 반환.
+
+    watcher 전용. 브리핑 그래프에서는 호출하지 않는다. 해당 없으면 빈 리스트.
+    """
     from orchestration.app.watcher.types import DetectedIssue
 
     now = datetime.now(SEOUL)
@@ -138,6 +150,10 @@ def detect_calendar_density(
 
 
 def detect_calendar_conflicts(events: list[dict[str, Any]]) -> list[Any]:
+    """겹치는 일정 쌍을 찾아 ``DetectedIssue`` 목록으로 반환 (watcher 전용).
+
+    시간 정보가 없는 이벤트는 건너뛴다. 겹침이 없으면 빈 리스트.
+    """
     from orchestration.app.watcher.types import DetectedIssue
 
     parsed: list[tuple[datetime, datetime, str, str]] = []
@@ -170,7 +186,11 @@ def detect_calendar_conflicts(events: list[dict[str, Any]]) -> list[Any]:
 
 
 async def fetch_today_calendar(session: AsyncSession, user_id: int) -> dict[str, Any]:
-    """톡캘린더에서 오늘 일정을 조회한다. 연동 없으면 skipped."""
+    """브리핑 그래프용 — 오늘(Asia/Seoul) 일정을 조회한다.
+
+    연동 off / 동의 없음 → ``skipped`` (브리핑은 다른 소스로 계속).
+    API 실패 → ``error``. 일정 없음 → ``success`` + 빈 items.
+    """
     if not await is_kakao_calendar_sync_enabled(session, user_id):
         return {"source": "calendar", "status": "skipped", "reason": "sync_off", "items": []}
 

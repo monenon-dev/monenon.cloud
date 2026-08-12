@@ -1,4 +1,9 @@
-"""브리핑용 Slack digest — 최근 24시간 메시지 요약."""
+"""브리핑·능동 감시용 Slack 소스 — Bot Token digest.
+
+브리핑: 최근 24h 멘션·키워드·미응답 메시지 요약.
+watcher: 동일 기간 긴급 키워드 + 본인 멘션만 ``DetectedIssue`` 로 추출.
+미연동은 ``skipped`` (그래프/감시 체인 중단 없음). API 오류만 ``error``.
+"""
 
 from __future__ import annotations
 
@@ -169,7 +174,10 @@ def _collect_slack_digest(
 
 
 async def fetch_slack_digest(session: AsyncSession, user_id: int) -> dict[str, Any]:
-    """Slack Bot Token으로 최근 24시간 digest. 연동 없으면 skipped."""
+    """브리핑 그래프용 — 최근 24시간 Slack digest.
+
+    미연동 → ``skipped``. 메시지 없음 → ``empty``. API 실패 → ``error``.
+    """
     repo = IntegrationPgRepository(session)
     row = await repo.get(user_id, "slack")
     if not repo._is_connected(row):
@@ -229,7 +237,10 @@ async def fetch_slack_urgent_since(
     *,
     since_seconds: float,
 ) -> dict[str, Any]:
-    """감시 주기 내 긴급 키워드 + 본인 멘션 Slack 메시지."""
+    """watcher용 — ``since_seconds`` 이내 긴급 키워드 + 본인 멘션 메시지.
+
+    미연동 → ``skipped`` + 빈 issues. API 실패 → ``error`` + 빈 issues.
+    """
     from orchestration.app.watcher.types import DetectedIssue
 
     repo = IntegrationPgRepository(session)
