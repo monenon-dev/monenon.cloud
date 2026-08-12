@@ -11,4 +11,18 @@ try:
 except ModuleNotFoundError:
     pass
 
-DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
+
+def _database_url_from_env() -> str:
+    for key in (
+        "DATABASE_URL",
+        "POSTGRES_URL",
+        "DATABASE_PRIVATE_URL",
+        "NEON_DATABASE_URL",
+    ):
+        val = (os.getenv(key) or "").strip()
+        if val:
+            return val
+    return ""
+
+
+DATABASE_URL = _database_url_from_env()

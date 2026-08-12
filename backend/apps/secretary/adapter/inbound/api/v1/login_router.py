@@ -24,11 +24,12 @@ login_router = APIRouter(prefix="/auth", tags=["user-login"])
 
 
 def _login_response(user: User) -> LoginSuccessResponse:
+    role = getattr(user.role, "value", user.role)
     return LoginSuccessResponse(
         access_token=secrets.token_urlsafe(48),
         user_id=user.id,
         nickname=user.nickname,
-        role=user.role.value,
+        role=str(role),
     )
 
 
@@ -50,6 +51,9 @@ async def auth_login(
     except ValueError as e:
         logger.warning("[LoginRouter] login 거부 — email=%s reason=%s", body.email, e)
         raise HTTPException(status_code=403, detail=str(e)) from e
+    except RuntimeError as e:
+        logger.error("[LoginRouter] login 설정 오류 — %s", e)
+        raise HTTPException(status_code=503, detail=str(e)) from e
     if not user:
         logger.warning("[LoginRouter] login 실패 — email=%s", body.email)
         raise HTTPException(
