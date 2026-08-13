@@ -52,13 +52,31 @@ class Keymaker:
         return self._backend_root / ".env"
 
     def load_environment(self) -> None:
-        """`.env` 로드. 이미 있는 OS env(Docker Compose 등)는 덮어쓰지 않는다."""
+        """`.env` 로드. 이미 있는 OS env(Docker Compose 등)는 덮어쓰지 않는다.
+
+        단, 키가 빈 문자열로만 잡혀 있으면(미설정과 동일) `.env` 값으로 채운다.
+        """
         repo_root_env = self._backend_root.parent / ".env"
         if repo_root_env.is_file():
             load_dotenv(repo_root_env, override=False)
         # override=False: compose 의 OLLAMA_BASE_URL=http://ollama:11434 유지
         load_dotenv(self.env_file, override=False)
+        self._fill_empty_gemini_keys_from_dotenv()
         self._env_loaded = True
+
+    def _fill_empty_gemini_keys_from_dotenv(self) -> None:
+        """OS/Compose에 GEMINI_/GOOGLE_API_KEY='' 로만 있으면 .env 실값만 채운다."""
+        if not self.env_file.is_file():
+            return
+        from dotenv import dotenv_values
+
+        values = dotenv_values(self.env_file)
+        for name in ("GEMINI_API_KEY", "GOOGLE_API_KEY"):
+            if (os.getenv(name) or "").strip():
+                continue
+            val = (values.get(name) or "").strip()
+            if val:
+                os.environ[name] = val
 
     def require_gemini_api_key(self) -> str:
         """Gemini 호출에 필요한 API 키. 없으면 RuntimeError."""
@@ -66,7 +84,8 @@ class Keymaker:
         key = (os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY") or "").strip()
         if not key:
             raise RuntimeError(
-                "GEMINI_API_KEY 또는 GOOGLE_API_KEY 환경 변수를 설정하세요. (.env 권장)"
+                "GEMINI_API_KEY 또는 GOOGLE_API_KEY 환경 변수를 설정하세요. "
+                "(backend/.env — Docker면 compose env_file에 키가 있는지 확인)"
             )
         return key
 
