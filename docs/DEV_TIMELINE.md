@@ -30,7 +30,8 @@
 
 \* `monenon.cloud` 현재 히스토리의 가장 이른 커밋은 모노레포 통합(`chore: monenon.cloud 단일 저장소로 통합`). 이전 작업은 통합 전에 분산됐을 수 있음.
 
-**계정 메모:** 1차 실습 커밋 author는 주로 `CHOSEOHEE`(`whtjgml2002@naver.com`). `trip-diner` 대량 커밋은 `ri1700`. `monenon-dev`·`ri1700` 모두 `T-Chef` / `Bit-gram` 조직 멤버이다. 아래 trip-diner 본인 담당 추정은 **`ri1700` 커밋·변경 파일 패턴**을 기준으로 한다.
+**계정 메모:** 1차 실습·2차 개인 리포의 Git author는 주로 `CHOSEOHEE` / `monenon-dev` / `모네난`.  
+`T-Chef/trip-diner` 커밋 작성자 `ri1700`은 **본인 계정이 아님** (본인 확인). 아래 trip-diner 섹션은 팀 완주 사실과 리포 전체 역할 분담만 적고, **본인 GitHub 핸들로 귀속하지 않는다.**
 
 ---
 
@@ -76,7 +77,7 @@
 | 커밋 | **87건** |
 | 참여 (커밋 작성자) | `ri1700`(75), `jinho3085`(11), `kimjuhan-95`(1) — PR `#1` 등 협업 흔적 |
 | 스택 (README) | Node.js / Express · Prisma · MySQL · JWT · React |
-| 상태 | **처음부터 마지막 수정(관리자·문의)까지 커밋이 이어진 완주 프로젝트** |
+| 상태 | **시작~마감까지 커밋이 이어진 팀 완주 프로젝트** (수료작) |
 
 **서비스 내용 (README)**
 
@@ -86,19 +87,16 @@
 - Q&A(대기/완료) · 관리자 답변
 - AI 기록 테이블 등 확장 포인트
 
-**본인 담당 추정 (`ri1700` 커밋·파일 기준)**
+**팀 커밋으로 보이는 역할 분담** (계정 ≠ 본인 단정 없음)
 
-초기 React 구조·라우터·DB 연동·로그인/회원가입부터 시작해, 후반에는 **관리자·문의(Q&A)·게시판·좋아요·프로필** 쪽에 커밋이 몰린다.
+| 커밋 작성자 | 두드러진 영역 (메시지·파일 패턴) |
+|-------------|----------------------------------|
+| `ri1700` | 로그인/회원가입, 관리자·QnA·게시판·좋아요·프로필 등 기능 다수 |
+| `jinho3085` | City 페이지, 메인·SideMenu·레이아웃 등 프론트 탐색 UI |
+| `kimjuhan-95` | 소수 커밋 |
 
-예시:
-
-- `관리자 추가` → `back/middleware/adminAuth.js`, `AdminDashboard.jsx`, `AdminLogin.jsx` 등
-- `문의하기 추가` → `adminQnA.js`, `UserQnA.jsx`, `AdminQnA.jsx`, 마이페이지 QnA
-- 메시지 패턴: `관리자 수정 완료`, `문의하기 수정완료`, `게시판 수정`, `좋아요 게시글 업데이트`, `프로필 수정완료`
-
-팀원 `jinho3085`는 City 페이지·메인·SideMenu·레이아웃 등 **프론트 탐색/레이아웃** 쪽이 두드러진다.
-
-> `monenon-dev/Trip-diner-main`에는 Initial commit 1건만 있다. **실질 완주 히스토리는 `T-Chef/trip-diner`.**
+`monenon-dev`는 `T-Chef` 조직 멤버이며, 개인 리포 `Trip-diner-main`에는 Initial commit만 있다.  
+**실질 제품 히스토리는 `T-Chef/trip-diner`.** 본인이 어떤 Git 계정/브랜치로 기여했는지는 문서에 단정하지 않는다 — 알려주시면 담당 섹션을 채운다.
 
 ### 2-2. Bitgram (`Bit-gram/*`) — 중도 정리
 
@@ -157,7 +155,7 @@ AI 업무 오케스트레이션 웹앱. Live: [https://www.monenon.cloud](https:
 ## 4. 성장 흐름
 
 2025년 중반, Rocky·Java·MariaDB·Servlet·Spring으로 **서버 사이드 웹의 기본기**를 쌓았다.  
-같은 해 말 `trip-diner`에서 Node/React 풀스택으로 **팀과 끝까지 기능을 닫아 본 경험**(관리자·QnA·커뮤니티)을 남겼고, Bitgram은 짧은 킥오프에서 멈췄다.  
+같은 해 말 팀으로 `trip-diner`를 **수료까지 완주**하며 Node/React 풀스택 협업을 경험했고, Bitgram은 짧은 킥오프에서 멈췄다.  
 2026년 중반부터는 FastAPI·Next·LLM으로 영역을 옮겨, 해커톤형 `pawprint`·시니어 금융 `jbsilverconnect`를 거쳐 **`monenon.cloud`에서 LangGraph 멀티에이전트·연동·능동 알림**까지 운영 가능한 제품 형태로 밀고 있다.  
 한 줄로 말하면, **백엔드 기초 → 팀 완주 → AI 에이전트 제품**으로 스택과 책임 범위가 넓어진 경로다.
 
@@ -167,8 +165,7 @@ AI 업무 오케스트레이션 웹앱. Live: [https://www.monenon.cloud](https:
 
 ```text
 클라우드 자바 백엔드 과정에서 Java · Servlet · MariaDB · Spring 기초를 익히고,
-팀 프로젝트 Trip-Dinner(여행 일정·커뮤니티·Q&A)를 약 2개월간 완주했습니다.
-(관리자·문의·게시판 등 백엔드/프론트 기능을 커밋으로 이어 갔습니다.)
+팀 수료작 Trip-Dinner(여행 일정·커뮤니티·Q&A)를 약 2개월간 완주한 경험이 있습니다.
 이후 AI 에이전트 과정에서 FastAPI · Next.js · LangGraph 기반으로
 Moneo(업무 브리핑·능동 알림)를 중심으로 제품을 키우고 있습니다.
 백엔드 기초 → 팀 완주 경험 → AI 오케스트레이션으로 영역을 확장 중입니다.
