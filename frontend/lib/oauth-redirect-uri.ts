@@ -1,5 +1,5 @@
-/** Vercel 기본 도메인이 www 로 리다이렉트되므로 apex 대신 www 를 쓴다. */
-const DEFAULT_PRODUCTION_ORIGIN = "https://www.monenon.cloud";
+/** 네이버·카카오 콘솔에 등록된 콜백 origin (7/21 루프 수정 이후 apex 고정). */
+const DEFAULT_PRODUCTION_ORIGIN = "https://monenon.cloud";
 
 function isLocalOrigin(origin: string): boolean {
   try {
@@ -20,17 +20,6 @@ export function getOAuthRedirectOrigin(requestOrigin?: string): string {
   }
   if (requestOrigin && isLocalOrigin(requestOrigin)) {
     return requestOrigin.replace(/\/$/, "");
-  }
-  // apex 로 들어오더라도 콜백은 www 로 통일 (apex→www 307 Hop 중 state 쿠키 유실 방지)
-  if (requestOrigin) {
-    try {
-      const url = new URL(requestOrigin);
-      if (url.hostname === "monenon.cloud" || url.hostname === "www.monenon.cloud") {
-        return DEFAULT_PRODUCTION_ORIGIN;
-      }
-    } catch {
-      /* fall through */
-    }
   }
   return DEFAULT_PRODUCTION_ORIGIN;
 }
