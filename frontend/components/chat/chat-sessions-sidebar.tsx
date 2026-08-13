@@ -165,7 +165,7 @@ export function ChatSessionsSidebar({
                           {session.message_count > 0 ? ` · ${session.message_count}개` : ""}
                         </p>
                       </button>
-                      <div className="absolute right-1 top-1.5 flex gap-0.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
+                      <div className="absolute right-1 top-1.5 flex gap-0.5 opacity-100">
                         <button
                           type="button"
                           onClick={(e) => {

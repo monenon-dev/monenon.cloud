@@ -10,6 +10,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from gemini_caller import call_gemini
 from core.matrix.vault_keymaker_secret_manager import get_keymaker
 from orchestration.app.agent_system_prompt import with_agent_system_prompt
+from orchestration.app.briefing.calendar_source import today_calendar_has_items
+from orchestration.app.briefing.demo_schedule import (
+    format_seed_done_prefix,
+    format_seed_offer_markdown,
+    is_seed_schedule_accept,
+    is_seed_schedule_decline,
+    seed_demo_calendar,
+)
 from orchestration.app.chat_context import augment_prompt_with_user_context
 from orchestration.app.chat_intent_router import ChatIntent, classify_chat_intent
 from orchestration.app.use_cases.get_or_create_today_briefing import (
@@ -19,6 +27,8 @@ from orchestration.app.use_cases.run_weekly_report import run_weekly_report
 from orchestration.app.weekly_report.format import format_weekly_report_markdown
 
 logger = logging.getLogger(__name__)
+
+_DEFAULT_BRIEFING_QUERY = "오늘 일정과 할 일 기준으로 업무 브리핑을 작성해 줘"
 
 
 def _chat_response(
@@ -82,6 +92,38 @@ async def _run_general_chat(
     )
 
 
+async def _run_briefing_response(
+    session: AsyncSession,
+    *,
+    user_id: int,
+    query: str,
+    speech_tone: str | None,
+    user_type: str | None,
+    industry: str | None,
+    force_refresh: bool,
+    content_prefix: str = "",
+) -> dict[str, Any]:
+    briefing = await get_or_create_today_briefing(
+        session,
+        user_id=user_id,
+        query=query,
+        speech_tone=speech_tone,
+        user_type=user_type,
+        industry=industry,
+        force_refresh=force_refresh,
+    )
+    body = (briefing.get("content") or "").strip()
+    content = f"{content_prefix}## 오늘의 브리핑\n\n{body}".strip() if body else f"{content_prefix}## 오늘의 브리핑".strip()
+    return _chat_response(
+        response_type="briefing",
+        content=content,
+        tool_logs=briefing.get("tool_logs"),
+        intent="briefing_request",
+        pending_review=briefing.get("pending_review"),
+        briefing_id=briefing.get("id"),
+    )
+
+
 async def run_agent_chat(
     session: AsyncSession,
     *,
@@ -97,6 +139,37 @@ async def run_agent_chat(
     if not text:
         raise ValueError("prompt가 비어 있습니다.")
 
+    # 데모 일정 제안 거절
+    if is_seed_schedule_decline(text):
+        return _chat_response(
+            response_type="chat",
+            content=(
+                "알겠습니다. 톡캘린더를 연동하거나 일정을 추가한 뒤 "
+                "다시 브리핑을 요청해 주세요."
+            ),
+            tool_logs=[],
+            intent="general_chat",
+        )
+
+    # 데모 일정 수락 → 일정 심고 브리핑 재생성
+    if user_id is not None and is_seed_schedule_accept(text):
+        items = await seed_demo_calendar(session, user_id)
+        logger.info(
+            "[agent_chat] demo calendar seeded user_id=%s items=%s",
+            user_id,
+            len(items),
+        )
+        return await _run_briefing_response(
+            session,
+            user_id=user_id,
+            query=_DEFAULT_BRIEFING_QUERY,
+            speech_tone=speech_tone,
+            user_type=user_type,
+            industry=industry,
+            force_refresh=True,
+            content_prefix=format_seed_done_prefix(items),
+        )
+
     intent = classify_chat_intent(text)
     logger.info(
         "[agent_chat] intent=%s user_id=%s force_refresh=%s",
@@ -106,7 +179,31 @@ async def run_agent_chat(
     )
 
     if intent == "briefing_request" and user_id is not None:
-        briefing = await get_or_create_today_briefing(
+        has_cal = await today_calendar_has_items(session, user_id)
+        if not has_cal:
+            logger.info(
+                "[agent_chat] empty calendar — offering demo seed user_id=%s",
+                user_id,
+            )
+            return _chat_response(
+                response_type="needs_data",
+                content=format_seed_offer_markdown(),
+                tool_logs=[],
+                intent=intent,
+                next_actions=[
+                    {
+                        "title": "네, 만들어 줘",
+                        "priority": "high",
+                        "detail": "오늘 데모 일정을 만들고 브리핑을 생성합니다.",
+                    },
+                    {
+                        "title": "아니요",
+                        "priority": "low",
+                        "detail": "일정 없이 넘어갑니다.",
+                    },
+                ],
+            )
+        return await _run_briefing_response(
             session,
             user_id=user_id,
             query=text,
@@ -114,16 +211,6 @@ async def run_agent_chat(
             user_type=user_type,
             industry=industry,
             force_refresh=force_refresh,
-        )
-        body = (briefing.get("content") or "").strip()
-        content = f"## 오늘의 브리핑\n\n{body}".strip() if body else "## 오늘의 브리핑"
-        return _chat_response(
-            response_type="briefing",
-            content=content,
-            tool_logs=briefing.get("tool_logs"),
-            intent=intent,
-            pending_review=briefing.get("pending_review"),
-            briefing_id=briefing.get("id"),
         )
 
     if intent == "report_request" and user_id is not None:

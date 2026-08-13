@@ -4,7 +4,7 @@ import type { WeeklyAction, WeeklyRisk } from "@/lib/weekly-report-api";
 
 import type { PendingReview } from "@/lib/briefing-api";
 
-export type AgentChatResponseType = "briefing" | "report" | "chat";
+export type AgentChatResponseType = "briefing" | "report" | "chat" | "needs_data";
 
 export type AgentChatResponse = {
   type: AgentChatResponseType;
@@ -112,7 +112,10 @@ function parseAgentChatResponse(raw: unknown): AgentChatResponse {
 
   const typeRaw = data.type;
   const type: AgentChatResponseType =
-    typeRaw === "briefing" || typeRaw === "report" || typeRaw === "chat"
+    typeRaw === "briefing" ||
+    typeRaw === "report" ||
+    typeRaw === "chat" ||
+    typeRaw === "needs_data"
       ? typeRaw
       : "chat";
 

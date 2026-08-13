@@ -185,13 +185,35 @@ def detect_calendar_conflicts(events: list[dict[str, Any]]) -> list[Any]:
     return issues
 
 
+async def _demo_calendar_result(
+    session: AsyncSession,
+    user_id: int,
+) -> dict[str, Any] | None:
+    from orchestration.app.briefing.demo_schedule import get_demo_calendar_items
+
+    demo = await get_demo_calendar_items(session, user_id)
+    if not demo:
+        return None
+    return {
+        "source": "calendar",
+        "status": "success",
+        "tool": "calendar.demo",
+        "params": {"range": "today", "meetings": len(demo), "demo": True},
+        "items": demo,
+        "events": [],
+    }
+
+
 async def fetch_today_calendar(session: AsyncSession, user_id: int) -> dict[str, Any]:
     """브리핑 그래프용 — 오늘(Asia/Seoul) 일정을 조회한다.
 
-    연동 off / 동의 없음 → ``skipped`` (브리핑은 다른 소스로 계속).
-    API 실패 → ``error``. 일정 없음 → ``success`` + 빈 items.
+    연동 off / 동의 없음 → 데모 일정이 있으면 사용, 없으면 ``skipped``.
+    API 실패 → ``error`` (데모 폴백). 일정 없음 → 데모 또는 ``success`` + 빈 items.
     """
     if not await is_kakao_calendar_sync_enabled(session, user_id):
+        demo = await _demo_calendar_result(session, user_id)
+        if demo:
+            return demo
         return {"source": "calendar", "status": "skipped", "reason": "sync_off", "items": []}
 
     now = datetime.now(SEOUL)
@@ -199,9 +221,16 @@ async def fetch_today_calendar(session: AsyncSession, user_id: int) -> dict[str,
     day_end = day_start + timedelta(days=1)
     events, err = await _load_calendar_events(session, user_id, from_at=day_start, to_at=day_end)
     if err:
+        demo = await _demo_calendar_result(session, user_id)
+        if demo:
+            return demo
         return {"source": "calendar", **err, "items": []}
 
     items = [_format_event(e) for e in events]
+    if not items:
+        demo = await _demo_calendar_result(session, user_id)
+        if demo:
+            return demo
     return {
         "source": "calendar",
         "status": "success",
@@ -210,3 +239,9 @@ async def fetch_today_calendar(session: AsyncSession, user_id: int) -> dict[str,
         "items": items,
         "events": events,
     }
+
+
+async def today_calendar_has_items(session: AsyncSession, user_id: int) -> bool:
+    result = await fetch_today_calendar(session, user_id)
+    items = result.get("items") if isinstance(result, dict) else None
+    return isinstance(items, list) and len(items) > 0

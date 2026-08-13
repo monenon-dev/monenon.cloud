@@ -70,6 +70,10 @@ async function callAgentChat(
     toolLogs: data.tool_logs,
     pendingReview: data.pending_review ?? null,
     briefingId: data.briefing_id ?? null,
+    quickReplies:
+      data.type === "needs_data" && data.next_actions && data.next_actions.length > 0
+        ? data.next_actions.map((a) => a.title)
+        : undefined,
   };
 }
 

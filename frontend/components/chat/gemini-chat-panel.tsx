@@ -41,6 +41,8 @@ export interface GeminiChatMessage {
   toolLogs?: ToolCallResult[];
   pendingReview?: PendingReview | null;
   briefingId?: number | null;
+  /** needs_data 등 — 클릭 시 해당 문구로 전송 */
+  quickReplies?: string[];
 }
 
 interface ChatApiResponse {
@@ -147,7 +149,10 @@ function parseAssistantReply(
       throw new Error("응답에 content가 없습니다.");
     }
     const responseType =
-      data.type === "briefing" || data.type === "report" || data.type === "chat"
+      data.type === "briefing" ||
+      data.type === "report" ||
+      data.type === "chat" ||
+      data.type === "needs_data"
         ? data.type
         : "chat";
     const toolLogs = Array.isArray(data.tool_logs) ? data.tool_logs : [];
@@ -468,6 +473,25 @@ export function GeminiChatPanel({
                     onRegenerate={isLastAssistant ? regenerate : undefined}
                   />
                 )}
+                {msg.role === "assistant" &&
+                  isLastAssistant &&
+                  !isLoading &&
+                  msg.quickReplies &&
+                  msg.quickReplies.length > 0 ? (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {msg.quickReplies.map((reply) => (
+                      <button
+                        key={reply}
+                        type="button"
+                        disabled={isLoading}
+                        onClick={() => void sendQuestion(reply)}
+                        className="rounded-lg border border-indigo-300/80 bg-indigo-50 px-3 py-1.5 text-xs font-medium text-indigo-800 hover:bg-indigo-100 disabled:opacity-50 dark:border-indigo-700 dark:bg-indigo-950/50 dark:text-indigo-200 dark:hover:bg-indigo-900/60"
+                      >
+                        {reply}
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
                 {msg.role === "assistant" &&
                   msg.toolLogs &&
                   msg.toolLogs.length > 0 &&
