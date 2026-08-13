@@ -308,35 +308,12 @@ function SectionAccordion({
 
 type SaveFormat = "md" | "txt" | "pdf";
 
-function documentTitleForKind(kind: ResponseKind): string {
-  switch (kind) {
-    case "briefing":
-      return "오늘 업무 브리핑";
-    case "report":
-      return "업무 리포트";
-    case "organize":
-      return "자료 정리";
-    default:
-      return "업무 메모";
-  }
-}
-
 function escapeHtml(raw: string): string {
   return raw
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
-}
-
-/** 인라인 마크다운 → HTML (이미 escape된 텍스트 기준) */
-function inlineMdToHtml(raw: string): string {
-  let s = escapeHtml(raw);
-  s = s.replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, '<a href="$2">$1</a>');
-  s = s.replace(/`([^`]+)`/g, "<code>$1</code>");
-  s = s.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
-  s = s.replace(/(^|[^*])\*(?!\*)(.+?)\*(?!\*)/g, "$1<em>$2</em>");
-  return s;
 }
 
 function stripInlineMd(raw: string): string {
@@ -349,180 +326,194 @@ function stripInlineMd(raw: string): string {
     .trim();
 }
 
-/** 채팅용 MD → 인쇄·PDF용 문서 HTML 본문 */
-function markdownToDocumentBodyHtml(markdown: string): string {
-  const lines = markdown.replace(/\r\n/g, "\n").split("\n");
-  const out: string[] = [];
-  let i = 0;
-  let inUl = false;
-  let inOl = false;
-  let inCode = false;
-  const codeBuf: string[] = [];
+type SimpleBrief = {
+  date: string;
+  schedule: string[];
+  todos: string[];
+};
 
-  const closeLists = () => {
-    if (inUl) {
-      out.push("</ul>");
-      inUl = false;
-    }
-    if (inOl) {
-      out.push("</ol>");
-      inOl = false;
-    }
+function normalizeLabel(text: string): string {
+  return text.replace(/^#{1,6}\s+/, "").replace(/[*_`]/g, "").replace(/[:：]\s*$/, "").trim();
+}
+
+function isNoiseItem(text: string): boolean {
+  return /예시\s*데이터|example\s*data|현재\s*예시/i.test(text);
+}
+
+function isScheduleLabel(text: string): boolean {
+  const t = normalizeLabel(text);
+  return /^(주요\s*)?일정$|주요\s*일정|오늘\s*일정|스케줄|^schedule$/i.test(t);
+}
+
+function isTodoLabel(text: string): boolean {
+  const t = normalizeLabel(text);
+  return /오늘(?:의)?\s*할\s*일|^할\s*일$|액션(\s*아이템)?|^action(s)?$|^todos?$/i.test(
+    t
+  );
+}
+
+/** 채팅 문장·중복 제목을 버리고 날짜 / 주요 일정 / 할 일만 뽑는다 */
+function extractSimpleBrief(markdown: string, fallbackDate: string): SimpleBrief {
+  const lines = markdown.replace(/\r\n/g, "\n").split("\n");
+  let date = fallbackDate;
+  let mode: "none" | "schedule" | "todos" = "none";
+  const schedule: string[] = [];
+  const todos: string[] = [];
+  const orphanLists: string[][] = [];
+  let orphan: string[] | null = null;
+
+  const flushOrphan = () => {
+    if (orphan && orphan.length > 0) orphanLists.push(orphan);
+    orphan = null;
   };
 
-  while (i < lines.length) {
-    const line = lines[i]!;
-
-    if (line.startsWith("```")) {
-      if (inCode) {
-        out.push(
-          `<pre class="code"><code>${escapeHtml(codeBuf.join("\n"))}</code></pre>`
-        );
-        codeBuf.length = 0;
-        inCode = false;
-      } else {
-        closeLists();
-        inCode = true;
-      }
-      i += 1;
-      continue;
-    }
-    if (inCode) {
-      codeBuf.push(line);
-      i += 1;
+  for (const raw of lines) {
+    const line = raw.trim();
+    if (!line || line.startsWith("```")) {
+      if (!line) flushOrphan();
       continue;
     }
 
-    if (/^\s*$/.test(line)) {
-      closeLists();
-      i += 1;
-      continue;
-    }
-
-    const h = /^(#{1,3})\s+(.+)$/.exec(line);
-    if (h) {
-      closeLists();
-      const level = h[1]!.length;
-      out.push(`<h${level}>${inlineMdToHtml(h[2]!.trim())}</h${level}>`);
-      i += 1;
-      continue;
-    }
-
-    const ul = /^[\s]*[-*•]\s+(.+)$/.exec(line);
-    if (ul) {
-      if (inOl) {
-        out.push("</ol>");
-        inOl = false;
-      }
-      if (!inUl) {
-        out.push("<ul>");
-        inUl = true;
-      }
-      out.push(`<li>${inlineMdToHtml(ul[1]!.trim())}</li>`);
-      i += 1;
-      continue;
-    }
-
-    const ol = /^[\s]*\d+[.)]\s+(.+)$/.exec(line);
-    if (ol) {
-      if (inUl) {
-        out.push("</ul>");
-        inUl = false;
-      }
-      if (!inOl) {
-        out.push("<ol>");
-        inOl = true;
-      }
-      out.push(`<li>${inlineMdToHtml(ol[1]!.trim())}</li>`);
-      i += 1;
-      continue;
-    }
-
-    closeLists();
-    out.push(`<p>${inlineMdToHtml(line.trim())}</p>`);
-    i += 1;
-  }
-  closeLists();
-  if (inCode) {
-    out.push(
-      `<pre class="code"><code>${escapeHtml(codeBuf.join("\n"))}</code></pre>`
+    const dateOnly = line.match(
+      /\d{4}년\s*\d{1,2}월\s*\d{1,2}일(?:\s*(?:요일|[월화수목금토일]))?/
     );
+    if (
+      dateOnly &&
+      !/^[-*•]\s/.test(line) &&
+      !/^\d+[.)]\s/.test(line) &&
+      !isScheduleLabel(line) &&
+      !isTodoLabel(line)
+    ) {
+      // "2026년 8월 13일 목요일" 전체 줄이 날짜면 그대로 사용
+      date = stripInlineMd(line).replace(/\s+/g, " ").trim();
+      continue;
+    }
+
+    if (isScheduleLabel(line)) {
+      flushOrphan();
+      mode = "schedule";
+      continue;
+    }
+    if (isTodoLabel(line)) {
+      flushOrphan();
+      mode = "todos";
+      continue;
+    }
+
+    if (/^#{1,6}\s+/.test(line)) {
+      flushOrphan();
+      mode = "none";
+      continue;
+    }
+
+    const bullet =
+      /^[-*•]\s+(.+)$/.exec(line) ?? /^\d+[.)]\s+(.+)$/.exec(line);
+    if (bullet) {
+      const item = stripInlineMd(bullet[1]!);
+      if (!item || isNoiseItem(item)) continue;
+      if (mode === "schedule") schedule.push(item);
+      else if (mode === "todos") todos.push(item);
+      else {
+        if (!orphan) orphan = [];
+        orphan.push(item);
+      }
+      continue;
+    }
+
+    // 채팅형 서문·설명 문장은 저장에서 제외
+    flushOrphan();
+    if (mode !== "schedule" && mode !== "todos") mode = "none";
   }
-  return out.join("\n");
+  flushOrphan();
+
+  let finalSchedule = schedule;
+  let finalTodos = todos;
+  if (finalSchedule.length === 0 && finalTodos.length === 0 && orphanLists.length > 0) {
+    finalSchedule = orphanLists[0] ?? [];
+    finalTodos = orphanLists[1] ?? [];
+  }
+
+  const uniq = (items: string[]) => [...new Set(items)];
+  return {
+    date,
+    schedule: uniq(finalSchedule),
+    todos: uniq(finalTodos),
+  };
 }
 
-/** 채팅용 MD → 메모장용 읽기 쉬운 평문 문서 */
-function markdownToPlainDocument(markdown: string, title: string, dateLabel: string): string {
-  const lines = markdown.replace(/\r\n/g, "\n").split("\n");
-  const body: string[] = [];
-  let inCode = false;
+function listOrDash(items: string[], bullet: string): string[] {
+  if (items.length === 0) return [`${bullet} (없음)`];
+  return items.map((item) => `${bullet} ${item}`);
+}
 
-  for (const line of lines) {
-    if (line.startsWith("```")) {
-      inCode = !inCode;
-      if (!inCode) body.push("");
-      continue;
-    }
-    if (inCode) {
-      body.push(line);
-      continue;
-    }
-    if (/^\s*$/.test(line)) {
-      if (body.length > 0 && body[body.length - 1] !== "") body.push("");
-      continue;
-    }
-    const h1 = /^#\s+(.+)$/.exec(line);
-    if (h1) {
-      const t = stripInlineMd(h1[1]!);
-      body.push(t, "=".repeat(Math.min(40, Math.max(8, t.length))), "");
-      continue;
-    }
-    const h2 = /^##\s+(.+)$/.exec(line);
-    if (h2) {
-      const t = stripInlineMd(h2[1]!);
-      body.push(t, "-".repeat(Math.min(40, Math.max(8, t.length))), "");
-      continue;
-    }
-    const h3 = /^###\s+(.+)$/.exec(line);
-    if (h3) {
-      body.push(`【${stripInlineMd(h3[1]!)}】`, "");
-      continue;
-    }
-    const ul = /^[\s]*[-*•]\s+(.+)$/.exec(line);
-    if (ul) {
-      body.push(`• ${stripInlineMd(ul[1]!)}`);
-      continue;
-    }
-    const ol = /^[\s]*(\d+)[.)]\s+(.+)$/.exec(line);
-    if (ol) {
-      body.push(`${ol[1]}. ${stripInlineMd(ol[2]!)}`);
-      continue;
-    }
-    body.push(stripInlineMd(line));
-  }
-
-  while (body.length > 0 && body[body.length - 1] === "") body.pop();
-
+function formatBriefTxt(brief: SimpleBrief): string {
   return [
-    title,
-    "=".repeat(Math.min(40, Math.max(12, title.length))),
-    `작성일: ${dateLabel}`,
-    "출처: Moneo",
+    `날짜: ${brief.date}`,
     "",
-    ...body,
+    "주요 일정",
+    ...listOrDash(brief.schedule, "•"),
+    "",
+    "오늘의 할 일",
+    ...listOrDash(brief.todos, "•"),
     "",
   ].join("\n");
 }
 
-function wrapMarkdownDocument(markdown: string, title: string, dateLabel: string): string {
+function formatBriefMarkdown(brief: SimpleBrief): string {
   return [
-    `# ${title}`,
+    `## 날짜`,
+    brief.date,
     "",
-    `> 작성일: ${dateLabel} · Moneo`,
+    `## 주요 일정`,
+    ...listOrDash(brief.schedule, "-"),
     "",
-    markdown.trim(),
+    `## 오늘의 할 일`,
+    ...listOrDash(brief.todos, "-"),
     "",
   ].join("\n");
+}
+
+function formatBriefPrintHtml(brief: SimpleBrief): string {
+  const li = (items: string[]) =>
+    (items.length === 0 ? ["(없음)"] : items)
+      .map((item) => `<li>${escapeHtml(item)}</li>`)
+      .join("");
+  return `<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <title>오늘 업무 브리핑</title>
+  <style>
+    body {
+      font-family: "Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+      margin: 0; color: #111; background: #fff; line-height: 1.55; font-size: 14px;
+    }
+    .sheet { max-width: 640px; margin: 0 auto; padding: 2rem 1.75rem 2.5rem; }
+    .date { font-size: 1.05rem; font-weight: 700; margin: 0 0 1.25rem; color: #0f172a; }
+    h2 {
+      font-size: 0.95rem; margin: 1.25rem 0 0.5rem; padding-bottom: 0.35rem;
+      border-bottom: 1px solid #e2e8f0; color: #0f172a;
+    }
+    ul { margin: 0; padding-left: 1.2rem; color: #334155; }
+    li { margin: 0.35rem 0; }
+    @media print { .sheet { padding: 0; max-width: none; } }
+  </style>
+</head>
+<body>
+  <article class="sheet">
+    <p class="date">날짜: ${escapeHtml(brief.date)}</p>
+    <h2>주요 일정</h2>
+    <ul>${li(brief.schedule)}</ul>
+    <h2>오늘의 할 일</h2>
+    <ul>${li(brief.todos)}</ul>
+  </article>
+  <script>
+    window.addEventListener("load", function () {
+      setTimeout(function () { window.focus(); window.print(); }, 200);
+    });
+  </script>
+</body>
+</html>`;
 }
 
 function downloadBlobFile(
@@ -546,121 +537,49 @@ function downloadBlobFile(
   return filename;
 }
 
-/** 브라우저 인쇄 → 「PDF로 저장」 — 문서 레이아웃(제목·섹션·목록) */
-function saveAsPrintPdf(markdown: string, title: string, dateLabel: string) {
-  const w = window.open("", "_blank", "noopener,noreferrer,width=840,height=900");
+/** blob URL로 문서 탭을 열어 인쇄 → PDF 저장 (빈 about:blank 방지) */
+function saveAsPrintPdf(brief: SimpleBrief) {
+  const html = formatBriefPrintHtml(brief);
+  const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const w = window.open(url, "_blank");
   if (!w) {
+    URL.revokeObjectURL(url);
     throw new Error("팝업이 차단되어 PDF 창을 열 수 없습니다.");
   }
-  const safeTitle = escapeHtml(title);
-  const bodyHtml = markdownToDocumentBodyHtml(markdown);
-  w.document.write(`<!DOCTYPE html>
-<html lang="ko">
-<head>
-  <meta charset="utf-8" />
-  <title>${safeTitle}</title>
-  <style>
-    :root { color-scheme: light; }
-    * { box-sizing: border-box; }
-    body {
-      font-family: "Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
-      margin: 0; color: #18181b; background: #fff; line-height: 1.65; font-size: 14px;
-    }
-    .sheet { max-width: 720px; margin: 0 auto; padding: 2.25rem 2rem 3rem; }
-    .meta {
-      font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase;
-      color: #64748b; margin: 0 0 0.35rem;
-    }
-    .doc-title {
-      font-size: 1.5rem; font-weight: 700; letter-spacing: -0.02em;
-      margin: 0 0 0.35rem; color: #0f172a; border: 0; padding: 0;
-    }
-    .date { font-size: 12px; color: #64748b; margin: 0 0 1.25rem; }
-    hr.rule { border: 0; border-top: 1px solid #e2e8f0; margin: 0 0 1.5rem; }
-    .body h1 { font-size: 1.2rem; margin: 1.5rem 0 0.6rem; padding-bottom: 0.35rem;
-         border-bottom: 1px solid #e2e8f0; color: #0f172a; }
-    .body h2 { font-size: 1.05rem; margin: 1.35rem 0 0.5rem; padding-bottom: 0.3rem;
-         border-bottom: 1px solid #eef2f7; color: #0f172a; }
-    .body h3 { font-size: 0.8rem; margin: 1.1rem 0 0.4rem; letter-spacing: 0.08em;
-         text-transform: uppercase; color: #4338ca; }
-    .body p { margin: 0 0 0.85rem; color: #334155; }
-    .body ul, .body ol { margin: 0 0 0.95rem; padding-left: 1.25rem; color: #334155; }
-    .body li { margin: 0.25rem 0; }
-    .body strong { color: #0f172a; }
-    .body a { color: #4338ca; }
-    .body code { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.9em;
-           background: #f1f5f9; padding: 0.1em 0.35em; border-radius: 3px; }
-    .body pre.code { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px;
-               padding: 0.85rem 1rem; overflow: auto; margin: 0 0 1rem; }
-    .body pre.code code { background: none; padding: 0; }
-    @media print {
-      body { background: #fff; }
-      .sheet { max-width: none; padding: 0; }
-    }
-  </style>
-</head>
-<body>
-  <article class="sheet">
-    <p class="meta">Moneo Document</p>
-    <h1 class="doc-title">${safeTitle}</h1>
-    <p class="date">작성일 ${escapeHtml(dateLabel)}</p>
-    <hr class="rule" />
-    <div class="body">
-    ${bodyHtml}
-    </div>
-  </article>
-  <script>
-    window.onload = function () {
-      window.focus();
-      window.print();
-    };
-  </script>
-</body>
-</html>`);
-  w.document.close();
+  window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }
 
-function saveDocumentAs(
-  markdown: string,
-  basename: string,
-  title: string,
-  format: SaveFormat
-) {
-  const dateLabel = new Date().toLocaleDateString("ko-KR", {
+function saveDocumentAs(markdown: string, basename: string, format: SaveFormat) {
+  const fallbackDate = new Date().toLocaleDateString("ko-KR", {
     year: "numeric",
     month: "long",
     day: "numeric",
-    weekday: "short",
+    weekday: "long",
   });
+  const brief = extractSimpleBrief(markdown, fallbackDate);
   if (format === "md") {
     return downloadBlobFile(
-      wrapMarkdownDocument(markdown, title, dateLabel),
+      formatBriefMarkdown(brief),
       basename,
       "md",
       "text/markdown"
     );
   }
   if (format === "txt") {
-    return downloadBlobFile(
-      markdownToPlainDocument(markdown, title, dateLabel),
-      basename,
-      "txt",
-      "text/plain"
-    );
+    return downloadBlobFile(formatBriefTxt(brief), basename, "txt", "text/plain");
   }
-  saveAsPrintPdf(markdown, title, dateLabel);
+  saveAsPrintPdf(brief);
   return `${basename}.pdf`;
 }
 
 function ActionBar({
   text,
   basename,
-  documentTitle,
   onRegenerate,
 }: {
   text: string;
   basename: string;
-  documentTitle: string;
   onRegenerate?: () => void;
 }) {
   const menuRef = useRef<HTMLDivElement>(null);
@@ -697,7 +616,7 @@ function ActionBar({
 
   const save = (format: SaveFormat) => {
     try {
-      saveDocumentAs(text, basename, documentTitle, format);
+      saveDocumentAs(text, basename, format);
       setUi((prev) => ({ ...prev, saved: true, saveMenuOpen: false }));
       window.setTimeout(
         () => setUi((prev) => ({ ...prev, saved: false })),
@@ -805,7 +724,6 @@ export function AgentMessageContent({
   const Icon = summary.Icon;
   const basename =
     kind === "report" ? "moneo-weekly-report" : "moneo-briefing";
-  const documentTitle = documentTitleForKind(kind);
 
   return (
     <div className={`group/msg ${className}`}>
@@ -837,12 +755,7 @@ export function AgentMessageContent({
       ) : null}
 
       {!streaming ? (
-        <ActionBar
-          text={text}
-          basename={basename}
-          documentTitle={documentTitle}
-          onRegenerate={onRegenerate}
-        />
+        <ActionBar text={text} basename={basename} onRegenerate={onRegenerate} />
       ) : null}
     </div>
   );
