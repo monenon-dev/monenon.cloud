@@ -53,7 +53,7 @@ const INTEGRATION_ICONS: Record<IntegrationId, LucideIcon> = {
   docs: FileSearch,
 };
 
-const OAUTH_INTEGRATIONS = new Set<IntegrationId>(["slack", "gmail"]);
+const OAUTH_INTEGRATIONS = new Set<IntegrationId>(["gmail"]);
 
 const SETTINGS_TABS: {
   id: AgentSettingsTab;
@@ -169,7 +169,7 @@ function AgentSettingsFormInner({
         const remote = await fetchIntegrations(userId, getApiBaseUrl());
         for (const row of remote.integrations) {
           const id = row.provider as IntegrationId;
-          if (id !== "slack" && id !== "gmail") continue;
+          if (id !== "gmail") continue;
           loaded.integrations[id] = {
             connected: row.connected && row.enabled,
             lastSyncedAt: row.connected_at,
@@ -291,7 +291,7 @@ function AgentSettingsFormInner({
     patchUi({ savingSection: section, error: null, savedSection: null });
     try {
       if (section === "integrations") {
-        for (const id of ["slack", "gmail"] as IntegrationProvider[]) {
+        for (const id of ["gmail"] as IntegrationProvider[]) {
           const conn = settings.integrations[id];
           if (conn.connected) {
             await patchIntegrationApi(userId, id, true, getApiBaseUrl());
@@ -588,11 +588,11 @@ function AgentSettingsFormInner({
                   <div className="flex items-start justify-between gap-4">
                     <div>
                       <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                        매일 아침 브리핑을 Slack/이메일로 받기
+                        매일 아침 브리핑을 이메일로 받기
                       </p>
                       <p className="mt-1 text-xs leading-relaxed text-gray-500 dark:text-gray-400">
-                        연동된 Slack DM 또는 Gmail로 요약 3줄과 전체 브리핑 링크를 보냅니다.
-                        Slack·Gmail 연동이 필요하며, 발송 권한은 OAuth 재연동 시 반영됩니다.
+                        연동된 Gmail로 요약 3줄과 전체 브리핑 링크를 보냅니다.
+                        Gmail 연동이 필요하며, 발송 권한은 OAuth 재연동 시 반영됩니다.
                       </p>
                     </div>
                     <button
@@ -668,7 +668,7 @@ function AgentSettingsFormInner({
                     {
                       key: "alertUrgentMessages" as const,
                       label: "긴급 메시지/메일 감지 시 알려주기",
-                      hint: "Slack 긴급 멘션·마감 임박 메일을 감지하면 알림",
+                      hint: "마감 임박 메일 등을 감지하면 알림",
                     },
                   ].map((item) => (
                     <div key={item.key} className="flex items-start justify-between gap-4">

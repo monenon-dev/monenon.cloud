@@ -11,7 +11,7 @@ export type WorkTone = "formal" | "casual" | "concise";
 
 export type BriefingFrequency = "daily" | "weekdays" | "weekly";
 
-export type BriefingChannel = "email" | "in_app" | "slack_dm";
+export type BriefingChannel = "email" | "in_app";
 
 export type IntegrationId = "slack" | "gmail" | "calendar" | "docs";
 
@@ -37,11 +37,11 @@ export type AgentBriefingSettings = {
   frequency: BriefingFrequency;
   time: string;
   channels: BriefingChannel[];
-  /** 매일 아침 Slack DM / 이메일로 브리핑 요약 수신 */
+  /** 매일 아침 Gmail로 브리핑 요약 수신 */
   morningNotify: boolean;
   /** 일정 밀집·겹침 감지 시 능동 알림 */
   alertCalendarDensity: boolean;
-  /** 긴급 Slack/메일 감지 시 능동 알림 */
+  /** 긴급 메일 감지 시 능동 알림 */
   alertUrgentMessages: boolean;
   /** 검증 실패 시 auto=자동 재시도, review=사용자 검토 */
   validatorMode: BriefingValidatorMode;
@@ -99,7 +99,6 @@ export const BRIEFING_FREQUENCY_OPTIONS: { value: BriefingFrequency; label: stri
 export const BRIEFING_CHANNEL_OPTIONS: { value: BriefingChannel; label: string }[] = [
   { value: "email", label: "이메일" },
   { value: "in_app", label: "앱 내 알림" },
-  { value: "slack_dm", label: "Slack DM" },
 ];
 
 export const INTEGRATION_META: {
@@ -107,7 +106,6 @@ export const INTEGRATION_META: {
   tool: string;
   name: string;
 }[] = [
-  { id: "slack", tool: "slack.digest", name: "Slack" },
   { id: "gmail", tool: "gmail.digest", name: "Gmail" },
   { id: "calendar", tool: "calendar.list", name: "Calendar" },
   { id: "docs", tool: "docs.search", name: "문서 저장소" },
@@ -169,7 +167,9 @@ function mergeSettings(raw: Partial<AgentSettings> | null): AgentSettings {
     briefing: {
       ...base.briefing,
       ...raw.briefing,
-      channels: raw.briefing?.channels ?? base.briefing.channels,
+      channels: (raw.briefing?.channels ?? base.briefing.channels).filter(
+        (c): c is BriefingChannel => c === "email" || c === "in_app"
+      ),
       morningNotify: raw.briefing?.morningNotify ?? base.briefing.morningNotify,
       alertCalendarDensity:
         raw.briefing?.alertCalendarDensity ?? base.briefing.alertCalendarDensity,
