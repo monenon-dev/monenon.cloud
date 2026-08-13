@@ -1,5 +1,10 @@
-/** 네이버·카카오 콘솔에 등록된 콜백 origin (7/21 루프 수정 이후 apex 고정). */
-const DEFAULT_PRODUCTION_ORIGIN = "https://monenon.cloud";
+/**
+ * OAuth 콜백 origin.
+ * 사이트 기본 진입은 www 이고, apex(monenon.cloud)는 www 로 307 된다.
+ * 네이버가 apex 로 돌려주면 콜백 홉에서 state 쿠키가 깨져 oauth-state-mismatch 가 난다.
+ * 디벨로퍼스에 www 콜백이 등록돼 있으므로 www 로 통일한다.
+ */
+const DEFAULT_PRODUCTION_ORIGIN = "https://www.monenon.cloud";
 
 function isLocalOrigin(origin: string): boolean {
   try {
