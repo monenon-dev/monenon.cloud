@@ -39,9 +39,18 @@ async def fetch_naver_profile(code: str, redirect_uri: str) -> dict[str, str | N
                 "redirect_uri": redirect_uri,
             },
         )
-        if token_res.status_code >= 400:
-            raise ValueError("네이버 토큰 발급에 실패했습니다.")
-        token_data = token_res.json()
+        try:
+            token_data = token_res.json()
+        except Exception as exc:
+            raise ValueError("네이버 토큰 응답을 해석하지 못했습니다.") from exc
+        if not isinstance(token_data, dict):
+            raise ValueError("네이버 토큰 응답 형식이 올바르지 않습니다.")
+
+        naver_error = token_data.get("error")
+        if token_res.status_code >= 400 or naver_error:
+            desc = token_data.get("error_description") or token_data.get("error") or "unknown"
+            raise ValueError(f"네이버 토큰 발급 실패: {desc}")
+
         access_token = token_data.get("access_token")
         if not isinstance(access_token, str) or not access_token:
             raise ValueError("네이버 access_token을 받지 못했습니다.")
