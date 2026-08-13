@@ -431,6 +431,10 @@ class AgentChatBody(BaseModel):
         default=None,
         description="직장인 업종: IT개발 | 마케팅 | 영업 | 인사 | 재무회계 | 기획전략 | 기타",
     )
+    force_refresh: bool = Field(
+        default=False,
+        description="브리핑 다시 생성 시 오늘자 캐시를 무시하고 재실행",
+    )
 
 
 class ChatMessageBody(BaseModel):
@@ -539,6 +543,7 @@ async def agent_chat(body: AgentChatBody, session: AsyncSession = Depends(get_db
             speech_tone=body.speech_tone,
             user_type=body.user_type,
             industry=body.industry,
+            force_refresh=bool(body.force_refresh),
         )
     except ValueError as e:
         return JSONResponse({"detail": str(e)}, status_code=400)

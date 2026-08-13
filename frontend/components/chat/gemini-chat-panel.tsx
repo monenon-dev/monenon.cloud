@@ -69,7 +69,10 @@ export interface GeminiChatPanelProps {
   /** 외부에서 대화 기록을 주입할 때 (채팅방 선택 등) */
   initialMessages?: GeminiChatMessage[];
   /** 지정 시 기본 fetch 대신 이 핸들러로 전송·응답 처리 */
-  onSendMessage?: (text: string) => Promise<GeminiChatMessage>;
+  onSendMessage?: (
+    text: string,
+    options?: { regenerate?: boolean }
+  ) => Promise<GeminiChatMessage>;
   /** initialMessages / session 변경 시 패널 리셋용 */
   resetKey?: string | number;
   /** 입력창에 미리 채울 문구 (추천 태그 등) */
@@ -253,17 +256,35 @@ export function GeminiChatPanel({
     }
   };
 
-  const sendQuestion = useCallback(async (question: string) => {
+  const sendQuestion = useCallback(async (
+    question: string,
+    options?: { regenerate?: boolean }
+  ) => {
     const trimmed = question.trim();
     if (!trimmed) return;
 
-    const userMessage: GeminiChatMessage = {
-      role: "user",
-      text: trimmed,
-      ts: new Date().toISOString(),
-    };
+    const isRegenerate = Boolean(options?.regenerate);
 
-    setMessages((prev) => [...prev, userMessage]);
+    if (!isRegenerate) {
+      const userMessage: GeminiChatMessage = {
+        role: "user",
+        text: trimmed,
+        ts: new Date().toISOString(),
+      };
+      setMessages((prev) => [...prev, userMessage]);
+    } else {
+      // 마지막 assistant 응답만 교체 — 사용자 말풍선 중복 방지
+      setMessages((prev) => {
+        const next = [...prev];
+        for (let i = next.length - 1; i >= 0; i -= 1) {
+          if (next[i]?.role === "assistant") {
+            next.splice(i, 1);
+            break;
+          }
+        }
+        return next;
+      });
+    }
     setInput("");
     setIsLoading(true);
     setErrorMessage(null);
@@ -272,7 +293,7 @@ export function GeminiChatPanel({
       let assistantMessage: GeminiChatMessage;
 
       if (onSendMessage) {
-        assistantMessage = await onSendMessage(trimmed);
+        assistantMessage = await onSendMessage(trimmed, { regenerate: isRegenerate });
       } else {
         const res = await fetch(`${apiBaseUrl.replace(/\/$/, "")}${chatPath}`, {
           method: "POST",
@@ -415,7 +436,7 @@ export function GeminiChatPanel({
             const regenerate = () => {
               for (let i = idx - 1; i >= 0; i -= 1) {
                 if (messages[i]?.role === "user") {
-                  void sendQuestion(messages[i]!.text);
+                  void sendQuestion(messages[i]!.text, { regenerate: true });
                   return;
                 }
               }

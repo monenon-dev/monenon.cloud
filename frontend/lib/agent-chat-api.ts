@@ -155,16 +155,18 @@ export async function callAgentChatApi(
     speechTone?: string | null;
     userType?: string | null;
     industry?: string | null;
+    forceRefresh?: boolean;
   }
 ): Promise<AgentChatResponse> {
   const base = (options?.apiBaseUrl ?? getApiBaseUrl()).replace(/\/$/, "");
-  const body: Record<string, string | number> = {
+  const body: Record<string, string | number | boolean> = {
     prompt,
     user_id: userId,
   };
   if (options?.speechTone) body.speech_tone = options.speechTone;
   if (options?.userType) body.user_type = options.userType;
   if (options?.industry) body.industry = options.industry;
+  if (options?.forceRefresh) body.force_refresh = true;
 
   const res = await fetch(`${base}/agent/chat`, {
     method: "POST",

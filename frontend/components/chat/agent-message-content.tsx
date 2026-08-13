@@ -303,6 +303,22 @@ function SectionAccordion({
   );
 }
 
+function downloadMarkdownFile(text: string, basename = "moneo-briefing") {
+  const stamp = new Date().toISOString().slice(0, 10);
+  const filename = `${basename}-${stamp}.md`;
+  const blob = new Blob([text], { type: "text/markdown;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.rel = "noopener";
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(url);
+  return filename;
+}
+
 function ActionBar({
   text,
   onRegenerate,
@@ -312,36 +328,79 @@ function ActionBar({
   onRegenerate?: () => void;
   onSaveDocument?: () => void;
 }) {
-  const [ui, setUi] = useState({ copied: false });
+  const [ui, setUi] = useState({
+    copied: false,
+    saved: false,
+    regenerating: false,
+  });
 
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(text);
-      setUi({ copied: true });
-      window.setTimeout(() => setUi({ copied: false }), 1600);
+      setUi((prev) => ({ ...prev, copied: true }));
+      window.setTimeout(
+        () => setUi((prev) => ({ ...prev, copied: false })),
+        1600
+      );
     } catch {
       /* ignore */
     }
   };
 
+  const save = () => {
+    try {
+      if (onSaveDocument) {
+        onSaveDocument();
+      } else {
+        downloadMarkdownFile(text);
+      }
+      setUi((prev) => ({ ...prev, saved: true }));
+      window.setTimeout(
+        () => setUi((prev) => ({ ...prev, saved: false })),
+        1800
+      );
+    } catch {
+      /* ignore */
+    }
+  };
+
+  const regenerate = () => {
+    if (!onRegenerate || ui.regenerating) return;
+    setUi((prev) => ({ ...prev, regenerating: true }));
+    try {
+      onRegenerate();
+    } finally {
+      window.setTimeout(
+        () => setUi((prev) => ({ ...prev, regenerating: false })),
+        800
+      );
+    }
+  };
+
   const btn =
-    "inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] text-indigo-700/70 hover:bg-indigo-500/10 hover:text-indigo-900 dark:text-indigo-200/60 dark:hover:bg-white/5 dark:hover:text-indigo-100";
+    "inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] text-indigo-700/80 hover:bg-indigo-500/10 hover:text-indigo-900 dark:text-indigo-200/80 dark:hover:bg-white/5 dark:hover:text-indigo-100";
 
   return (
-    <div className="mt-2 flex items-center gap-0.5 opacity-0 transition-opacity duration-150 group-hover/msg:opacity-100 focus-within:opacity-100">
+    <div className="mt-2 flex flex-wrap items-center gap-0.5 opacity-100">
       <button type="button" onClick={() => void copy()} className={btn} title="복사">
         {ui.copied ? <Check className="size-3.5 text-emerald-400" /> : <Copy className="size-3.5" />}
         {ui.copied ? "복사됨" : "복사"}
       </button>
       {onRegenerate ? (
-        <button type="button" onClick={onRegenerate} className={btn} title="다시 생성">
-          <RefreshCw className="size-3.5" />
-          다시 생성
+        <button
+          type="button"
+          onClick={regenerate}
+          className={btn}
+          title="다시 생성"
+          disabled={ui.regenerating}
+        >
+          <RefreshCw className={`size-3.5 ${ui.regenerating ? "animate-spin" : ""}`} />
+          {ui.regenerating ? "생성 중…" : "다시 생성"}
         </button>
       ) : null}
-      <button type="button" onClick={onSaveDocument} className={btn} title="문서로 저장">
-        <FileText className="size-3.5" />
-        문서로 저장
+      <button type="button" onClick={save} className={btn} title="마크다운 파일로 저장">
+        {ui.saved ? <Check className="size-3.5 text-emerald-400" /> : <FileText className="size-3.5" />}
+        {ui.saved ? "저장됨" : "문서로 저장"}
       </button>
     </div>
   );
@@ -370,7 +429,10 @@ export function AgentMessageContent({
   const saveDoc =
     onSaveDocument ??
     (() => {
-      void navigator.clipboard.writeText(text);
+      downloadMarkdownFile(
+        text,
+        kind === "report" ? "moneo-weekly-report" : "moneo-briefing"
+      );
     });
 
   return (

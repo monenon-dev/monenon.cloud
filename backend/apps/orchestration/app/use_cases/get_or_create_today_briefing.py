@@ -40,6 +40,19 @@ def _row_to_payload(row: DailyBriefing, *, created: bool) -> dict[str, Any]:
     }
 
 
+ERROR_CONTENT_MARKERS = (
+    "브리핑 생성 중 오류가 발생했습니다",
+    "오늘의 브리핑을 생성하지 못했습니다",
+)
+
+
+def _is_failed_briefing_content(content: str | None) -> bool:
+    text = (content or "").strip()
+    if not text:
+        return True
+    return any(marker in text for marker in ERROR_CONTENT_MARKERS)
+
+
 async def get_or_create_today_briefing(
     session: AsyncSession,
     *,
@@ -48,13 +61,24 @@ async def get_or_create_today_briefing(
     speech_tone: str | None = None,
     user_type: str | None = None,
     industry: str | None = None,
+    force_refresh: bool = False,
 ) -> dict[str, Any]:
-    """오늘자 브리핑이 있으면 반환, 없으면 그래프 실행 후 저장."""
+    """오늘자 브리핑이 있으면 반환, 없으면 그래프 실행 후 저장.
+
+    ``force_refresh=True`` 이거나 캐시가 생성 실패 문구면 다시 생성한다.
+    """
     briefing_date = today_seoul()
     repo = DailyBriefingPgRepository(session)
     existing = await repo.get_by_user_date(user_id, briefing_date)
-    if existing is not None:
+    should_refresh = force_refresh or (
+        existing is not None and _is_failed_briefing_content(existing.content)
+    )
+    if existing is not None and not should_refresh:
         return _row_to_payload(existing, created=False)
+
+    if existing is not None and should_refresh:
+        await repo.delete_by_user_date(user_id, briefing_date)
+        await session.commit()
 
     result = await run_briefing(
         query=(query or DEFAULT_BRIEFING_QUERY).strip() or DEFAULT_BRIEFING_QUERY,

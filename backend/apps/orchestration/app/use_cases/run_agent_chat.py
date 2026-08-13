@@ -90,6 +90,7 @@ async def run_agent_chat(
     speech_tone: str | None = None,
     user_type: str | None = None,
     industry: str | None = None,
+    force_refresh: bool = False,
 ) -> dict[str, Any]:
     """의도에 따라 브리핑·주간 리포트 서브그래프 또는 일반 Gemini를 호출한다."""
     text = (prompt or "").strip()
@@ -97,7 +98,12 @@ async def run_agent_chat(
         raise ValueError("prompt가 비어 있습니다.")
 
     intent = classify_chat_intent(text)
-    logger.info("[agent_chat] intent=%s user_id=%s", intent, user_id)
+    logger.info(
+        "[agent_chat] intent=%s user_id=%s force_refresh=%s",
+        intent,
+        user_id,
+        force_refresh,
+    )
 
     if intent == "briefing_request" and user_id is not None:
         briefing = await get_or_create_today_briefing(
@@ -107,6 +113,7 @@ async def run_agent_chat(
             speech_tone=speech_tone,
             user_type=user_type,
             industry=industry,
+            force_refresh=force_refresh,
         )
         body = (briefing.get("content") or "").strip()
         content = f"## 오늘의 브리핑\n\n{body}".strip() if body else "## 오늘의 브리핑"

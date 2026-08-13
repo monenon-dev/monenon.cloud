@@ -47,13 +47,18 @@ const GUEST_SUGGESTIONS = [
   "이 문서 핵심만 정리해줘",
 ];
 
-async function callAgentChat(text: string, userId: number): Promise<GeminiChatMessage> {
+async function callAgentChat(
+  text: string,
+  userId: number,
+  options?: { regenerate?: boolean }
+): Promise<GeminiChatMessage> {
   const prefs = loadMyPagePreferences(userId);
   const data = await callAgentChatApi(text, userId, {
     apiBaseUrl,
     speechTone: prefs.speechTone,
     userType: prefs.userType,
     industry: prefs.industry,
+    forceRefresh: Boolean(options?.regenerate),
   });
   return {
     role: "assistant",
@@ -363,12 +368,20 @@ function ChatsPageContent() {
   }, [userId, isNewFromHome, searchParams, activeSessionId, sessions, selectSession]);
 
   const handleSendMessage = useCallback(
-    async (text: string): Promise<GeminiChatMessage> => {
+    async (
+      text: string,
+      options?: { regenerate?: boolean }
+    ): Promise<GeminiChatMessage> => {
       if (!userId || !activeSessionId) {
         throw new Error("채팅방이 선택되지 않았습니다.");
       }
-      const userSavePromise = saveSessionMessage(activeSessionId, userId, "user", text, apiBaseUrl);
-      const assistant = await callAgentChat(text, userId);
+      const isRegenerate = Boolean(options?.regenerate);
+      const userSavePromise = isRegenerate
+        ? Promise.resolve()
+        : saveSessionMessage(activeSessionId, userId, "user", text, apiBaseUrl);
+      const assistant = await callAgentChat(text, userId, {
+        regenerate: isRegenerate,
+      });
       void Promise.allSettled([
         userSavePromise,
         saveSessionMessage(activeSessionId, userId, "assistant", assistant.text, apiBaseUrl),

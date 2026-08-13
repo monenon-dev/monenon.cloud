@@ -50,6 +50,19 @@ class DailyBriefingPgRepository:
         )
         return list(result.scalars().all())
 
+    async def delete_by_user_date(self, user_id: int, briefing_date: date) -> bool:
+        row = await self.get_by_user_date(user_id, briefing_date)
+        if row is None:
+            return False
+        await self._session.delete(row)
+        await self._session.flush()
+        logger.info(
+            "[DailyBriefingPgRepository] deleted user_id=%s date=%s",
+            user_id,
+            briefing_date,
+        )
+        return True
+
     async def insert_idempotent(
         self,
         *,
