@@ -24,6 +24,9 @@ class BriefingState(TypedDict, total=False):
     answer: str
     validation_ok: bool
     validation_notes: str
+    validation_review_pending: bool
+    pending_review: dict
+    validator_mode: str
     synth_retries: int
     synth_pass: int
     # 노드마다 append (재시도 포함 전체 타임라인)

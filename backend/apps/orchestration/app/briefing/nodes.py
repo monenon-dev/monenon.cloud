@@ -16,6 +16,7 @@ from orchestration.app.briefing.gmail_source import fetch_gmail_digest
 from orchestration.app.briefing.history_source import fetch_recent_history
 from orchestration.app.briefing.slack_source import fetch_slack_digest
 from orchestration.app.briefing.state import BriefingState
+from orchestration.app.briefing.validator_review import build_pending_review_payload
 from orchestration.app.briefing.tool_logs import (
     events_for_tool_node,
     make_node_event,
@@ -545,8 +546,8 @@ async def validator_node(state: BriefingState) -> dict:
     """LangGraph validator 노드 — synthesizer 초안이 도구 근거와 일치하는지 검사한다.
 
     synthesizer와 역할을 분리해 생성 측이 스스로 완료를 과대 보고하지 않게 한다.
-    실패 시 ``validation_ok=False`` + 피드백으로 synthesizer 재호출(최대 2회).
-    재시도 한도 초과 시 경고와 함께 강제 승인한다.
+    auto 모드: 실패 시 synthesizer 재호출(최대 2회). review 모드: 재시도 없이
+    ``pending_review`` 로 보류하고 검증된 본문만 ``answer`` 에 남긴다.
     """
     answer = (state.get("answer") or "").strip()
     evidence = _evidence_blobs(state)
@@ -659,6 +660,7 @@ async def validator_node(state: BriefingState) -> dict:
             detail = f"{pass_n}차 검증 통과 — 자동 재검증됨"
         return {
             "validation_ok": True,
+            "validation_review_pending": False,
             "validation_notes": "",
             "tool_logs": [
                 running,
@@ -686,6 +688,54 @@ async def validator_node(state: BriefingState) -> dict:
             ],
         }
 
+    validator_mode = (state.get("validator_mode") or "auto").strip().lower()
+    if validator_mode == "review":
+        clean_answer, pending = build_pending_review_payload(answer, failure_reasons)
+        review_detail = (
+            f"검증 이슈 — 사용자 검토 대기 ({failure_reasons[0]})"
+        )
+        return {
+            "validation_ok": True,
+            "validation_review_pending": True,
+            "validation_notes": notes,
+            "pending_review": pending,
+            "answer": clean_answer,
+            "tool_logs": [
+                running,
+                make_node_event(
+                    "validator",
+                    status="success",
+                    detail=review_detail,
+                    attempt=pass_n,
+                    params={
+                        "pass": pass_n,
+                        "ratio": round(ratio, 3),
+                        "review": 1,
+                    },
+                    result={
+                        "type": "list",
+                        "items": [
+                            {
+                                "title": "검토 필요",
+                                "preview": pending.get("content", "")[:160],
+                                "meta": pending.get("reason", ""),
+                            }
+                        ],
+                    },
+                    seq=51 + pass_n * 10,
+                ),
+            ],
+            "trace": [
+                _trace(
+                    "validator",
+                    ok=True,
+                    review=True,
+                    ratio=round(ratio, 3),
+                    retries=retries,
+                )
+            ],
+        }
+
     if max_retries_hit:
         forced_detail = (
             "부분 검증 실패, 안전한 항목만 반영 "
@@ -693,6 +743,7 @@ async def validator_node(state: BriefingState) -> dict:
         )
         return {
             "validation_ok": True,
+            "validation_review_pending": False,
             "validation_notes": notes,
             "tool_logs": [
                 running,

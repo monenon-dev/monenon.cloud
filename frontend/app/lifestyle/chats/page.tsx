@@ -63,6 +63,8 @@ async function callAgentChat(text: string, userId: number): Promise<GeminiChatMe
     sources: data.sources,
     responseType: data.type,
     toolLogs: data.tool_logs,
+    pendingReview: data.pending_review ?? null,
+    briefingId: data.briefing_id ?? null,
   };
 }
 
@@ -557,6 +559,7 @@ function ChatsPageContent() {
               starterDedupeKey={starterNonce}
               initialMessages={sessionMessages}
               onSendMessage={handleSendMessage}
+              chatUserId={userId}
               initialInput={starterPrompt}
               autoSendInitialInput={Boolean(starterPrompt?.trim())}
               messagesEpoch={messagesEpoch}

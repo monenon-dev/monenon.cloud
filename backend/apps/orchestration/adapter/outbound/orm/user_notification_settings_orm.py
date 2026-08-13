@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, func
+from sqlalchemy import Boolean, DateTime, ForeignKey, String, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from core.matrix.grid_oracle_database_manager import Base
@@ -22,6 +22,9 @@ class UserNotificationSettings(Base):
     )
     alert_urgent_messages: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=False, server_default="false"
+    )
+    briefing_validator_mode: Mapped[str] = mapped_column(
+        String(16), nullable=False, default="auto", server_default="auto"
     )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

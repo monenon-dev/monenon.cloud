@@ -14,11 +14,13 @@ from gemini_caller import GeminiQuotaError
 from orchestration.adapter.inbound.api.schemas.briefing_schema import (
     BriefingRequest,
     BriefingResponse,
+    BriefingReviewRequest,
     TodayBriefingResponse,
 )
 from orchestration.adapter.outbound.pg.orchestration_pg_repository import OrchestrationPgRepository
 from orchestration.app.composition.providers import get_orchestration_pg_repository
 from orchestration.app.use_cases.get_or_create_today_briefing import get_or_create_today_briefing
+from orchestration.app.use_cases.resolve_briefing_review import resolve_briefing_review
 from orchestration.app.use_cases.run_briefing import run_briefing
 
 logger = logging.getLogger(__name__)
@@ -84,4 +86,35 @@ async def orchestration_briefing_today(
     except Exception as exc:
         logger.exception("[briefing_today] failed user_id=%s: %s", user_id, exc)
         return JSONResponse({"detail": "오늘의 브리핑을 불러오지 못했습니다."}, status_code=502)
+    return TodayBriefingResponse(**payload)
+
+
+@briefing_router.post(
+    "/briefing/{briefing_id}/review",
+    response_model=TodayBriefingResponse,
+)
+async def resolve_briefing_review_endpoint(
+    briefing_id: int,
+    body: BriefingReviewRequest,
+    session: AsyncSession = Depends(get_db),
+    repo: OrchestrationPgRepository = Depends(get_orchestration_pg_repository),
+) -> TodayBriefingResponse | JSONResponse:
+    await repo.verify_user(body.user_id)
+    try:
+        payload = await resolve_briefing_review(
+            session,
+            briefing_id=briefing_id,
+            user_id=body.user_id,
+            decision=body.decision,
+        )
+    except ValueError as exc:
+        return JSONResponse({"detail": str(exc)}, status_code=400)
+    except Exception as exc:
+        logger.exception(
+            "[briefing_review] failed id=%s user_id=%s: %s",
+            briefing_id,
+            body.user_id,
+            exc,
+        )
+        return JSONResponse({"detail": "브리핑 검토 결과를 저장하지 못했습니다."}, status_code=502)
     return TodayBriefingResponse(**payload)

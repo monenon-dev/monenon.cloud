@@ -4,6 +4,7 @@ export type NotificationSettings = {
   user_id: number;
   alert_calendar_density: boolean;
   alert_urgent_messages: boolean;
+  briefing_validator_mode: "auto" | "review";
 };
 
 export async function fetchNotificationSettings(
@@ -31,7 +32,12 @@ export async function fetchNotificationSettings(
 
 export async function patchNotificationSettings(
   userId: number,
-  patch: Partial<Pick<NotificationSettings, "alert_calendar_density" | "alert_urgent_messages">>,
+  patch: Partial<
+    Pick<
+      NotificationSettings,
+      "alert_calendar_density" | "alert_urgent_messages" | "briefing_validator_mode"
+    >
+  >,
   apiBaseUrl?: string
 ): Promise<NotificationSettings> {
   const base = (apiBaseUrl ?? getApiBaseUrl()).replace(/\/$/, "");

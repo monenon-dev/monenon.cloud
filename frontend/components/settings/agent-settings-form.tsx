@@ -183,6 +183,8 @@ function AgentSettingsFormInner({
         const notify = await fetchNotificationSettings(userId, getApiBaseUrl());
         loaded.briefing.alertCalendarDensity = notify.alert_calendar_density;
         loaded.briefing.alertUrgentMessages = notify.alert_urgent_messages;
+        loaded.briefing.validatorMode =
+          notify.briefing_validator_mode === "review" ? "review" : "auto";
       } catch {
         /* notification settings API 미배포 시 local 유지 */
       }
@@ -306,6 +308,7 @@ function AgentSettingsFormInner({
           {
             alert_calendar_density: settings.briefing.alertCalendarDensity,
             alert_urgent_messages: settings.briefing.alertUrgentMessages,
+            briefing_validator_mode: settings.briefing.validatorMode,
           },
           getApiBaseUrl()
         );
@@ -610,6 +613,42 @@ function AgentSettingsFormInner({
                       <span
                         className={`absolute top-0.5 size-6 rounded-full bg-white shadow transition-transform ${
                           settings.briefing.morningNotify ? "left-5" : "left-0.5"
+                        }`}
+                      />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-gray-200 bg-gray-50/80 p-4 dark:border-gray-700 dark:bg-gray-900/50">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                        검증 실패 시 나에게 물어보기
+                      </p>
+                      <p className="mt-1 text-xs leading-relaxed text-gray-500 dark:text-gray-400">
+                        켜면 자동 재시도 대신 의심 문장을 검토 대기로 두고, 포함·제외를
+                        선택할 수 있습니다. 끄면 기존처럼 최대 2회 자동 재합성합니다.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={settings.briefing.validatorMode === "review"}
+                      onClick={() =>
+                        patchBriefing({
+                          validatorMode:
+                            settings.briefing.validatorMode === "review" ? "auto" : "review",
+                        })
+                      }
+                      className={`relative inline-flex h-7 w-12 shrink-0 rounded-full transition-colors ${
+                        settings.briefing.validatorMode === "review"
+                          ? "bg-indigo-600"
+                          : "bg-gray-300 dark:bg-gray-600"
+                      }`}
+                    >
+                      <span
+                        className={`absolute top-0.5 size-6 rounded-full bg-white shadow transition-transform ${
+                          settings.briefing.validatorMode === "review" ? "left-5" : "left-0.5"
                         }`}
                       />
                     </button>

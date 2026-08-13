@@ -26,10 +26,14 @@ notification_settings_router = APIRouter(prefix="/orchestration", tags=["orchest
 
 
 def _to_out(user_id: int, row) -> NotificationSettingsOut:
+    mode = (row.briefing_validator_mode or "auto").strip().lower()
+    if mode not in ("auto", "review"):
+        mode = "auto"
     return NotificationSettingsOut(
         user_id=user_id,
         alert_calendar_density=bool(row.alert_calendar_density),
         alert_urgent_messages=bool(row.alert_urgent_messages),
+        briefing_validator_mode=mode,
     )
 
 
@@ -58,7 +62,11 @@ async def patch_notification_settings(
     repo: OrchestrationPgRepository = Depends(get_orchestration_pg_repository),
 ) -> NotificationSettingsOut | JSONResponse:
     await repo.verify_user(body.user_id)
-    if body.alert_calendar_density is None and body.alert_urgent_messages is None:
+    if (
+        body.alert_calendar_density is None
+        and body.alert_urgent_messages is None
+        and body.briefing_validator_mode is None
+    ):
         return JSONResponse({"detail": "변경할 설정이 없습니다."}, status_code=400)
 
     settings_repo = NotificationSettingsPgRepository(session)
@@ -66,12 +74,14 @@ async def patch_notification_settings(
         body.user_id,
         alert_calendar_density=body.alert_calendar_density,
         alert_urgent_messages=body.alert_urgent_messages,
+        briefing_validator_mode=body.briefing_validator_mode,
     )
     await session.commit()
     logger.info(
-        "[notification_settings] user_id=%s calendar=%s urgent=%s",
+        "[notification_settings] user_id=%s calendar=%s urgent=%s validator_mode=%s",
         body.user_id,
         row.alert_calendar_density,
         row.alert_urgent_messages,
+        row.briefing_validator_mode,
     )
     return _to_out(body.user_id, row)

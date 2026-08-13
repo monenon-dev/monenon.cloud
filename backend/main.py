@@ -46,12 +46,16 @@ except ModuleNotFoundError:
     pass
 try:
     from orchestration.adapter.inbound.api.v1 import orchestration_router
+    from orchestration.adapter.inbound.api.schemas.briefing_schema import (
+        BriefingReviewRequest,
+    )
     from orchestration.adapter.inbound.api.schemas.weekly_report_schema import (
         WeeklyReportRequest,
     )
 except ModuleNotFoundError:
     orchestration_router = None
     WeeklyReportRequest = None  # type: ignore[misc, assignment]
+    BriefingReviewRequest = None  # type: ignore[misc, assignment]
 try:
     from secretary.adapter.inbound.api.v1 import secretary_router
 except Exception as e:
@@ -584,6 +588,35 @@ async def agent_briefing_today(
     except Exception as e:
         logger.exception("[agent_briefing_today] failed: %s", e)
         return JSONResponse({"detail": "오늘의 브리핑을 불러오지 못했습니다."}, status_code=502)
+    return payload
+
+
+@app.post("/agent/briefing/{briefing_id}/review")
+async def agent_briefing_review(
+    briefing_id: int,
+    body: BriefingReviewRequest,
+    session: AsyncSession = Depends(get_db),
+):
+    """검토 대기 브리핑 문장에 대해 포함/제외 결정."""
+    from orchestration.app.use_cases.resolve_briefing_review import resolve_briefing_review
+    from secretary.adapter.outbound.orm.user_model import User
+    from sqlalchemy import select
+
+    user_row = await session.execute(select(User).where(User.id == body.user_id))
+    if user_row.scalar_one_or_none() is None:
+        return JSONResponse({"detail": "사용자를 찾을 수 없습니다."}, status_code=404)
+    try:
+        payload = await resolve_briefing_review(
+            session,
+            briefing_id=briefing_id,
+            user_id=body.user_id,
+            decision=body.decision,
+        )
+    except ValueError as e:
+        return JSONResponse({"detail": str(e)}, status_code=400)
+    except Exception as e:
+        logger.exception("[agent_briefing_review] failed: %s", e)
+        return JSONResponse({"detail": "브리핑 검토 결과를 저장하지 못했습니다."}, status_code=502)
     return payload
 
 

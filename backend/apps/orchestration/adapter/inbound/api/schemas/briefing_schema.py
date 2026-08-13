@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Literal
+
 from pydantic import BaseModel, Field
 
 
@@ -18,6 +20,12 @@ class BriefingResponse(BaseModel):
     trace: list[dict]
     agent_results: dict
     tool_logs: list[dict] = Field(default_factory=list)
+    pending_review: dict | None = None
+
+
+class PendingReviewOut(BaseModel):
+    content: str
+    reason: str
 
 
 class TodayBriefingResponse(BaseModel):
@@ -26,3 +34,9 @@ class TodayBriefingResponse(BaseModel):
     briefing_date: str
     created: bool = Field(description="이번 요청에서 새로 생성했는지")
     id: int | None = None
+    pending_review: PendingReviewOut | None = None
+
+
+class BriefingReviewRequest(BaseModel):
+    user_id: int = Field(..., ge=1)
+    decision: Literal["include", "exclude"]

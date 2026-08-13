@@ -17,7 +17,9 @@ import {
   AgentStreamingPlaceholder,
 } from "@/components/chat/agent-message-content";
 import { ChatToolStreamPanel } from "@/components/chat/chat-tool-stream-panel";
+import { BriefingPendingReviewCard } from "@/components/chat/briefing-pending-review";
 import type { AgentChatResponseType } from "@/lib/agent-chat-api";
+import type { PendingReview } from "@/lib/briefing-api";
 import {
   Tooltip,
   TooltipContent,
@@ -37,6 +39,8 @@ export interface GeminiChatMessage {
   sources?: string[];
   responseType?: AgentChatResponseType;
   toolLogs?: ToolCallResult[];
+  pendingReview?: PendingReview | null;
+  briefingId?: number | null;
 }
 
 interface ChatApiResponse {
@@ -80,6 +84,8 @@ export interface GeminiChatPanelProps {
   messagesEpoch?: number;
   /** 게스트 모드: PDF·도구·음성 등 Moneo 전용 입력 숨김 */
   guestMode?: boolean;
+  /** 브리핑 검토 API용 로그인 사용자 id */
+  chatUserId?: number | null;
   /** 빈 화면 예시 프롬프트 (클릭 시 입력창만 채움, 전송 안 함) */
   emptySuggestions?: string[];
 }
@@ -176,6 +182,7 @@ export function GeminiChatPanel({
   starterDedupeKey,
   messagesEpoch = 0,
   guestMode = false,
+  chatUserId = null,
   emptySuggestions,
 }: GeminiChatPanelProps) {
   const [messages, setMessages] = useState<GeminiChatMessage[]>(initialMessages ?? []);
@@ -446,6 +453,36 @@ export function GeminiChatPanel({
                   isLastAssistant ? (
                   <ChatToolStreamPanel
                     toolLogs={msg.toolLogs}
+                    className="mt-3"
+                  />
+                ) : null}
+                {msg.role === "assistant" &&
+                  isLastAssistant &&
+                  msg.pendingReview &&
+                  msg.briefingId &&
+                  chatUserId ? (
+                  <BriefingPendingReviewCard
+                    briefingId={msg.briefingId}
+                    userId={chatUserId}
+                    pendingReview={msg.pendingReview}
+                    apiBaseUrl={apiBaseUrl}
+                    onResolved={(updated) => {
+                      setMessages((prev) =>
+                        prev.map((row, rowIdx) =>
+                          rowIdx === idx
+                            ? {
+                                ...row,
+                                text: updated.content.startsWith("##")
+                                  ? updated.content
+                                  : `## 오늘의 브리핑\n\n${updated.content}`,
+                                toolLogs: updated.tool_logs,
+                                pendingReview: updated.pending_review ?? null,
+                                briefingId: updated.id ?? msg.briefingId,
+                              }
+                            : row
+                        )
+                      );
+                    }}
                     className="mt-3"
                   />
                 ) : null}

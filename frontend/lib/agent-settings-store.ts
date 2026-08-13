@@ -31,6 +31,8 @@ export type AgentWorkProfile = {
 
 export type AgentIntegrations = Record<IntegrationId, IntegrationConnection>;
 
+export type BriefingValidatorMode = "auto" | "review";
+
 export type AgentBriefingSettings = {
   frequency: BriefingFrequency;
   time: string;
@@ -41,6 +43,8 @@ export type AgentBriefingSettings = {
   alertCalendarDensity: boolean;
   /** 긴급 Slack/메일 감지 시 능동 알림 */
   alertUrgentMessages: boolean;
+  /** 검증 실패 시 auto=자동 재시도, review=사용자 검토 */
+  validatorMode: BriefingValidatorMode;
 };
 
 export type AgentSettings = {
@@ -140,6 +144,7 @@ export function defaultAgentSettings(): AgentSettings {
       morningNotify: false,
       alertCalendarDensity: false,
       alertUrgentMessages: false,
+      validatorMode: "auto",
     },
   };
 }
@@ -170,6 +175,8 @@ function mergeSettings(raw: Partial<AgentSettings> | null): AgentSettings {
         raw.briefing?.alertCalendarDensity ?? base.briefing.alertCalendarDensity,
       alertUrgentMessages:
         raw.briefing?.alertUrgentMessages ?? base.briefing.alertUrgentMessages,
+      validatorMode:
+        raw.briefing?.validatorMode === "review" ? "review" : base.briefing.validatorMode,
     },
   };
 }

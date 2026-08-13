@@ -29,12 +29,16 @@ class NotificationSettingsPgRepository:
         *,
         alert_calendar_density: bool | None = None,
         alert_urgent_messages: bool | None = None,
+        briefing_validator_mode: str | None = None,
     ) -> UserNotificationSettings:
         row = await self.get(user_id)
         if alert_calendar_density is not None:
             row.alert_calendar_density = alert_calendar_density
         if alert_urgent_messages is not None:
             row.alert_urgent_messages = alert_urgent_messages
+        if briefing_validator_mode is not None:
+            mode = briefing_validator_mode.strip().lower()
+            row.briefing_validator_mode = mode if mode in ("auto", "review") else "auto"
         await self._session.flush()
         await self._session.refresh(row)
         return row

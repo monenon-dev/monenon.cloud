@@ -22,6 +22,8 @@ from orchestration.app.briefing.state import BriefingState
 def _after_validator(state: BriefingState) -> str:
     if state.get("validation_ok"):
         return "end"
+    if state.get("validation_review_pending"):
+        return "end"
     if int(state.get("synth_retries") or 0) >= 2:
         return "end"
     return "synthesizer"
@@ -31,7 +33,7 @@ def _after_validator(state: BriefingState) -> str:
 def build_briefing_graph():
     """
     router → calendar → docs → history → slack → gmail → synthesizer → validator
-    (validator 실패 시 synthesizer 최대 2회 재호출)
+    (validator 실패 시 auto: synthesizer 최대 2회 재호출 / review: 사용자 검토 대기)
     """
     graph = StateGraph(BriefingState)
     graph.add_node("router", router_node)

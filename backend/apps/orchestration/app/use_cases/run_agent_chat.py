@@ -29,6 +29,8 @@ def _chat_response(
     risks: list[Any] | None = None,
     next_actions: list[Any] | None = None,
     intent: ChatIntent | None = None,
+    pending_review: dict[str, str] | None = None,
+    briefing_id: int | None = None,
 ) -> dict[str, Any]:
     logs = tool_logs if isinstance(tool_logs, list) else []
     payload: dict[str, Any] = {
@@ -45,6 +47,10 @@ def _chat_response(
         payload["risks"] = risks
     if next_actions is not None:
         payload["next_actions"] = next_actions
+    if pending_review is not None:
+        payload["pending_review"] = pending_review
+    if briefing_id is not None:
+        payload["briefing_id"] = briefing_id
     return payload
 
 
@@ -109,6 +115,8 @@ async def run_agent_chat(
             content=content,
             tool_logs=briefing.get("tool_logs"),
             intent=intent,
+            pending_review=briefing.get("pending_review"),
+            briefing_id=briefing.get("id"),
         )
 
     if intent == "report_request" and user_id is not None:

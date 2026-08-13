@@ -2,6 +2,8 @@ import { getApiBaseUrl } from "@/lib/api-base";
 import type { ToolCallResult, ToolNodeStatus } from "@/components/home/tool-stream";
 import type { WeeklyAction, WeeklyRisk } from "@/lib/weekly-report-api";
 
+import type { PendingReview } from "@/lib/briefing-api";
+
 export type AgentChatResponseType = "briefing" | "report" | "chat";
 
 export type AgentChatResponse = {
@@ -14,6 +16,8 @@ export type AgentChatResponse = {
   intent?: string;
   risks?: WeeklyRisk[];
   next_actions?: WeeklyAction[];
+  pending_review?: PendingReview | null;
+  briefing_id?: number | null;
 };
 
 const NODE_STATUSES: ToolNodeStatus[] = [
@@ -77,6 +81,19 @@ function normalizeAction(value: unknown): WeeklyAction | null {
   };
 }
 
+function normalizePendingReview(value: unknown): PendingReview | null {
+  if (typeof value !== "object" || value === null) return null;
+  const row = value as Record<string, unknown>;
+  if (typeof row.content !== "string" || !row.content.trim()) return null;
+  return {
+    content: row.content.trim(),
+    reason:
+      typeof row.reason === "string" && row.reason.trim()
+        ? row.reason.trim()
+        : "검증 실패",
+  };
+}
+
 function parseAgentChatResponse(raw: unknown): AgentChatResponse {
   if (typeof raw !== "object" || raw === null) {
     throw new Error("응답 형식이 올바르지 않습니다.");
@@ -125,6 +142,8 @@ function parseAgentChatResponse(raw: unknown): AgentChatResponse {
             .map(normalizeAction)
             .filter((x): x is WeeklyAction => x !== null)
         : undefined,
+    pending_review: normalizePendingReview(data.pending_review),
+    briefing_id: typeof data.briefing_id === "number" ? data.briefing_id : null,
   };
 }
 

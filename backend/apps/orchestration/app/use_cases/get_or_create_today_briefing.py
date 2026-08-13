@@ -14,6 +14,7 @@ from orchestration.adapter.outbound.orm.daily_briefing_orm import DailyBriefing
 from orchestration.adapter.outbound.pg.daily_briefing_pg_repository import (
     DailyBriefingPgRepository,
 )
+from orchestration.app.briefing.validator_review import normalize_pending_review
 from orchestration.app.use_cases.run_briefing import run_briefing
 from secretary.adapter.outbound.orm.user_model import User, UserRole
 
@@ -35,6 +36,7 @@ def _row_to_payload(row: DailyBriefing, *, created: bool) -> dict[str, Any]:
         "briefing_date": row.briefing_date.isoformat(),
         "created": created,
         "id": row.id,
+        "pending_review": normalize_pending_review(row.pending_review),
     }
 
 
@@ -66,12 +68,14 @@ async def get_or_create_today_briefing(
     tool_logs = result.get("tool_logs") or []
     if not isinstance(tool_logs, list):
         tool_logs = []
+    pending_review = normalize_pending_review(result.get("pending_review"))
 
     row = await repo.insert_idempotent(
         user_id=user_id,
         briefing_date=briefing_date,
         content=content,
         tool_logs=tool_logs,
+        pending_review=pending_review,
     )
     await session.commit()
     refreshed = await repo.get_by_user_date(user_id, briefing_date) or row

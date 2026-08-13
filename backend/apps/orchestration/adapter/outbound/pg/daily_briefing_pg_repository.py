@@ -57,6 +57,7 @@ class DailyBriefingPgRepository:
         briefing_date: date,
         content: str,
         tool_logs: list[dict[str, Any]],
+        pending_review: dict[str, str] | None = None,
     ) -> DailyBriefing:
         """이미 있으면 기존 행을 반환하고, 없으면 INSERT."""
         existing = await self.get_by_user_date(user_id, briefing_date)
@@ -70,6 +71,7 @@ class DailyBriefingPgRepository:
                 briefing_date=briefing_date,
                 content=content,
                 tool_logs=tool_logs,
+                pending_review=pending_review,
             )
             .on_conflict_do_nothing(constraint="uq_daily_briefings_user_date")
             .returning(DailyBriefing.id)
@@ -111,5 +113,35 @@ class DailyBriefingPgRepository:
             "[DailyBriefingPgRepository] notified id=%s channel=%s",
             briefing_id,
             channel,
+        )
+        return row
+
+    async def get_owned(self, briefing_id: int, user_id: int) -> DailyBriefing | None:
+        row = await self._session.get(DailyBriefing, briefing_id)
+        if row is None or row.user_id != user_id:
+            return None
+        return row
+
+    async def resolve_review(
+        self,
+        briefing_id: int,
+        *,
+        user_id: int,
+        decision: str,
+        tool_logs: list[dict[str, Any]],
+        content: str,
+    ) -> DailyBriefing | None:
+        row = await self.get_owned(briefing_id, user_id)
+        if row is None:
+            return None
+        row.content = content
+        row.tool_logs = tool_logs
+        row.pending_review = None
+        await self._session.flush()
+        await self._session.refresh(row)
+        logger.info(
+            "[DailyBriefingPgRepository] review resolved id=%s decision=%s",
+            briefing_id,
+            decision,
         )
         return row
