@@ -411,11 +411,38 @@ def _source_items(data: Any) -> list[dict[str, Any]]:
     return [x for x in items if isinstance(x, dict)]
 
 
+def _is_synth_error_answer(answer: str) -> bool:
+    """본문이 '생성 오류' 스텁이거나, 실질 내용이 오류 문구뿐인지 판별."""
+    text = (answer or "").strip()
+    if not text:
+        return False
+    if text.startswith(SYNTH_ERROR_MARKER):
+        return True
+    lines = [
+        ln.strip()
+        for ln in text.splitlines()
+        if ln.strip() and not ln.strip().startswith("#")
+    ]
+    if not lines:
+        return False
+    error_lines = [ln for ln in lines if SYNTH_ERROR_MARKER in ln]
+    if not error_lines:
+        return False
+    useful = [ln for ln in lines if SYNTH_ERROR_MARKER not in ln]
+    return len(useful) == 0 or len(error_lines) >= max(1, len(useful))
+
+
 def _fallback_briefing_from_sources(state: BriefingState) -> str:
     """Gemini 실패 시 도구 JSON만으로 만드는 최소 브리핑 초안."""
     sections: list[str] = ["## 오늘의 브리핑", ""]
     cal_items = _source_items(state.get("calendar_result"))
-    hist_items = _source_items(state.get("history_result"))
+    hist_items = [
+        item
+        for item in _source_items(state.get("history_result"))
+        if not _is_synth_error_answer(
+            str(item.get("preview") or item.get("title") or "")
+        )
+    ]
     docs_items = _source_items(state.get("docs_result"))
     slack_raw = state.get("slack_summary") or state.get("slack_result")
     slack_items = _source_items(slack_raw)
@@ -457,17 +484,17 @@ def _fallback_briefing_from_sources(state: BriefingState) -> str:
         sections.append("")
 
     body = "\n".join(sections).strip()
-    if body == "## 오늘의 브리핑":
+    cleaned_lines = [
+        ln for ln in body.splitlines() if SYNTH_ERROR_MARKER not in ln
+    ]
+    body = "\n".join(cleaned_lines).strip()
+    if body == "## 오늘의 브리핑" or not body:
         return (
             "## 오늘의 브리핑\n\n"
             "연동된 일정·문서·메시지가 거의 없어 초안을 비워 두었습니다. "
             "일정을 추가하거나 연동 후 다시 생성해 주세요."
         )
     return body
-
-
-def _is_synth_error_answer(answer: str) -> bool:
-    return SYNTH_ERROR_MARKER in (answer or "")
 
 
 def _evidence_blobs(state: BriefingState) -> list[str]:
@@ -504,7 +531,19 @@ async def synthesizer_node(state: BriefingState) -> dict:
     """
     calendar = state.get("calendar_result") or {}
     docs = state.get("docs_result") or {}
-    history = state.get("history_result") or {}
+    history_raw = state.get("history_result") or {}
+    # 과거 실패 브리핑 문구는 합성 근거에서 제외
+    if isinstance(history_raw, dict):
+        clean_items = [
+            item
+            for item in _source_items(history_raw)
+            if not _is_synth_error_answer(
+                str(item.get("preview") or item.get("title") or "")
+            )
+        ]
+        history = {**history_raw, "items": clean_items}
+    else:
+        history = history_raw
     slack = state.get("slack_summary") or state.get("slack_result") or {}
     gmail = state.get("gmail_summary") or {}
     notes = (state.get("validation_notes") or "").strip()

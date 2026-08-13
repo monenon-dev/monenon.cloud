@@ -12,6 +12,19 @@ from orchestration.adapter.outbound.orm.chat_orm import ChatSession, Message, Me
 
 logger = logging.getLogger(__name__)
 
+_BRIEFING_ERROR_MARKERS = (
+    "브리핑 생성 중 오류가 발생했습니다",
+    "오늘의 브리핑을 생성하지 못했습니다",
+)
+
+
+def _is_noise_history_content(content: str) -> bool:
+    """이전 실패 브리핑·오류 스텁은 히스토리 근거에서 제외."""
+    text = (content or "").strip()
+    if not text:
+        return True
+    return any(marker in text for marker in _BRIEFING_ERROR_MARKERS)
+
 
 async def fetch_recent_history(session: AsyncSession, user_id: int, *, limit: int = 12) -> dict[str, Any]:
     """최근 세션 메시지를 모아 history.digest용 아이템으로 반환."""
@@ -45,8 +58,11 @@ async def fetch_recent_history(session: AsyncSession, user_id: int, *, limit: in
 
         items: list[dict[str, str]] = []
         for msg in reversed(list(rows)):
+            raw = (msg.content or "").strip()
+            if _is_noise_history_content(raw):
+                continue
             role = msg.role.value if hasattr(msg.role, "value") else str(msg.role)
-            preview = (msg.content or "").strip().replace("\n", " ")
+            preview = raw.replace("\n", " ")
             if len(preview) > 120:
                 preview = preview[:117] + "…"
             items.append(
@@ -56,6 +72,16 @@ async def fetch_recent_history(session: AsyncSession, user_id: int, *, limit: in
                     "preview": preview or "(빈 메시지)",
                 }
             )
+
+        if not items:
+            return {
+                "source": "history",
+                "status": "empty",
+                "tool": "history.digest",
+                "params": {"limit": limit},
+                "items": [],
+                "summary": "최근 대화가 없습니다.",
+            }
 
         return {
             "source": "history",
