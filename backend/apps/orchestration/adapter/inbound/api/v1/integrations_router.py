@@ -160,11 +160,13 @@ async def patch_briefing_notify(
     await repo.verify_user(body.user_id)
     rows = await integ_repo.list_for_user(body.user_id)
     connected = [
-        r for r in rows if (r.access_token or "").strip() and r.enabled and r.provider in ("slack", "gmail")
+        r
+        for r in rows
+        if (r.access_token or "").strip() and r.enabled and r.provider == "gmail"
     ]
     if body.enabled and not connected:
         return JSONResponse(
-            {"detail": "Slack 또는 Gmail 연동 후 알림을 켤 수 있습니다."},
+            {"detail": "Gmail 연동 후 알림을 켤 수 있습니다."},
             status_code=400,
         )
     await integ_repo.set_briefing_notify(body.user_id, enabled=body.enabled)

@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { Check, Loader2 } from "lucide-react";
 
@@ -11,7 +10,6 @@ import {
   fetchIntegrations,
   integrationOAuthStartUrl,
   patchBriefingNotify,
-  type IntegrationProvider,
 } from "@/lib/integrations-api";
 import {
   fetchNotificationSettings,
@@ -19,28 +17,7 @@ import {
 } from "@/lib/notification-settings-api";
 import { mypageSectionUrl } from "@/lib/routes";
 
-type NotifyChannel = "slack_dm" | "email";
-
-const CHANNEL_STORAGE_KEY = "moneo.briefing_notify_channels";
-
 type ToggleKey = "morningNotify" | "alertCalendarDensity" | "alertUrgentMessages";
-
-function loadChannels(): NotifyChannel[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = localStorage.getItem(CHANNEL_STORAGE_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw) as unknown;
-    if (!Array.isArray(parsed)) return [];
-    return parsed.filter((x): x is NotifyChannel => x === "slack_dm" || x === "email");
-  } catch {
-    return [];
-  }
-}
-
-function saveChannels(channels: NotifyChannel[]) {
-  localStorage.setItem(CHANNEL_STORAGE_KEY, JSON.stringify(channels));
-}
 
 function ToggleSwitch({
   checked,
@@ -83,9 +60,7 @@ export function BriefingNotifySection() {
     morningNotify: false,
     alertCalendarDensity: false,
     alertUrgentMessages: false,
-    slackConnected: false,
     gmailConnected: false,
-    channels: [] as NotifyChannel[],
   });
 
   const patchUi = (patch: Partial<typeof ui>) =>
@@ -104,16 +79,13 @@ export function BriefingNotifySection() {
         fetchNotificationSettings(userId, base),
         fetchIntegrations(userId, base),
       ]);
-      const slack = integrations.integrations.find((i) => i.provider === "slack");
       const gmail = integrations.integrations.find((i) => i.provider === "gmail");
       patchUi({
         loading: false,
         morningNotify: integrations.briefing_notify,
         alertCalendarDensity: notify.alert_calendar_density,
         alertUrgentMessages: notify.alert_urgent_messages,
-        slackConnected: Boolean(slack?.connected && slack.enabled),
         gmailConnected: Boolean(gmail?.connected && gmail.enabled),
-        channels: loadChannels(),
       });
     } catch (e) {
       patchUi({
@@ -177,24 +149,11 @@ export function BriefingNotifySection() {
     }
   };
 
-  const toggleChannel = (channel: NotifyChannel) => {
-    const connected =
-      channel === "slack_dm" ? ui.slackConnected : ui.gmailConnected;
-    if (!connected) return;
-    const has = ui.channels.includes(channel);
-    const next = has
-      ? ui.channels.filter((c) => c !== channel)
-      : [...ui.channels, channel];
-    saveChannels(next);
-    patchUi({ channels: next, savedFlash: true });
-    window.setTimeout(() => patchUi({ savedFlash: false }), 1200);
-  };
-
-  const startOAuth = (provider: IntegrationProvider) => {
+  const startGmailOAuth = () => {
     const userId = getChatUserId();
     if (!userId) return;
     window.location.href = integrationOAuthStartUrl(
-      provider,
+      "gmail",
       userId,
       mypageSectionUrl("notifications")
     );
@@ -223,7 +182,7 @@ export function BriefingNotifySection() {
         <div>
           <h2 className="text-lg font-semibold text-white">브리핑 알림</h2>
           <p className="mt-1 text-sm text-[var(--moneo-muted)]">
-            토글을 바꾸면 바로 저장됩니다. 연동된 채널로만 알림을 보낼 수 있어요.
+            토글을 바꾸면 바로 저장됩니다. 알림은 Gmail 연동 후 받을 수 있어요.
           </p>
         </div>
         {ui.savingKey ? (
@@ -245,7 +204,7 @@ export function BriefingNotifySection() {
             <div>
               <p className="text-sm font-medium text-white">매일 아침 브리핑 받기</p>
               <p className="mt-1 text-xs leading-relaxed text-[var(--moneo-muted)]">
-                연동된 Slack DM 또는 이메일로 요약과 브리핑 링크를 보냅니다.
+                연동된 Gmail로 요약과 브리핑 링크를 보냅니다.
               </p>
             </div>
             <ToggleSwitch
@@ -274,17 +233,17 @@ export function BriefingNotifySection() {
           <div className="flex items-start justify-between gap-4 border-t border-white/10 pt-5">
             <div>
               <p className="text-sm font-medium text-white">
-                긴급 메시지/메일 감지 시 알려주기
+                긴급 메일 감지 시 알려주기
               </p>
               <p className="mt-1 text-xs leading-relaxed text-[var(--moneo-muted)]">
-                Slack 긴급 멘션·마감 임박 메일을 감지하면 알림을 보냅니다.
+                마감 임박 메일 등을 감지하면 알림을 보냅니다.
               </p>
             </div>
             <ToggleSwitch
               checked={ui.alertUrgentMessages}
               disabled={ui.savingKey === "alertUrgentMessages"}
               onChange={() => void toggleNotifyField("alertUrgentMessages")}
-              label="긴급 메시지/메일 감지 시 알려주기"
+              label="긴급 메일 감지 시 알려주기"
             />
           </div>
         </div>
@@ -293,85 +252,33 @@ export function BriefingNotifySection() {
       <section className={mypageCardClass}>
         <h3 className="text-base font-semibold text-white">알림 받을 채널</h3>
         <p className="mt-1 text-sm text-[var(--moneo-muted)]">
-          연동된 채널만 선택할 수 있습니다.
+          브리핑·알림은 Gmail로 보냅니다.
         </p>
-        <div className="mt-4 space-y-3">
+        <div className="mt-4">
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3">
             <div className="min-w-0">
-              <p className="text-sm font-medium text-white">Slack DM</p>
+              <p className="text-sm font-medium text-white">이메일 (Gmail)</p>
               <p className="mt-0.5 text-xs text-[var(--moneo-muted)]">
-                {ui.slackConnected ? "연결됨" : "연동 필요"}
+                {ui.gmailConnected ? "연결됨" : "연동 필요"}
               </p>
             </div>
             <div className="flex items-center gap-2">
-              {!ui.slackConnected ? (
-                <button
-                  type="button"
-                  onClick={() => startOAuth("slack")}
-                  className="text-xs font-medium text-indigo-300 hover:text-indigo-200"
-                >
-                  Slack 연동하기
-                </button>
+              {ui.gmailConnected ? (
+                <span className="rounded-full border border-indigo-500/50 bg-indigo-600/80 px-3 py-1.5 text-xs font-medium text-white">
+                  사용 중
+                </span>
               ) : (
                 <button
                   type="button"
-                  aria-pressed={ui.channels.includes("slack_dm")}
-                  onClick={() => toggleChannel("slack_dm")}
-                  className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
-                    ui.channels.includes("slack_dm")
-                      ? "border-indigo-500 bg-indigo-600 text-white"
-                      : "border-white/15 text-indigo-100/80 hover:border-indigo-400/40"
-                  }`}
-                >
-                  {ui.channels.includes("slack_dm") ? "선택됨" : "선택"}
-                </button>
-              )}
-            </div>
-          </div>
-
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3">
-            <div className="min-w-0">
-              <p className="text-sm font-medium text-white">이메일</p>
-              <p className="mt-0.5 text-xs text-[var(--moneo-muted)]">
-                {ui.gmailConnected ? "Gmail 연결됨" : "Gmail 연동 필요"}
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              {!ui.gmailConnected ? (
-                <button
-                  type="button"
-                  onClick={() => startOAuth("gmail")}
+                  onClick={startGmailOAuth}
                   className="text-xs font-medium text-indigo-300 hover:text-indigo-200"
                 >
                   Gmail 연동하기
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  aria-pressed={ui.channels.includes("email")}
-                  onClick={() => toggleChannel("email")}
-                  className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
-                    ui.channels.includes("email")
-                      ? "border-indigo-500 bg-indigo-600 text-white"
-                      : "border-white/15 text-indigo-100/80 hover:border-indigo-400/40"
-                  }`}
-                >
-                  {ui.channels.includes("email") ? "선택됨" : "선택"}
                 </button>
               )}
             </div>
           </div>
         </div>
-        <p className="mt-4 text-xs text-[var(--moneo-muted)]">
-          연동·권한은{" "}
-          <Link
-            href={mypageSectionUrl("account")}
-            className="text-indigo-300 hover:text-indigo-200"
-          >
-            계정 관리
-          </Link>
-          에서도 확인할 수 있습니다.
-        </p>
       </section>
     </div>
   );
