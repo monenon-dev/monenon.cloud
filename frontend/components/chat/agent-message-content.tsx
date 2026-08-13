@@ -1,7 +1,9 @@
 "use client";
 
 import {
+  useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -28,6 +30,7 @@ export type AgentMessageContentProps = {
   streaming?: boolean;
   className?: string;
   onRegenerate?: () => void;
+  /** 더 이상 사용하지 않음 — 형식 선택 메뉴가 내장됨 */
   onSaveDocument?: () => void;
   /** 지정 시 텍스트 추론 대신 고정 카드 스타일(briefing/report) 적용 */
   kind?: ResponseKind;
@@ -303,10 +306,17 @@ function SectionAccordion({
   );
 }
 
-function downloadMarkdownFile(text: string, basename = "moneo-briefing") {
+type SaveFormat = "md" | "txt" | "pdf";
+
+function downloadBlobFile(
+  content: string,
+  basename: string,
+  ext: "md" | "txt",
+  mime: string
+) {
   const stamp = new Date().toISOString().slice(0, 10);
-  const filename = `${basename}-${stamp}.md`;
-  const blob = new Blob([text], { type: "text/markdown;charset=utf-8" });
+  const filename = `${basename}-${stamp}.${ext}`;
+  const blob = new Blob([content], { type: `${mime};charset=utf-8` });
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
   anchor.href = url;
@@ -319,20 +329,81 @@ function downloadMarkdownFile(text: string, basename = "moneo-briefing") {
   return filename;
 }
 
+/** 브라우저 인쇄 → 「PDF로 저장」 선택 (한글 깨짐 없는 방식) */
+function saveAsPrintPdf(text: string, title: string) {
+  const w = window.open("", "_blank", "noopener,noreferrer,width=840,height=900");
+  if (!w) {
+    throw new Error("팝업이 차단되어 PDF 창을 열 수 없습니다.");
+  }
+  const escaped = text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+  w.document.write(`<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <title>${title.replace(/</g, "")}</title>
+  <style>
+    body { font-family: "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
+           margin: 2rem; color: #111; line-height: 1.55; font-size: 14px; }
+    h1 { font-size: 1.15rem; margin: 0 0 1rem; }
+    pre { white-space: pre-wrap; word-break: break-word; font-family: inherit; margin: 0; }
+    @media print { body { margin: 1.2cm; } }
+  </style>
+</head>
+<body>
+  <h1>${title.replace(/</g, "")}</h1>
+  <pre>${escaped}</pre>
+  <script>
+    window.onload = function () {
+      window.focus();
+      window.print();
+    };
+  </script>
+</body>
+</html>`);
+  w.document.close();
+}
+
+function saveDocumentAs(text: string, basename: string, format: SaveFormat) {
+  if (format === "md") {
+    return downloadBlobFile(text, basename, "md", "text/markdown");
+  }
+  if (format === "txt") {
+    return downloadBlobFile(text, basename, "txt", "text/plain");
+  }
+  saveAsPrintPdf(text, basename);
+  return `${basename}.pdf`;
+}
+
 function ActionBar({
   text,
+  basename,
   onRegenerate,
-  onSaveDocument,
 }: {
   text: string;
+  basename: string;
   onRegenerate?: () => void;
-  onSaveDocument?: () => void;
 }) {
+  const menuRef = useRef<HTMLDivElement>(null);
   const [ui, setUi] = useState({
     copied: false,
     saved: false,
     regenerating: false,
+    saveMenuOpen: false,
   });
+
+  useEffect(() => {
+    if (!ui.saveMenuOpen) return;
+    const onPointer = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setUi((prev) => ({ ...prev, saveMenuOpen: false }));
+      }
+    };
+    document.addEventListener("mousedown", onPointer);
+    return () => document.removeEventListener("mousedown", onPointer);
+  }, [ui.saveMenuOpen]);
 
   const copy = async () => {
     try {
@@ -347,20 +418,16 @@ function ActionBar({
     }
   };
 
-  const save = () => {
+  const save = (format: SaveFormat) => {
     try {
-      if (onSaveDocument) {
-        onSaveDocument();
-      } else {
-        downloadMarkdownFile(text);
-      }
-      setUi((prev) => ({ ...prev, saved: true }));
+      saveDocumentAs(text, basename, format);
+      setUi((prev) => ({ ...prev, saved: true, saveMenuOpen: false }));
       window.setTimeout(
         () => setUi((prev) => ({ ...prev, saved: false })),
         1800
       );
     } catch {
-      /* ignore */
+      setUi((prev) => ({ ...prev, saveMenuOpen: false }));
     }
   };
 
@@ -380,6 +447,9 @@ function ActionBar({
   const btn =
     "inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] text-indigo-700/80 hover:bg-indigo-500/10 hover:text-indigo-900 dark:text-indigo-200/80 dark:hover:bg-white/5 dark:hover:text-indigo-100";
 
+  const menuItem =
+    "block w-full px-3 py-2 text-left text-[11px] text-indigo-100/90 hover:bg-white/10";
+
   return (
     <div className="mt-2 flex flex-wrap items-center gap-0.5 opacity-100">
       <button type="button" onClick={() => void copy()} className={btn} title="복사">
@@ -398,10 +468,42 @@ function ActionBar({
           {ui.regenerating ? "생성 중…" : "다시 생성"}
         </button>
       ) : null}
-      <button type="button" onClick={save} className={btn} title="마크다운 파일로 저장">
-        {ui.saved ? <Check className="size-3.5 text-emerald-400" /> : <FileText className="size-3.5" />}
-        {ui.saved ? "저장됨" : "문서로 저장"}
-      </button>
+      <div className="relative" ref={menuRef}>
+        <button
+          type="button"
+          onClick={() =>
+            setUi((prev) => ({ ...prev, saveMenuOpen: !prev.saveMenuOpen }))
+          }
+          className={btn}
+          title="저장 형식 선택"
+          aria-expanded={ui.saveMenuOpen}
+          aria-haspopup="menu"
+        >
+          {ui.saved ? (
+            <Check className="size-3.5 text-emerald-400" />
+          ) : (
+            <FileText className="size-3.5" />
+          )}
+          {ui.saved ? "저장됨" : "문서로 저장"}
+          <ChevronDown className="size-3 opacity-70" aria-hidden />
+        </button>
+        {ui.saveMenuOpen ? (
+          <div
+            role="menu"
+            className="absolute bottom-full left-0 z-30 mb-1 min-w-[11rem] overflow-hidden rounded-lg border border-white/10 bg-[rgba(12,12,18,0.98)] py-1 shadow-lg"
+          >
+            <button type="button" role="menuitem" className={menuItem} onClick={() => save("md")}>
+              Markdown (.md)
+            </button>
+            <button type="button" role="menuitem" className={menuItem} onClick={() => save("txt")}>
+              텍스트 / 메모장 (.txt)
+            </button>
+            <button type="button" role="menuitem" className={menuItem} onClick={() => save("pdf")}>
+              PDF (인쇄 저장)
+            </button>
+          </div>
+        ) : null}
+      </div>
     </div>
   );
 }
@@ -414,7 +516,6 @@ export function AgentMessageContent({
   streaming = false,
   className = "",
   onRegenerate,
-  onSaveDocument,
   kind: kindProp,
 }: AgentMessageContentProps) {
   const kind = useMemo(
@@ -425,15 +526,8 @@ export function AgentMessageContent({
   const parsed = useMemo(() => splitByH2(text), [text]);
   const collapsible = parsed.sections.length >= 3;
   const Icon = summary.Icon;
-
-  const saveDoc =
-    onSaveDocument ??
-    (() => {
-      downloadMarkdownFile(
-        text,
-        kind === "report" ? "moneo-weekly-report" : "moneo-briefing"
-      );
-    });
+  const basename =
+    kind === "report" ? "moneo-weekly-report" : "moneo-briefing";
 
   return (
     <div className={`group/msg ${className}`}>
@@ -465,7 +559,7 @@ export function AgentMessageContent({
       ) : null}
 
       {!streaming ? (
-        <ActionBar text={text} onRegenerate={onRegenerate} onSaveDocument={saveDoc} />
+        <ActionBar text={text} basename={basename} onRegenerate={onRegenerate} />
       ) : null}
     </div>
   );
