@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Menu, X } from "lucide-react";
 
 import Logo from "@/components/brand/Logo";
+import { AlertBellButton } from "@/components/home/alert-bell-button";
 import { LandingHeaderNav } from "@/components/home/landing-header-nav";
 import { routes } from "@/lib/routes";
 
@@ -49,6 +50,7 @@ export function LandingSiteHeader({
           </div>
 
           <div className="flex shrink-0 items-center justify-end gap-1.5 sm:gap-2">
+            {authUser ? <AlertBellButton /> : null}
             {authUser ? (
               <>
                 <Link

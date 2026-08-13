@@ -10,6 +10,9 @@ from orchestration.adapter.inbound.api.v1.integrations_router import integration
 from orchestration.adapter.inbound.api.v1.notification_settings_router import (
     notification_settings_router,
 )
+from orchestration.adapter.inbound.api.v1.proactive_alerts_router import (
+    proactive_alerts_router,
+)
 from orchestration.adapter.inbound.api.v1.weekly_report_router import weekly_report_router
 from orchestration.adapter.inbound.api.v1.chat_session_router import chat_session_router
 from orchestration.adapter.inbound.api.v1.message_router import message_router
@@ -21,6 +24,7 @@ orchestration_router.include_router(briefing_router)
 orchestration_router.include_router(demo_router)
 orchestration_router.include_router(weekly_report_router)
 orchestration_router.include_router(notification_settings_router)
+orchestration_router.include_router(proactive_alerts_router)
 orchestration_router.include_router(integrations_router)
 
 chat_router = APIRouter()

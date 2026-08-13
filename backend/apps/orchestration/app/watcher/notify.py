@@ -69,11 +69,22 @@ async def deliver_proactive_notification(
 
     integ_repo = IntegrationPgRepository(session)
     alert_repo = ProactiveAlertPgRepository(session)
+
+    # 인앱 알림용으로 먼저 저장 (외부 채널 없어도 앱에서 확인 가능)
+    for issue in issues:
+        issue_msg = f"{issue.summary} — {issue.detail}".strip(" —")
+        await alert_repo.record_sent(
+            user_id=user_id,
+            alert_type=issue.alert_type,
+            trigger_key=issue.trigger_key,
+            message=issue_msg or issue.summary,
+        )
+
+    channels_sent: list[str] = ["in_app"]
+    errors: list[str] = []
+
     slack_row = await integ_repo.get(user_id, "slack")
     gmail_row = await integ_repo.get(user_id, "gmail")
-
-    channels_sent: list[str] = []
-    errors: list[str] = []
 
     if integ_repo._is_connected(slack_row) and slack_row is not None:
         try:
@@ -103,14 +114,5 @@ async def deliver_proactive_notification(
                 logger.warning("[proactive_notify] gmail user_id=%s: %s", user_id, exc)
                 errors.append(f"email: {exc}")
 
-    if not channels_sent:
-        return {"status": "failed", "errors": errors or ["no_channel"]}
-
-    for issue in issues:
-        await alert_repo.record_sent(
-            user_id=user_id,
-            alert_type=issue.alert_type,
-            trigger_key=issue.trigger_key,
-        )
     await session.commit()
     return {"status": "sent", "channels": channels_sent, "count": len(issues), "errors": errors}
