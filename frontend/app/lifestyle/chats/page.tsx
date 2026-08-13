@@ -18,6 +18,11 @@ import {
   readChatStarter,
 } from "@/lib/chat-starter";
 import {
+  claimSessionIdForNonce,
+  readClaimedSessionIdForNonce,
+  shareNewChatByNonce,
+} from "@/lib/chat-starter-lock";
+import {
   createChatSession,
   deleteChatSession,
   fetchChatSessions,
@@ -152,8 +157,21 @@ function ChatsPageContent() {
     [loadMessages, router]
   );
 
+  const creatingNewRef = useRef(false);
+  const newChatHandledRef = useRef<string | null>(null);
+
   const handleNewChat = useCallback(async () => {
-    if (!userId) return;
+    if (!userId || creatingNewRef.current) return;
+
+    const reusable = sessions.find(
+      (s) => s.message_count === 0 && s.title.trim() === "새 대화"
+    );
+    if (reusable) {
+      selectSession(reusable.id);
+      return;
+    }
+
+    creatingNewRef.current = true;
     setPageError(null);
     try {
       const session = await createChatSession(userId, "새 대화", apiBaseUrl);
@@ -161,8 +179,10 @@ function ChatsPageContent() {
       selectSession(session.id);
     } catch (e) {
       setPageError(e instanceof Error ? e.message : "채팅방 생성 실패");
+    } finally {
+      creatingNewRef.current = false;
     }
-  }, [userId, selectSession]);
+  }, [userId, sessions, selectSession]);
 
   const handleRenameSession = useCallback(
     async (sessionId: number, title: string) => {
@@ -208,9 +228,6 @@ function ChatsPageContent() {
     },
     [userId, sessions, activeSessionId, selectSession, router]
   );
-
-  const creatingNewRef = useRef(false);
-  const newChatHandledRef = useRef<string | null>(null);
 
   useEffect(() => {
     setUserId(getChatUserId());
@@ -311,25 +328,41 @@ function ChatsPageContent() {
     const queryPrompt = searchParams.get("prompt")?.trim();
     const stored = readChatStarter();
     const prompt = queryPrompt || stored.prompt?.trim() || "";
-    if (!prompt) return;
+    // nonce 없으면 UUID를 새로 뽑지 않음 — remount마다 키가 바뀌어 세션이 중복 생성됨
+    const nonce = searchParams.get("nonce") || stored.nonce;
+    if (!prompt || !nonce) return;
 
-    const nonce = searchParams.get("nonce") || stored.nonce || crypto.randomUUID();
     const handleKey = `${nonce}::${prompt}`;
-    if (newChatHandledRef.current === handleKey || creatingNewRef.current) return;
-
-    creatingNewRef.current = true;
+    if (newChatHandledRef.current === handleKey) return;
     newChatHandledRef.current = handleKey;
     clearChatStarter();
     setPageError(null);
 
     void (async () => {
       try {
-        const session = await createChatSession(
-          userId,
-          promptToSessionTitle(prompt),
-          apiBaseUrl
-        );
-        setSessions((prev) => [session, ...prev.filter((s) => s.id !== session.id)]);
+        const claimedId = readClaimedSessionIdForNonce(nonce);
+        let session: ChatSessionItem;
+        if (claimedId != null) {
+          const list = await fetchChatSessions(userId, apiBaseUrl);
+          const found = list.find((s) => s.id === claimedId);
+          if (found) {
+            session = found;
+            setSessions(list);
+          } else {
+            session = await shareNewChatByNonce(nonce, () =>
+              createChatSession(userId, promptToSessionTitle(prompt), apiBaseUrl)
+            );
+            claimSessionIdForNonce(nonce, session.id);
+            setSessions((prev) => [session, ...prev.filter((s) => s.id !== session.id)]);
+          }
+        } else {
+          session = await shareNewChatByNonce(nonce, () =>
+            createChatSession(userId, promptToSessionTitle(prompt), apiBaseUrl)
+          );
+          claimSessionIdForNonce(nonce, session.id);
+          setSessions((prev) => [session, ...prev.filter((s) => s.id !== session.id)]);
+        }
+
         setActiveSessionId(session.id);
         setSessionMessages([]);
         skipLoadSessionRef.current = session.id;
@@ -340,8 +373,6 @@ function ChatsPageContent() {
       } catch (e) {
         newChatHandledRef.current = null;
         setPageError(e instanceof Error ? e.message : "채팅방 생성 실패");
-      } finally {
-        creatingNewRef.current = false;
       }
     })();
   }, [userId, isNewFromHome, searchParams, router]);
