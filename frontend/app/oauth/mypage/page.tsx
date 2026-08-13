@@ -248,7 +248,6 @@ function MyPageContent() {
         <DashboardSection
           nickname={profile.nickname}
           agentName={prefs.agentName}
-          interestCount={prefs.interests.length}
         />
       )}
 

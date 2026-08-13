@@ -3,18 +3,16 @@ import Link from "next/link";
 import { RecentActivityCard } from "@/components/mypage/recent-activity-card";
 import { mypageCardClass } from "@/components/mypage/mypage-sidebar-layout";
 import { routes } from "@/lib/routes";
-import { Bot, Briefcase, Terminal } from "lucide-react";
+import { Bot, Terminal } from "lucide-react";
 
 type DashboardSectionProps = {
   nickname: string;
   agentName: string;
-  interestCount: number;
 };
 
 export function DashboardSection({
   nickname,
   agentName,
-  interestCount,
 }: DashboardSectionProps) {
   return (
     <div className="space-y-6">
@@ -29,8 +27,6 @@ export function DashboardSection({
         </p>
       </section>
 
-      <InterestCard interestCount={interestCount} />
-
       <RecentActivityCard />
 
       <section className={mypageCardClass}>
@@ -40,30 +36,6 @@ export function DashboardSection({
           <QuickLink href={routes.agent.history} icon={Terminal} label="에이전트 히스토리" />
         </div>
       </section>
-    </div>
-  );
-}
-
-function InterestCard({ interestCount }: { interestCount: number }) {
-  const empty = interestCount === 0;
-
-  return (
-    <div className={mypageCardClass}>
-      <div className="flex items-center gap-2 text-[var(--moneo-muted)]">
-        <Briefcase size={16} />
-        <span className="text-sm">주요 활용 분야</span>
-      </div>
-      <p className="mt-3 text-lg font-semibold text-white">
-        {empty ? "0개 선택됨" : `${interestCount}개 선택됨`}
-      </p>
-      {empty ? (
-        <Link
-          href={routes.oauth.mypagePreferences}
-          className="mt-3 inline-flex text-sm font-medium text-indigo-400 transition-colors hover:text-indigo-300"
-        >
-          취향 설정에서 선택하기 →
-        </Link>
-      ) : null}
     </div>
   );
 }
