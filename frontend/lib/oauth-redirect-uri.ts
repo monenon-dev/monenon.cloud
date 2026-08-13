@@ -15,6 +15,19 @@ function isLocalOrigin(origin: string): boolean {
   }
 }
 
+/** apex → www (Vercel 307·쿠키·콘솔 등록값과 맞춤) */
+function pinProductionOrigin(origin: string): string {
+  try {
+    const host = new URL(origin).hostname;
+    if (host === "monenon.cloud") {
+      return DEFAULT_PRODUCTION_ORIGIN;
+    }
+  } catch {
+    /* ignore */
+  }
+  return origin.replace(/\/$/, "");
+}
+
 /** OAuth 콜백 redirect_uri origin — 네이버·카카오·Gmail 콘솔 등록값과 일치 */
 export function getOAuthRedirectOrigin(requestOrigin?: string): string {
   // 로컬은 env보다 요청 origin 우선 — 아니면 prod origin으로 mismatch 난다
@@ -25,7 +38,7 @@ export function getOAuthRedirectOrigin(requestOrigin?: string): string {
     process.env.NEXT_PUBLIC_OAUTH_REDIRECT_ORIGIN?.trim() ||
     process.env.OAUTH_REDIRECT_ORIGIN?.trim();
   if (fromEnv) {
-    return fromEnv.replace(/\/$/, "");
+    return pinProductionOrigin(fromEnv);
   }
   return DEFAULT_PRODUCTION_ORIGIN;
 }
