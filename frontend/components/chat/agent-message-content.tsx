@@ -308,6 +308,223 @@ function SectionAccordion({
 
 type SaveFormat = "md" | "txt" | "pdf";
 
+function documentTitleForKind(kind: ResponseKind): string {
+  switch (kind) {
+    case "briefing":
+      return "오늘 업무 브리핑";
+    case "report":
+      return "업무 리포트";
+    case "organize":
+      return "자료 정리";
+    default:
+      return "업무 메모";
+  }
+}
+
+function escapeHtml(raw: string): string {
+  return raw
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+/** 인라인 마크다운 → HTML (이미 escape된 텍스트 기준) */
+function inlineMdToHtml(raw: string): string {
+  let s = escapeHtml(raw);
+  s = s.replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, '<a href="$2">$1</a>');
+  s = s.replace(/`([^`]+)`/g, "<code>$1</code>");
+  s = s.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+  s = s.replace(/(^|[^*])\*(?!\*)(.+?)\*(?!\*)/g, "$1<em>$2</em>");
+  return s;
+}
+
+function stripInlineMd(raw: string): string {
+  return raw
+    .replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, "$1 ($2)")
+    .replace(/`([^`]+)`/g, "$1")
+    .replace(/\*\*(.+?)\*\*/g, "$1")
+    .replace(/(^|[^*])\*(?!\*)(.+?)\*(?!\*)/g, "$1$2")
+    .replace(/^#{1,6}\s+/, "")
+    .trim();
+}
+
+/** 채팅용 MD → 인쇄·PDF용 문서 HTML 본문 */
+function markdownToDocumentBodyHtml(markdown: string): string {
+  const lines = markdown.replace(/\r\n/g, "\n").split("\n");
+  const out: string[] = [];
+  let i = 0;
+  let inUl = false;
+  let inOl = false;
+  let inCode = false;
+  const codeBuf: string[] = [];
+
+  const closeLists = () => {
+    if (inUl) {
+      out.push("</ul>");
+      inUl = false;
+    }
+    if (inOl) {
+      out.push("</ol>");
+      inOl = false;
+    }
+  };
+
+  while (i < lines.length) {
+    const line = lines[i]!;
+
+    if (line.startsWith("```")) {
+      if (inCode) {
+        out.push(
+          `<pre class="code"><code>${escapeHtml(codeBuf.join("\n"))}</code></pre>`
+        );
+        codeBuf.length = 0;
+        inCode = false;
+      } else {
+        closeLists();
+        inCode = true;
+      }
+      i += 1;
+      continue;
+    }
+    if (inCode) {
+      codeBuf.push(line);
+      i += 1;
+      continue;
+    }
+
+    if (/^\s*$/.test(line)) {
+      closeLists();
+      i += 1;
+      continue;
+    }
+
+    const h = /^(#{1,3})\s+(.+)$/.exec(line);
+    if (h) {
+      closeLists();
+      const level = h[1]!.length;
+      out.push(`<h${level}>${inlineMdToHtml(h[2]!.trim())}</h${level}>`);
+      i += 1;
+      continue;
+    }
+
+    const ul = /^[\s]*[-*•]\s+(.+)$/.exec(line);
+    if (ul) {
+      if (inOl) {
+        out.push("</ol>");
+        inOl = false;
+      }
+      if (!inUl) {
+        out.push("<ul>");
+        inUl = true;
+      }
+      out.push(`<li>${inlineMdToHtml(ul[1]!.trim())}</li>`);
+      i += 1;
+      continue;
+    }
+
+    const ol = /^[\s]*\d+[.)]\s+(.+)$/.exec(line);
+    if (ol) {
+      if (inUl) {
+        out.push("</ul>");
+        inUl = false;
+      }
+      if (!inOl) {
+        out.push("<ol>");
+        inOl = true;
+      }
+      out.push(`<li>${inlineMdToHtml(ol[1]!.trim())}</li>`);
+      i += 1;
+      continue;
+    }
+
+    closeLists();
+    out.push(`<p>${inlineMdToHtml(line.trim())}</p>`);
+    i += 1;
+  }
+  closeLists();
+  if (inCode) {
+    out.push(
+      `<pre class="code"><code>${escapeHtml(codeBuf.join("\n"))}</code></pre>`
+    );
+  }
+  return out.join("\n");
+}
+
+/** 채팅용 MD → 메모장용 읽기 쉬운 평문 문서 */
+function markdownToPlainDocument(markdown: string, title: string, dateLabel: string): string {
+  const lines = markdown.replace(/\r\n/g, "\n").split("\n");
+  const body: string[] = [];
+  let inCode = false;
+
+  for (const line of lines) {
+    if (line.startsWith("```")) {
+      inCode = !inCode;
+      if (!inCode) body.push("");
+      continue;
+    }
+    if (inCode) {
+      body.push(line);
+      continue;
+    }
+    if (/^\s*$/.test(line)) {
+      if (body.length > 0 && body[body.length - 1] !== "") body.push("");
+      continue;
+    }
+    const h1 = /^#\s+(.+)$/.exec(line);
+    if (h1) {
+      const t = stripInlineMd(h1[1]!);
+      body.push(t, "=".repeat(Math.min(40, Math.max(8, t.length))), "");
+      continue;
+    }
+    const h2 = /^##\s+(.+)$/.exec(line);
+    if (h2) {
+      const t = stripInlineMd(h2[1]!);
+      body.push(t, "-".repeat(Math.min(40, Math.max(8, t.length))), "");
+      continue;
+    }
+    const h3 = /^###\s+(.+)$/.exec(line);
+    if (h3) {
+      body.push(`【${stripInlineMd(h3[1]!)}】`, "");
+      continue;
+    }
+    const ul = /^[\s]*[-*•]\s+(.+)$/.exec(line);
+    if (ul) {
+      body.push(`• ${stripInlineMd(ul[1]!)}`);
+      continue;
+    }
+    const ol = /^[\s]*(\d+)[.)]\s+(.+)$/.exec(line);
+    if (ol) {
+      body.push(`${ol[1]}. ${stripInlineMd(ol[2]!)}`);
+      continue;
+    }
+    body.push(stripInlineMd(line));
+  }
+
+  while (body.length > 0 && body[body.length - 1] === "") body.pop();
+
+  return [
+    title,
+    "=".repeat(Math.min(40, Math.max(12, title.length))),
+    `작성일: ${dateLabel}`,
+    "출처: Moneo",
+    "",
+    ...body,
+    "",
+  ].join("\n");
+}
+
+function wrapMarkdownDocument(markdown: string, title: string, dateLabel: string): string {
+  return [
+    `# ${title}`,
+    "",
+    `> 작성일: ${dateLabel} · Moneo`,
+    "",
+    markdown.trim(),
+    "",
+  ].join("\n");
+}
+
 function downloadBlobFile(
   content: string,
   basename: string,
@@ -329,32 +546,69 @@ function downloadBlobFile(
   return filename;
 }
 
-/** 브라우저 인쇄 → 「PDF로 저장」 선택 (한글 깨짐 없는 방식) */
-function saveAsPrintPdf(text: string, title: string) {
+/** 브라우저 인쇄 → 「PDF로 저장」 — 문서 레이아웃(제목·섹션·목록) */
+function saveAsPrintPdf(markdown: string, title: string, dateLabel: string) {
   const w = window.open("", "_blank", "noopener,noreferrer,width=840,height=900");
   if (!w) {
     throw new Error("팝업이 차단되어 PDF 창을 열 수 없습니다.");
   }
-  const escaped = text
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
+  const safeTitle = escapeHtml(title);
+  const bodyHtml = markdownToDocumentBodyHtml(markdown);
   w.document.write(`<!DOCTYPE html>
 <html lang="ko">
 <head>
   <meta charset="utf-8" />
-  <title>${title.replace(/</g, "")}</title>
+  <title>${safeTitle}</title>
   <style>
-    body { font-family: "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
-           margin: 2rem; color: #111; line-height: 1.55; font-size: 14px; }
-    h1 { font-size: 1.15rem; margin: 0 0 1rem; }
-    pre { white-space: pre-wrap; word-break: break-word; font-family: inherit; margin: 0; }
-    @media print { body { margin: 1.2cm; } }
+    :root { color-scheme: light; }
+    * { box-sizing: border-box; }
+    body {
+      font-family: "Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+      margin: 0; color: #18181b; background: #fff; line-height: 1.65; font-size: 14px;
+    }
+    .sheet { max-width: 720px; margin: 0 auto; padding: 2.25rem 2rem 3rem; }
+    .meta {
+      font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase;
+      color: #64748b; margin: 0 0 0.35rem;
+    }
+    .doc-title {
+      font-size: 1.5rem; font-weight: 700; letter-spacing: -0.02em;
+      margin: 0 0 0.35rem; color: #0f172a; border: 0; padding: 0;
+    }
+    .date { font-size: 12px; color: #64748b; margin: 0 0 1.25rem; }
+    hr.rule { border: 0; border-top: 1px solid #e2e8f0; margin: 0 0 1.5rem; }
+    .body h1 { font-size: 1.2rem; margin: 1.5rem 0 0.6rem; padding-bottom: 0.35rem;
+         border-bottom: 1px solid #e2e8f0; color: #0f172a; }
+    .body h2 { font-size: 1.05rem; margin: 1.35rem 0 0.5rem; padding-bottom: 0.3rem;
+         border-bottom: 1px solid #eef2f7; color: #0f172a; }
+    .body h3 { font-size: 0.8rem; margin: 1.1rem 0 0.4rem; letter-spacing: 0.08em;
+         text-transform: uppercase; color: #4338ca; }
+    .body p { margin: 0 0 0.85rem; color: #334155; }
+    .body ul, .body ol { margin: 0 0 0.95rem; padding-left: 1.25rem; color: #334155; }
+    .body li { margin: 0.25rem 0; }
+    .body strong { color: #0f172a; }
+    .body a { color: #4338ca; }
+    .body code { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.9em;
+           background: #f1f5f9; padding: 0.1em 0.35em; border-radius: 3px; }
+    .body pre.code { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px;
+               padding: 0.85rem 1rem; overflow: auto; margin: 0 0 1rem; }
+    .body pre.code code { background: none; padding: 0; }
+    @media print {
+      body { background: #fff; }
+      .sheet { max-width: none; padding: 0; }
+    }
   </style>
 </head>
 <body>
-  <h1>${title.replace(/</g, "")}</h1>
-  <pre>${escaped}</pre>
+  <article class="sheet">
+    <p class="meta">Moneo Document</p>
+    <h1 class="doc-title">${safeTitle}</h1>
+    <p class="date">작성일 ${escapeHtml(dateLabel)}</p>
+    <hr class="rule" />
+    <div class="body">
+    ${bodyHtml}
+    </div>
+  </article>
   <script>
     window.onload = function () {
       window.focus();
@@ -366,24 +620,47 @@ function saveAsPrintPdf(text: string, title: string) {
   w.document.close();
 }
 
-function saveDocumentAs(text: string, basename: string, format: SaveFormat) {
+function saveDocumentAs(
+  markdown: string,
+  basename: string,
+  title: string,
+  format: SaveFormat
+) {
+  const dateLabel = new Date().toLocaleDateString("ko-KR", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    weekday: "short",
+  });
   if (format === "md") {
-    return downloadBlobFile(text, basename, "md", "text/markdown");
+    return downloadBlobFile(
+      wrapMarkdownDocument(markdown, title, dateLabel),
+      basename,
+      "md",
+      "text/markdown"
+    );
   }
   if (format === "txt") {
-    return downloadBlobFile(text, basename, "txt", "text/plain");
+    return downloadBlobFile(
+      markdownToPlainDocument(markdown, title, dateLabel),
+      basename,
+      "txt",
+      "text/plain"
+    );
   }
-  saveAsPrintPdf(text, basename);
+  saveAsPrintPdf(markdown, title, dateLabel);
   return `${basename}.pdf`;
 }
 
 function ActionBar({
   text,
   basename,
+  documentTitle,
   onRegenerate,
 }: {
   text: string;
   basename: string;
+  documentTitle: string;
   onRegenerate?: () => void;
 }) {
   const menuRef = useRef<HTMLDivElement>(null);
@@ -420,7 +697,7 @@ function ActionBar({
 
   const save = (format: SaveFormat) => {
     try {
-      saveDocumentAs(text, basename, format);
+      saveDocumentAs(text, basename, documentTitle, format);
       setUi((prev) => ({ ...prev, saved: true, saveMenuOpen: false }));
       window.setTimeout(
         () => setUi((prev) => ({ ...prev, saved: false })),
@@ -528,6 +805,7 @@ export function AgentMessageContent({
   const Icon = summary.Icon;
   const basename =
     kind === "report" ? "moneo-weekly-report" : "moneo-briefing";
+  const documentTitle = documentTitleForKind(kind);
 
   return (
     <div className={`group/msg ${className}`}>
@@ -559,7 +837,12 @@ export function AgentMessageContent({
       ) : null}
 
       {!streaming ? (
-        <ActionBar text={text} basename={basename} onRegenerate={onRegenerate} />
+        <ActionBar
+          text={text}
+          basename={basename}
+          documentTitle={documentTitle}
+          onRegenerate={onRegenerate}
+        />
       ) : null}
     </div>
   );
