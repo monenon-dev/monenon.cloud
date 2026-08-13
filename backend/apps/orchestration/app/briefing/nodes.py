@@ -26,6 +26,8 @@ logger = logging.getLogger(__name__)
 
 _ALL_TOOLS = ("calendar", "docs", "history", "slack", "gmail")
 
+SYNTH_ERROR_MARKER = "브리핑 생성 중 오류가 발생했습니다"
+
 # 데모/면접용: docs 비어 있을 때 1차 synthesizer가 문서 근거를 지어내도록 삽입
 _DOCS_HALLUCINATION_SNIPPET = (
     "문서 저장소의 Q3 로드맵(q3-roadmap.md)에 따르면 "
@@ -400,6 +402,74 @@ def _source_empty(data: dict | None) -> bool:
     return not isinstance(items, list) or len(items) == 0
 
 
+def _source_items(data: Any) -> list[dict[str, Any]]:
+    if not isinstance(data, dict):
+        return []
+    items = data.get("items")
+    if not isinstance(items, list):
+        return []
+    return [x for x in items if isinstance(x, dict)]
+
+
+def _fallback_briefing_from_sources(state: BriefingState) -> str:
+    """Gemini 실패 시 도구 JSON만으로 만드는 최소 브리핑 초안."""
+    sections: list[str] = ["## 오늘의 브리핑", ""]
+    cal_items = _source_items(state.get("calendar_result"))
+    hist_items = _source_items(state.get("history_result"))
+    docs_items = _source_items(state.get("docs_result"))
+    slack_raw = state.get("slack_summary") or state.get("slack_result")
+    slack_items = _source_items(slack_raw)
+    gmail_items = _source_items(state.get("gmail_summary"))
+
+    if cal_items:
+        sections.append("### 오늘 일정")
+        for item in cal_items[:6]:
+            title = str(item.get("title") or "일정").strip()
+            meta = str(item.get("meta") or "").strip()
+            sections.append(f"- {meta} {title}".strip() if meta else f"- {title}")
+        sections.append("")
+    if hist_items:
+        sections.append("### 최근 대화에서")
+        for item in hist_items[:4]:
+            preview = str(item.get("preview") or item.get("title") or "").strip()
+            if preview:
+                sections.append(f"- {preview}")
+        sections.append("")
+    if docs_items:
+        sections.append("### 문서")
+        for item in docs_items[:4]:
+            title = str(item.get("title") or "문서").strip()
+            sections.append(f"- {title}")
+        sections.append("")
+    if slack_items and not _source_skipped(slack_raw if isinstance(slack_raw, dict) else None):
+        sections.append("### Slack")
+        for item in slack_items[:4]:
+            title = str(item.get("title") or item.get("preview") or "").strip()
+            if title:
+                sections.append(f"- {title}")
+        sections.append("")
+    if gmail_items and not _source_skipped(state.get("gmail_summary")):
+        sections.append("### Gmail")
+        for item in gmail_items[:4]:
+            title = str(item.get("title") or "").strip()
+            if title:
+                sections.append(f"- {title}")
+        sections.append("")
+
+    body = "\n".join(sections).strip()
+    if body == "## 오늘의 브리핑":
+        return (
+            "## 오늘의 브리핑\n\n"
+            "연동된 일정·문서·메시지가 거의 없어 초안을 비워 두었습니다. "
+            "일정을 추가하거나 연동 후 다시 생성해 주세요."
+        )
+    return body
+
+
+def _is_synth_error_answer(answer: str) -> bool:
+    return SYNTH_ERROR_MARKER in (answer or "")
+
+
 def _evidence_blobs(state: BriefingState) -> list[str]:
     blobs: list[str] = []
     for key in (
@@ -429,7 +499,8 @@ async def synthesizer_node(state: BriefingState) -> dict:
     """LangGraph synthesizer 노드 — 수집된 도구 JSON만 근거로 브리핑 초안을 작성한다.
 
     validator 피드백(``validation_notes``)이 있으면 재합성(최대 validator 쪽에서 2회 재시도).
-    skipped 소스는 프롬프트·컨텍스트에서 제외한다. Gemini 오류 시 사용자용 오류 문구를 반환한다.
+    skipped 소스는 프롬프트·컨텍스트에서 제외한다.
+    Gemini 오류 시 도구 결과 기반 폴백 초안을 쓰고, 오류 문구만으로 끝내지 않는다.
     """
     calendar = state.get("calendar_result") or {}
     docs = state.get("docs_result") or {}
@@ -489,47 +560,80 @@ async def synthesizer_node(state: BriefingState) -> dict:
         user_type=state.get("user_type"),
         industry=state.get("industry"),
     )
+
+    used_fallback = False
+    gemini_error: str | None = None
     try:
         answer = call_gemini(prompt, model=get_keymaker().gemini_chat_model_id())
     except Exception as exc:
         logger.exception("[briefing_synthesizer] gemini failed: %s", exc)
-        answer = "브리핑 생성 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요."
+        gemini_error = str(exc)
+        answer = _fallback_briefing_from_sources(state)
+        used_fallback = True
 
     # 의도적 실패 시나리오: docs 비어 있고 1차 합성이면 문서 환각 문장 삽입
+    # (오류 스텁에는 붙이지 않음 — 검토 UI가 깨짐)
     injected = False
-    if pass_n == 1 and _docs_empty(state) and not notes:
+    if (
+        pass_n == 1
+        and _docs_empty(state)
+        and not notes
+        and not _is_synth_error_answer(answer)
+    ):
         if _DOCS_HALLUCINATION_SNIPPET not in answer:
             answer = f"{answer.rstrip()}\n\n{_DOCS_HALLUCINATION_SNIPPET}"
             injected = True
 
     retries = int(state.get("synth_retries") or 0)
     done_detail = f"{pass_n}차 브리핑 초안 생성 완료"
+    if used_fallback:
+        done_detail = f"{pass_n}차 초안 — Gemini 실패로 도구 결과 폴백 사용"
     if injected:
         done_detail += " (문서 미연동 데모: 근거 없는 문서 서술 포함)"
 
-    done_event = make_node_event(
-        "synthesizer",
-        status="success",
-        detail=done_detail,
-        attempt=pass_n,
-        params={"pass": pass_n, "chars": len(answer)},
-        result={
-            "type": "draft",
-            "items": [
-                {
-                    "title": f"브리핑 초안 · {pass_n}차",
-                    "preview": answer[:160] + ("…" if len(answer) > 160 else ""),
-                }
-            ],
-        },
-        seq=41 + pass_n * 10,
+    tool_logs = [start_event]
+    if gemini_error:
+        tool_logs.append(
+            make_node_event(
+                "synthesizer",
+                status="failed",
+                detail=f"Gemini 호출 실패 → 폴백 초안 사용: {gemini_error[:120]}",
+                attempt=pass_n,
+                params={"pass": pass_n, "fallback": 1},
+                error={"code": "GEMINI_FAILED", "message": gemini_error[:240]},
+                seq=40 + pass_n * 10 + 1,
+            )
+        )
+    tool_logs.append(
+        make_node_event(
+            "synthesizer",
+            status="success",
+            detail=done_detail,
+            attempt=pass_n,
+            params={
+                "pass": pass_n,
+                "chars": len(answer),
+                "fallback": 1 if used_fallback else 0,
+                "injected": 1 if injected else 0,
+            },
+            result={
+                "type": "draft",
+                "items": [
+                    {
+                        "title": f"브리핑 초안 · {pass_n}차",
+                        "preview": answer[:160] + ("…" if len(answer) > 160 else ""),
+                    }
+                ],
+            },
+            seq=41 + pass_n * 10,
+        )
     )
 
     return {
         "answer": answer,
         "synth_pass": pass_n,
         "synth_retries": retries + (1 if notes else 0),
-        "tool_logs": [start_event, done_event],
+        "tool_logs": tool_logs,
         "trace": [
             _trace(
                 "synthesizer",
@@ -537,6 +641,7 @@ async def synthesizer_node(state: BriefingState) -> dict:
                 retry=is_retry,
                 pass_n=pass_n,
                 injected=injected,
+                fallback=used_fallback,
             )
         ],
     }
@@ -603,6 +708,26 @@ async def validator_node(state: BriefingState) -> dict:
                 ),
             ],
             "trace": [_trace("validator", ok=False, reason="empty_answer")],
+        }
+
+    if _is_synth_error_answer(answer):
+        notes = "합성 엔진 오류 문구가 본문에 남아 있습니다."
+        return {
+            "validation_ok": False,
+            "validation_notes": notes,
+            "tool_logs": [
+                running,
+                make_node_event(
+                    "validator",
+                    status="failed",
+                    detail=f"검증 실패: {notes} → synthesizer 재호출",
+                    attempt=pass_n,
+                    params={"pass": pass_n},
+                    error={"code": "SYNTH_ERROR_STUB", "message": notes},
+                    seq=51 + pass_n * 10,
+                ),
+            ],
+            "trace": [_trace("validator", ok=False, reason="synth_error_stub")],
         }
 
     failure_reasons: list[str] = []
@@ -689,7 +814,9 @@ async def validator_node(state: BriefingState) -> dict:
         }
 
     validator_mode = (state.get("validator_mode") or "auto").strip().lower()
-    if validator_mode == "review":
+    # 문서 환각(의도적 데모 포함)은 auto여도 검토 UI로 넘겨 단계적으로 보여 준다.
+    docs_hallucination = any("문서 인용 근거 없음" in r for r in failure_reasons)
+    if validator_mode == "review" or docs_hallucination:
         clean_answer, pending = build_pending_review_payload(answer, failure_reasons)
         review_detail = (
             f"검증 이슈 — 사용자 검토 대기 ({failure_reasons[0]})"
@@ -737,6 +864,9 @@ async def validator_node(state: BriefingState) -> dict:
         }
 
     if max_retries_hit:
+        # 오류 스텁은 강제 승인하지 않고 폴백 초안으로 교체
+        if _is_synth_error_answer(answer):
+            answer = _fallback_briefing_from_sources(state)
         forced_detail = (
             "부분 검증 실패, 안전한 항목만 반영 "
             f"(재시도 한도 도달 · {failure_reasons[0]})"
@@ -745,6 +875,7 @@ async def validator_node(state: BriefingState) -> dict:
             "validation_ok": True,
             "validation_review_pending": False,
             "validation_notes": notes,
+            "answer": answer,
             "tool_logs": [
                 running,
                 make_node_event(
