@@ -7,6 +7,8 @@
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.x-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-pgvector-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 [![LangGraph](https://img.shields.io/badge/LangGraph-orchestration-1C3C3C)](https://langchain-ai.github.io/langgraph/)
+[![Slack](https://img.shields.io/badge/Slack-API-4A154B?logo=slack&logoColor=white)](https://api.slack.com/)
+[![Gmail](https://img.shields.io/badge/Gmail-API-EA4335?logo=gmail&logoColor=white)](https://developers.google.com/gmail/api)
 [![Neo4j](https://img.shields.io/badge/Neo4j-compose-008CC1?logo=neo4j&logoColor=white)](https://neo4j.com/)
 [![Vercel](https://img.shields.io/badge/Frontend-Vercel-000000?logo=vercel&logoColor=white)](https://vercel.com/)
 [![Docker](https://img.shields.io/badge/API-Docker%20%2B%20Tunnel-2496ED?logo=docker&logoColor=white)](./docker-compose.yaml)
@@ -125,6 +127,7 @@ flowchart TB
 | **프론트** | Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS 4 — `frontend/` |
 | **백엔드** | Python 3.13+, FastAPI, Uvicorn, SQLAlchemy 2 (async), Alembic — `backend/apps/` |
 | **에이전트** | LangGraph, Google Gemini, APScheduler |
+| **연동** | Slack API (OAuth · digest · DM), Gmail API (OAuth · 미읽음 · 메일 발송), 카카오 톡캘린더 |
 | **데이터** | PostgreSQL (+ pgvector 서비스). Neo4j는 Compose에 포함되나 **브리핑 코어 비의존** (교육/허브 모듈용) |
 | **인프라** | 프론트 **Vercel** · API/Auth **Docker Compose + Cloudflare Tunnel** |
 | **인증** | 카카오 · 네이버 · Google OAuth |
