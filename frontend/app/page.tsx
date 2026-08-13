@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 
 import { AgentPreview } from "@/components/home/agent-preview";
+import { CalendarCheckWidget } from "@/components/home/calendar-check-widget";
 import { WeeklyReportPanel } from "@/components/home/weekly-report-panel";
 import { HomeCtaSection } from "@/components/home/home-cta-section";
 import { HomeFooter } from "@/components/home/home-footer";
@@ -46,21 +47,21 @@ const FEATURE_PROMO_CARDS: {
     icon: BriefcaseBusiness,
     title: "오늘의 업무 브리핑",
     description:
-      "일정·할 일·최근 대화를 묶어 하루를 시작하는 브리핑을 에이전트가 조립합니다.",
+      "아침에 열어보면, 오늘 손대야 할 것과 미뤄도 되는 것이 이미 갈라져 있어요.",
     prompt: "오늘 일정과 할 일 기준으로 업무 브리핑을 작성해 줘",
   },
   {
     icon: Files,
     title: "문서/자료 정리",
     description:
-      "흩어진 노트와 파일을 주제·우선순위로 묶고, 다음에 손댈 작업을 제안합니다.",
+      "폴더를 뒤지지 않아도, 지금 필요한 자료만 골라서 다음 할 일이 보여요.",
     prompt: "흩어진 문서와 자료를 주제별로 정리해 줘",
   },
   {
     icon: FileBarChart,
     title: "업무 리포트 생성",
     description:
-      "진행 현황·리스크·다음 액션을 한 페이지 리포트로 뽑아 공유 준비를 마칩니다.",
+      "금요일에 한 주를 다시 짜맞출 필요 없이, 이미 쌓인 흐름이 한 장으로 남아요.",
     action: "weekly-report",
   },
 ];
@@ -181,6 +182,10 @@ export default function MoneoHomePage() {
                   href={ui.authUser ? undefined : routes.demo}
                 />
               </div>
+            </div>
+
+            <div className="mt-8 sm:mt-10">
+              <CalendarCheckWidget isLoggedIn={Boolean(ui.authUser)} />
             </div>
 
             <div

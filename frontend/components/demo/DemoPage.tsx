@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ArrowRight,
   BriefcaseBusiness,
@@ -16,6 +16,8 @@ import {
   type DemoScenario,
   type ScenarioCategory,
 } from "@/components/demo/scenarios";
+import { CalendarCheckWidget } from "@/components/home/calendar-check-widget";
+import { getAuthSession } from "@/lib/auth-api";
 import { routes } from "@/lib/routes";
 
 const TAB_META: Record<
@@ -35,14 +37,19 @@ type DemoPageProps = {
 };
 
 /**
- * Showcase page: scripted LangGraph multi-agent orchestration replay.
+ * Showcase page: live calendar check first, then scripted orchestration replay.
  */
 export function DemoPage({ initialScenarioId }: DemoPageProps) {
   const initial =
     DEMO_SCENARIOS.find((s) => s.id === initialScenarioId) ?? DEMO_SCENARIOS[0]!;
   const [ui, setUi] = useState({
     scenarioId: initial.id,
+    isLoggedIn: false,
   });
+
+  useEffect(() => {
+    setUi((prev) => ({ ...prev, isLoggedIn: Boolean(getAuthSession()) }));
+  }, []);
 
   const scenario: DemoScenario =
     DEMO_SCENARIOS.find((s) => s.id === ui.scenarioId) ?? DEMO_SCENARIOS[0]!;
@@ -66,14 +73,13 @@ export function DemoPage({ initialScenarioId }: DemoPageProps) {
         </div>
       </header>
 
-      {/* Top demo banner */}
       <div className="border-b border-indigo-400/20 bg-indigo-500/10">
         <div
           className={`${PAGE_SHELL} flex flex-col gap-3 py-3 sm:flex-row sm:items-center sm:justify-between`}
         >
           <p className="text-sm leading-relaxed text-indigo-100/90">
-            아래는 실제 동작 방식을 재현한 데모입니다. 직접 사용해보시려면 Agent
-            Chat으로 이동하세요
+            먼저 오늘 일정을 직접 넣어 밀림·겹침을 느껴보고, 아래에서 전체 오케스트레이션
+            재생을 이어서 보세요.
           </p>
           <Link
             href={routes.lifestyle.chats}
@@ -85,21 +91,34 @@ export function DemoPage({ initialScenarioId }: DemoPageProps) {
         </div>
       </div>
 
-      <main className={`${PAGE_SHELL} space-y-8 py-8 pb-16`}>
+      <main className={`${PAGE_SHELL} space-y-10 py-8 pb-16`}>
         <div>
+          <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-[var(--moneo-gold,#D4AF37)]/80">
+            try · calendar check
+          </p>
+          <h1 className="mt-2 text-2xl font-semibold tracking-tight text-zinc-50 sm:text-3xl">
+            지금 놓치고 있는 일정을 확인해 보세요
+          </h1>
+          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-zinc-400">
+            로그인 없이 입력만 하면, 실제 감지 로직이 밀도와 겹침을 바로 알려줍니다.
+          </p>
+        </div>
+
+        <CalendarCheckWidget isLoggedIn={ui.isLoggedIn} className="max-w-2xl" />
+
+        <div className="border-t border-white/10 pt-10">
           <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-[var(--moneo-gold,#D4AF37)]/80">
             showcase · orchestration
           </p>
-          <h1 className="mt-2 text-2xl font-semibold tracking-tight text-zinc-50 sm:text-3xl">
+          <h2 className="mt-2 text-xl font-semibold tracking-tight text-zinc-50 sm:text-2xl">
             LangGraph 멀티에이전트 재생
-          </h1>
+          </h2>
           <p className="mt-2 max-w-2xl text-sm leading-relaxed text-zinc-400">
             채팅을 입력하지 않아도, 시나리오가 자동으로 재생되며 Router → 전문
             에이전트 → Synthesizer 흐름과 Tool Stream을 관찰할 수 있습니다.
           </p>
         </div>
 
-        {/* Scenario tabs */}
         <div
           role="tablist"
           aria-label="시나리오 선택"
@@ -115,7 +134,7 @@ export function DemoPage({ initialScenarioId }: DemoPageProps) {
                 type="button"
                 role="tab"
                 aria-selected={active}
-                onClick={() => setUi({ scenarioId: s.id })}
+                onClick={() => setUi((prev) => ({ ...prev, scenarioId: s.id }))}
                 className={`inline-flex items-center gap-2 rounded-xl border px-3.5 py-2.5 text-left text-sm transition-colors ${
                   active
                     ? "border-indigo-400/40 bg-indigo-500/15 text-indigo-50"
@@ -136,12 +155,10 @@ export function DemoPage({ initialScenarioId }: DemoPageProps) {
 
         <ScenarioPlayer scenario={scenario} />
 
-        {/* Bottom CTA */}
         <section className="rounded-2xl border border-white/10 bg-[rgba(18,18,28,0.65)] px-6 py-8 text-center shadow-[0_0_40px_rgba(99,102,241,0.12)]">
           <h2 className="text-xl font-semibold text-zinc-50">직접 써보기</h2>
           <p className="mx-auto mt-2 max-w-md text-sm text-zinc-400">
-            데모 시나리오와 같은 흐름으로, 실제 Agent Chat에서 업무를 맡겨
-            보세요.
+            데모 시나리오와 같은 흐름으로, 실제 Agent Chat에서 업무를 맡겨 보세요.
           </p>
           <Link
             href={routes.lifestyle.chats}
