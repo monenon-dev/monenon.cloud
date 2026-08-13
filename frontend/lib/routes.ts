@@ -29,6 +29,8 @@ export const routes = {
     mypage: "/oauth/mypage",
     /** `/mypage/preferences` 리다이렉트 대상 — 취향 설정 탭 */
     mypagePreferences: "/oauth/mypage?section=preferences",
+    /** 브리핑·능동 알림 설정 */
+    mypageNotifications: "/oauth/mypage?section=notifications",
     admin: {
       root: "/oauth/admin",
       login: "/oauth/admin/login",
@@ -63,7 +65,7 @@ export function lifestyleDashboardSection(section: string): string {
   return `${routes.lifestyle.dashboard}?section=${section}`;
 }
 
-export type MyPageSectionId = "dashboard" | "preferences" | "account";
+export type MyPageSectionId = "dashboard" | "preferences" | "notifications" | "account";
 
 export function mypageSectionUrl(section: MyPageSectionId): string {
   return `${routes.oauth.mypage}?section=${section}`;

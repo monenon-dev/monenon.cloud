@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
 
 import { AccountSection } from "@/components/mypage/sections/account-section";
+import { BriefingNotifySection } from "@/components/mypage/sections/briefing-notify-section";
 import { DashboardSection } from "@/components/mypage/sections/dashboard-section";
 import { PreferencesSection } from "@/components/mypage/sections/preferences-section";
 import {
@@ -28,6 +29,7 @@ const apiBaseUrl = getApiBaseUrl();
 const VALID_MYPAGE_SECTIONS = new Set<MyPageSectionId>([
   "dashboard",
   "preferences",
+  "notifications",
   "account",
 ]);
 
@@ -260,6 +262,8 @@ function MyPageContent() {
           onSave={handleSavePreferences}
         />
       )}
+
+      {ui.activeSection === "notifications" && <BriefingNotifySection />}
 
       {ui.activeSection === "account" && (
         <AccountSection

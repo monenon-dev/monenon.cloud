@@ -8,7 +8,7 @@ import {
   postDemoCalendarCheck,
   type DemoCalendarCheckResult,
 } from "@/lib/demo-calendar-check-api";
-import { routes } from "@/lib/routes";
+import { routes, mypageSectionUrl } from "@/lib/routes";
 
 type Slot = { time: string; title: string };
 
@@ -159,14 +159,14 @@ export function CalendarCheckWidget({
         </p>
         {!isLoggedIn ? (
           <Link
-            href={routes.oauth.signup}
+            href={`${routes.oauth.login}?next=${encodeURIComponent(mypageSectionUrl("notifications"))}`}
             className="inline-flex shrink-0 items-center justify-center rounded-xl border border-[var(--moneo-gold,#D4AF37)]/40 bg-[var(--moneo-gold,#D4AF37)]/10 px-4 py-2 text-sm font-medium text-[var(--moneo-gold,#D4AF37)] transition-colors hover:bg-[var(--moneo-gold,#D4AF37)]/20"
           >
-            회원가입
+            로그인 후 알림 설정
           </Link>
         ) : (
           <Link
-            href={routes.lifestyle.settings}
+            href={mypageSectionUrl("notifications")}
             className="inline-flex shrink-0 items-center justify-center rounded-xl border border-indigo-400/30 bg-indigo-500/15 px-4 py-2 text-sm font-medium text-indigo-100 hover:bg-indigo-500/25"
           >
             알림 설정
