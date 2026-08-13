@@ -31,7 +31,7 @@
 \* `monenon.cloud` 현재 히스토리의 가장 이른 커밋은 모노레포 통합(`chore: monenon.cloud 단일 저장소로 통합`). 이전 작업은 통합 전에 분산됐을 수 있음.
 
 **계정 메모:** 1차 실습·2차 개인 리포의 Git author는 주로 `CHOSEOHEE` / `monenon-dev` / `모네난`.  
-`T-Chef/trip-diner` 커밋 작성자 `ri1700`은 **본인 계정이 아님** (본인 확인). 아래 trip-diner 섹션은 팀 완주 사실과 리포 전체 역할 분담만 적고, **본인 GitHub 핸들로 귀속하지 않는다.**
+`T-Chef/trip-diner`의 `ri1700`은 **본인 계정이 아님**. trip-diner 본인 담당은 본인 진술(로그인·회원가입·비밀번호 재설정·게시판)과 코드 잔존으로 기록한다.
 
 ---
 
@@ -87,16 +87,25 @@
 - Q&A(대기/완료) · 관리자 답변
 - AI 기록 테이블 등 확장 포인트
 
-**팀 커밋으로 보이는 역할 분담** (계정 ≠ 본인 단정 없음)
+**본인 담당 (본인 진술 + 코드 잔존)**
 
-| 커밋 작성자 | 두드러진 영역 (메시지·파일 패턴) |
-|-------------|----------------------------------|
-| `ri1700` | 로그인/회원가입, 관리자·QnA·게시판·좋아요·프로필 등 기능 다수 |
-| `jinho3085` | City 페이지, 메인·SideMenu·레이아웃 등 프론트 탐색 UI |
-| `kimjuhan-95` | 소수 커밋 |
+팀 수료 과정에서 담당한 영역은 **로그인 / 회원가입 / 비밀번호 재설정 / 게시판**이다.  
+(커밋 author 문자열이 `monenon-dev`가 아니어도, 해당 기능 코드는 리포에 남아 있다.)
 
-`monenon-dev`는 `T-Chef` 조직 멤버이며, 개인 리포 `Trip-diner-main`에는 Initial commit만 있다.  
-**실질 제품 히스토리는 `T-Chef/trip-diner`.** 본인이 어떤 Git 계정/브랜치로 기여했는지는 문서에 단정하지 않는다 — 알려주시면 담당 섹션을 채운다.
+| 영역 | 코드 위치 (현재 트리) |
+|------|------------------------|
+| 로그인·회원가입 | `front/.../login/Login.jsx`, `Signup.jsx`, `SignupForm.jsx`, `back/routes/users.js` 등 |
+| 비밀번호 재설정 | `front/.../pw/ForgotPassword.jsx`, `ResetPassword.jsx`, `PwApi.js` |
+| 게시판 | `front/.../board/*`, `back/routes/board/post.js`, `comment.js` |
+
+**팀 커밋 작성자 분포** (히스토리 메타데이터 — 계정과 역할이 1:1은 아님)
+
+| 커밋 작성자 | 비고 |
+|-------------|------|
+| `ri1700`(75) · `jinho3085`(11) · `kimjuhan-95`(1) | Git author 문자열. **`ri1700` ≠ 본인** |
+| `monenon-dev` | `T-Chef` 조직 **admin** · `trip-diner` 저장소 접근 가능. 개인 미러 `Trip-diner-main`은 Initial commit만 |
+
+> 접근: https://github.com/T-Chef/trip-diner — `monenon-dev`로 로그인해 조직·리포가 보이면 재초대 불필요.
 
 ### 2-2. Bitgram (`Bit-gram/*`) — 중도 정리
 
@@ -165,7 +174,8 @@ AI 업무 오케스트레이션 웹앱. Live: [https://www.monenon.cloud](https:
 
 ```text
 클라우드 자바 백엔드 과정에서 Java · Servlet · MariaDB · Spring 기초를 익히고,
-팀 수료작 Trip-Dinner(여행 일정·커뮤니티·Q&A)를 약 2개월간 완주한 경험이 있습니다.
+팀 수료작 Trip-Dinner에서 로그인·회원가입·비밀번호 재설정·게시판을 맡아
+약 2개월간 완주한 경험이 있습니다.
 이후 AI 에이전트 과정에서 FastAPI · Next.js · LangGraph 기반으로
 Moneo(업무 브리핑·능동 알림)를 중심으로 제품을 키우고 있습니다.
 백엔드 기초 → 팀 완주 경험 → AI 오케스트레이션으로 영역을 확장 중입니다.
