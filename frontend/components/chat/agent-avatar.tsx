@@ -46,7 +46,8 @@ export function AgentAvatar({
       width={px}
       height={px}
       draggable={false}
-      className={`shrink-0 select-none object-contain ${GLOW_CLASS[state]} ${animationClass} ${className}`}
+      style={{ width: px, height: px }}
+      className={`max-w-none shrink-0 select-none object-contain ${GLOW_CLASS[state]} ${animationClass} ${className}`}
     />
   );
 }

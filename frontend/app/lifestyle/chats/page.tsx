@@ -603,7 +603,7 @@ function ChatsPageContent() {
             </p>
           )}
 
-          <main className="flex flex-1 min-h-0 flex-col overflow-hidden px-4 py-4 sm:px-6 sm:py-6">
+          <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden px-4 py-4 sm:px-6 sm:py-6">
             <GeminiChatPanel
               apiBaseUrl={apiBaseUrl}
               className="min-h-0 flex-1"
@@ -671,7 +671,7 @@ function ChatsPageContent() {
           </p>
         )}
 
-        <main className="flex flex-1 min-h-0 flex-col overflow-hidden px-4 py-4 sm:px-6 sm:py-6">
+        <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden px-4 py-4 sm:px-6 sm:py-6">
           {messagesLoading && sessionMessages.length === 0 && !starterPrompt ? (
             <div className="flex flex-1 items-center justify-center">
               <Loader2 className="size-8 animate-spin text-indigo-600" aria-label="메시지 로딩 중" />

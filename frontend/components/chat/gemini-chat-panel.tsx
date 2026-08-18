@@ -212,7 +212,6 @@ export function GeminiChatPanel({
   const [isUploading, setIsUploading] = useState(false);
   const [attachment, setAttachment] = useState<PdfBlobUploadResult | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [mounted, setMounted] = useState(false);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const sentInitialRef = useRef<{ resetKey: string | number | undefined; prompt: string } | null>(null);
@@ -225,10 +224,6 @@ export function GeminiChatPanel({
       el.scrollTop = el.scrollHeight;
     }
   };
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   useEffect(() => {
     scrollToBottom();
@@ -432,10 +427,10 @@ export function GeminiChatPanel({
   };
 
   return (
-    <div className={`flex h-full min-h-0 flex-col overflow-hidden gap-3 ${className}`}>
+    <div className={`flex h-full min-h-0 min-w-0 w-full flex-col overflow-hidden gap-3 ${className}`}>
       <div
         ref={messagesContainerRef}
-        className={`flex-1 min-h-0 overflow-y-auto overscroll-contain space-y-4 rounded-2xl border px-4 sm:px-6 py-4 ${
+        className={`flex-1 min-h-0 min-w-0 w-full overflow-y-auto scroll-auto overscroll-contain space-y-4 rounded-2xl border px-4 sm:px-6 py-4 [scrollbar-gutter:stable] ${
           guestMode
             ? "border-white/10 bg-white/[0.02]"
             : "border-gray-200 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/30"
@@ -480,7 +475,7 @@ export function GeminiChatPanel({
           )}
           {messages.map((msg, idx) => {
             const isUser = msg.role === "user";
-            const timeLabel = mounted && msg.ts ? formatMessageTime(msg.ts) : null;
+            const timeLabel = msg.ts ? formatMessageTime(msg.ts) : null;
             const isLastAssistant =
               msg.role === "assistant" &&
               messages.slice(idx + 1).every((m) => m.role !== "assistant");
@@ -497,7 +492,7 @@ export function GeminiChatPanel({
             return (
             <div
               key={`${msg.role}-${msg.ts}-${idx}`}
-              className={`flex items-end gap-2 ${isUser ? "justify-end" : "justify-start"}`}
+              className={`flex w-full min-w-0 items-end gap-2 ${isUser ? "justify-end" : "justify-start"}`}
             >
               {!isUser ? (
                 <AgentAvatar
@@ -512,20 +507,25 @@ export function GeminiChatPanel({
                   className="mb-1"
                 />
               ) : null}
-              {isUser && timeLabel && (
+              <div
+                className={`flex min-w-0 items-end gap-2 ${
+                  isUser ? "max-w-[min(100%,42rem)] justify-end" : "min-w-0 flex-1 max-w-[42rem]"
+                }`}
+              >
+              {isUser && timeLabel ? (
                 <span className="shrink-0 pb-1 text-[11px] tabular-nums text-gray-400 dark:text-gray-500">
                   {timeLabel}
                 </span>
-              )}
+              ) : null}
               <div
-                className={`max-w-[min(100%,42rem)] sm:max-w-[85%] rounded-2xl px-4 py-3 ${
+                className={`min-w-0 w-fit max-w-full rounded-2xl px-4 py-3 ${
                   isUser
                     ? "bg-indigo-600 text-white"
                     : "bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700"
                 }`}
               >
                 {isUser ? (
-                  <p className="text-sm whitespace-pre-wrap">{msg.text}</p>
+                  <p className="text-sm whitespace-pre-wrap [overflow-wrap:anywhere]">{msg.text}</p>
                 ) : (
                   <AgentMessageContent
                     text={stripDocsHallucinationFromChat(msg.text)}
@@ -618,18 +618,21 @@ export function GeminiChatPanel({
                   </div>
                 )}
               </div>
-              {!isUser && timeLabel && (
+              {!isUser && timeLabel ? (
                 <span className="shrink-0 pb-1 text-[11px] tabular-nums text-gray-400 dark:text-gray-500">
                   {timeLabel}
                 </span>
-              )}
+              ) : null}
+              </div>
             </div>
             );
           })}
           {isLoading && messages[messages.length - 1]?.role === "user" && (
-            <div className="flex items-end gap-2 justify-start">
+            <div className="flex w-full min-w-0 items-end gap-2 justify-start">
               <AgentAvatar state="working" size="sm" className="mb-1" />
-              <AgentStreamingPlaceholder />
+              <div className="min-w-0 flex-1 max-w-[42rem]">
+                <AgentStreamingPlaceholder />
+              </div>
             </div>
           )}
           {errorMessage && (

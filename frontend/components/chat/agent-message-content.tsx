@@ -229,7 +229,7 @@ function MarkdownBody({ content }: { content: string }) {
   );
 
   return (
-    <div className="agent-md text-sm">
+    <div className="agent-md max-w-full text-sm [overflow-wrap:anywhere]">
       <ReactMarkdown components={mdComponents}>{source}</ReactMarkdown>
     </div>
   );
@@ -772,7 +772,7 @@ export function AgentMessageContent({
 
 export function AgentStreamingPlaceholder() {
   return (
-    <div className="max-w-[min(100%,42rem)] sm:max-w-[85%] rounded-2xl border border-gray-200 bg-gray-100 px-4 py-3 dark:border-gray-700 dark:bg-gray-800">
+    <div className="w-fit max-w-full rounded-2xl border border-gray-200 bg-gray-100 px-4 py-3 dark:border-gray-700 dark:bg-gray-800">
       <div className="mb-2 flex items-center gap-2 text-xs text-indigo-700/80 dark:text-indigo-200/70">
         <Sparkles className="size-3.5 animate-pulse text-indigo-500 dark:text-indigo-300" />
         업무 맥락을 정리하는 중…
