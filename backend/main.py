@@ -564,6 +564,7 @@ async def agent_briefing_today(
     speech_tone: str | None = None,
     user_type: str | None = None,
     industry: str | None = None,
+    force_refresh: bool = False,
     session: AsyncSession = Depends(get_db),
 ):
     """오늘자 능동적 브리핑 — 없으면 LangGraph로 동기 생성 후 반환."""
@@ -585,6 +586,7 @@ async def agent_briefing_today(
             speech_tone=speech_tone,
             user_type=user_type,
             industry=industry,
+            force_refresh=force_refresh,
         )
     except ValueError as e:
         return JSONResponse({"detail": str(e)}, status_code=400)

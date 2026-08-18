@@ -20,12 +20,14 @@ async def run_briefing(
     speech_tone: str | None = None,
     user_type: str | None = None,
     industry: str | None = None,
+    user_notes: str | None = None,
 ) -> dict[str, Any]:
     validator_mode = await load_briefing_validator_mode(session, user_id)
     graph = build_briefing_graph()
     initial: dict[str, Any] = {
         "query": query.strip(),
         "user_id": user_id,
+        "user_notes": (user_notes or "").strip() or None,
         "db_session": session,
         "speech_tone": speech_tone,
         "user_type": user_type,

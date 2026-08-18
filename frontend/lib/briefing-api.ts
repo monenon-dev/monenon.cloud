@@ -145,6 +145,7 @@ export async function fetchTodayBriefing(
     speechTone?: string | null;
     userType?: string | null;
     industry?: string | null;
+    forceRefresh?: boolean;
   }
 ): Promise<TodayBriefing> {
   const base = (options?.apiBaseUrl ?? getApiBaseUrl()).replace(/\/$/, "");
@@ -152,6 +153,7 @@ export async function fetchTodayBriefing(
   if (options?.speechTone) params.set("speech_tone", options.speechTone);
   if (options?.userType) params.set("user_type", options.userType);
   if (options?.industry) params.set("industry", options.industry);
+  if (options?.forceRefresh) params.set("force_refresh", "true");
 
   const res = await fetch(`${base}/agent/briefing/today?${params.toString()}`, {
     method: "GET",

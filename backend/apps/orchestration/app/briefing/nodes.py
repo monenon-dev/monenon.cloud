@@ -484,6 +484,15 @@ def _fallback_briefing_from_sources(state: BriefingState) -> str:
                 sections.append(f"- {title}")
         sections.append("")
 
+    user_notes = (state.get("user_notes") or "").strip()
+    if user_notes:
+        sections.append("### 추가 메모")
+        for line in user_notes.splitlines():
+            text = line.strip()
+            if text:
+                sections.append(f"- {text}")
+        sections.append("")
+
     body = "\n".join(sections).strip()
     cleaned_lines = [
         ln for ln in body.splitlines() if SYNTH_ERROR_MARKER not in ln
@@ -519,6 +528,13 @@ def _evidence_blobs(state: BriefingState) -> list[str]:
         summary = data.get("summary")
         if isinstance(summary, str) and summary.strip():
             blobs.append(summary.strip())
+    user_notes = (state.get("user_notes") or "").strip()
+    if user_notes:
+        blobs.append(user_notes)
+        for line in user_notes.splitlines():
+            text = line.strip()
+            if text:
+                blobs.append(text)
     return blobs
 
 
@@ -546,6 +562,7 @@ async def synthesizer_node(state: BriefingState) -> dict:
         history = history_raw
     slack = state.get("slack_summary") or state.get("slack_result") or {}
     gmail = state.get("gmail_summary") or {}
+    user_notes = (state.get("user_notes") or "").strip()
     notes = (state.get("validation_notes") or "").strip()
     pass_n = int(state.get("synth_pass") or 0) + 1
     is_retry = bool(notes) or pass_n > 1
@@ -574,6 +591,17 @@ async def synthesizer_node(state: BriefingState) -> dict:
         context_parts.append(("Slack", slack))
     if not _source_skipped(gmail):
         context_parts.append(("Gmail", gmail))
+    if user_notes:
+        context_parts.append(
+            (
+                "사용자 추가 메모",
+                {
+                    "source": "user_notes",
+                    "status": "success",
+                    "items": [{"preview": user_notes}],
+                },
+            )
+        )
 
     context = "\n\n".join(
         f"[{label}]\n{json.dumps(payload, ensure_ascii=False)}"
@@ -593,6 +621,7 @@ async def synthesizer_node(state: BriefingState) -> dict:
         "본문은 날짜와 일정·할 일부터 시작하고, "
         "「오늘의 브리핑」「오늘의 업무 브리핑」 같은 제목 헤딩은 넣지 마세요.\n"
         "연동되지 않은 소스(Slack/Gmail 등 skipped)는 언급하지 말고 자연스럽게 생략하세요.\n"
+        "사용자 추가 메모가 있으면 「오늘의 할 일」에 반영하되, 메모에 없는 내용은 만들지 마세요.\n"
         "마크다운 헤딩·불릿을 쓰고, 근거 없는 추측은 넣지 마세요.\n\n"
         f"{context}{repair}"
     )

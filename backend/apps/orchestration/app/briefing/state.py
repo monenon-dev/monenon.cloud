@@ -9,6 +9,7 @@ from typing import Annotated, Any, TypedDict
 class BriefingState(TypedDict, total=False):
     query: str
     user_id: int | None
+    user_notes: str | None
     db_session: Any
     speech_tone: str | None
     user_type: str | None

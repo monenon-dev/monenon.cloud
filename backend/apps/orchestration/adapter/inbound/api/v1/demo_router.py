@@ -22,6 +22,10 @@ from orchestration.app.briefing.demo_schedule import (
     get_home_meeting_events,
     save_user_meetings,
 )
+from orchestration.adapter.outbound.pg.daily_briefing_pg_repository import (
+    DailyBriefingPgRepository,
+)
+from orchestration.app.briefing.format import today_seoul
 from orchestration.app.composition.providers import get_orchestration_pg_repository
 from orchestration.adapter.outbound.pg.orchestration_pg_repository import (
     OrchestrationPgRepository,
@@ -179,4 +183,12 @@ async def put_demo_meetings(
     await repo.verify_user(body.user_id)
     payload = [{"time": e.time, "title": e.title} for e in body.events]
     items = await save_user_meetings(session, body.user_id, payload)
+    briefing_repo = DailyBriefingPgRepository(session)
+    await briefing_repo.delete_by_user_date(body.user_id, today_seoul())
+    await session.commit()
+    logger.info(
+        "[demo.meetings] saved user_id=%s events=%s briefing_invalidated=true",
+        body.user_id,
+        len(items),
+    )
     return DemoMeetingsResponse(events=_events_out(events_from_demo_items(items)))

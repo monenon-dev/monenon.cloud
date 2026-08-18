@@ -92,6 +92,7 @@ async def get_or_create_today_briefing(
         speech_tone=speech_tone,
         user_type=user_type,
         industry=industry,
+        user_notes=preserved_notes,
     )
     content = ensure_today_date_in_briefing(
         (result.get("answer") or "").strip() or "오늘의 브리핑을 생성하지 못했습니다.",

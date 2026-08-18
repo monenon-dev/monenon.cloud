@@ -69,6 +69,7 @@ async def orchestration_briefing_today(
     speech_tone: str | None = Query(default=None),
     user_type: str | None = Query(default=None),
     industry: str | None = Query(default=None),
+    force_refresh: bool = Query(default=False),
     session: AsyncSession = Depends(get_db),
     repo: OrchestrationPgRepository = Depends(get_orchestration_pg_repository),
 ) -> TodayBriefingResponse | JSONResponse:
@@ -80,6 +81,7 @@ async def orchestration_briefing_today(
             speech_tone=speech_tone,
             user_type=user_type,
             industry=industry,
+            force_refresh=force_refresh,
         )
     except GeminiQuotaError as exc:
         return JSONResponse({"detail": str(exc)}, status_code=429)

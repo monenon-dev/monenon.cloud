@@ -23,10 +23,17 @@ async def update_today_briefing_notes(
     user_id: int,
     notes: str,
 ) -> dict[str, Any]:
+    from orchestration.app.use_cases.get_or_create_today_briefing import (
+        get_or_create_today_briefing,
+    )
+
     repo = DailyBriefingPgRepository(session)
     row = await repo.get_by_user_date(user_id, today_seoul())
     if row is None:
-        raise ValueError("오늘의 브리핑이 아직 없습니다.")
+        await get_or_create_today_briefing(session, user_id=user_id)
+        row = await repo.get_by_user_date(user_id, today_seoul())
+    if row is None:
+        raise RuntimeError("오늘의 브리핑을 준비하지 못했습니다.")
     cleaned = (notes or "").strip()[:NOTES_MAX]
     updated = await repo.update_user_notes(row.id, user_id=user_id, notes=cleaned)
     if updated is None:

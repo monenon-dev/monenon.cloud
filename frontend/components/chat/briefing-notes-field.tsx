@@ -64,7 +64,7 @@ export function BriefingNotesField({
         htmlFor={`briefing-notes-${userId}`}
         className="mb-1.5 block text-[11px] font-medium uppercase tracking-wide text-indigo-300/80"
       >
-        추가 메모
+        추가 메모 (미팅 외)
       </label>
       <textarea
         id={`briefing-notes-${userId}`}
@@ -89,7 +89,9 @@ export function BriefingNotesField({
             {ui.error}
           </p>
         ) : (
-          <p className="text-[11px] text-zinc-500">미팅이 아니라, 오늘 브리핑에 붙는 메모입니다.</p>
+          <p className="text-[11px] text-zinc-500">
+            위 미팅과 별개로, 오늘 브리핑에 붙일 메모입니다.
+          </p>
         )}
       </div>
     </form>

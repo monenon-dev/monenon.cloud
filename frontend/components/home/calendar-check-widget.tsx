@@ -16,6 +16,7 @@ import {
   type DemoCalendarEventInput,
 } from "@/lib/demo-calendar-check-api";
 import { getAuthSession } from "@/lib/auth-api";
+import { dispatchHomeMeetingsSaved } from "@/lib/home-meetings-events";
 import { routes, mypageSectionUrl } from "@/lib/routes";
 import { todaySeoulLabel } from "@/lib/seoul-date";
 
@@ -159,6 +160,7 @@ export function CalendarCheckWidget({
       } else {
         patchUi({ saving: false, savedFlash: true });
       }
+      dispatchHomeMeetingsSaved();
       window.setTimeout(() => patchUi({ savedFlash: false }), 1600);
     } catch (err) {
       patchUi({

@@ -85,14 +85,17 @@ async def get_demo_calendar_items(
     if row is None or not row.enabled:
         return []
     meta = row.metadata_json if isinstance(row.metadata_json, dict) else {}
-    items = meta.get("items")
-    if not isinstance(items, list):
-        return []
     today = datetime.now(SEOUL).date().isoformat()
     if meta.get("date") != today:
         return []
+    return _merge_stored_items(_read_home_items(meta), _read_demo_seed_items(meta))
+
+
+def _parse_stored_items(raw: Any) -> list[dict[str, str]]:
+    if not isinstance(raw, list):
+        return []
     out: list[dict[str, str]] = []
-    for x in items:
+    for x in raw:
         if isinstance(x, dict) and isinstance(x.get("title"), str):
             out.append(
                 {
@@ -103,6 +106,53 @@ async def get_demo_calendar_items(
                 }
             )
     return out
+
+
+def _read_home_items(meta: dict[str, Any]) -> list[dict[str, str]]:
+    home = meta.get("home_items")
+    if isinstance(home, list):
+        return _parse_stored_items(home)
+    if meta.get("source") == "home_meetings":
+        return _parse_stored_items(meta.get("items"))
+    return []
+
+
+def _read_demo_seed_items(meta: dict[str, Any]) -> list[dict[str, str]]:
+    if meta.get("source") == "home_meetings":
+        return []
+    return _parse_stored_items(meta.get("items"))
+
+
+def _merge_stored_items(*lists: list[dict[str, str]]) -> list[dict[str, str]]:
+    seen: set[str] = set()
+    merged: list[dict[str, str]] = []
+    for items in lists:
+        for item in items:
+            title = (item.get("title") or "").strip()
+            meta = (item.get("meta") or "").strip()
+            if not title:
+                continue
+            key = f"{meta}|{title}"
+            if key in seen:
+                continue
+            seen.add(key)
+            merged.append(item)
+    return sorted(merged, key=lambda row: row.get("meta") or "")
+
+
+async def get_home_meeting_calendar_items(
+    session: AsyncSession,
+    user_id: int,
+) -> list[dict[str, str]]:
+    """홈에서 저장한 오늘 중요 미팅(브리핑·캘린더 병합용)."""
+    row = await _get_demo_row(session, user_id)
+    if row is None or not row.enabled:
+        return []
+    meta = row.metadata_json if isinstance(row.metadata_json, dict) else {}
+    today = datetime.now(SEOUL).date().isoformat()
+    if meta.get("date") != today:
+        return []
+    return _read_home_items(meta)
 
 
 def events_from_demo_items(items: list[dict[str, str]]) -> list[dict[str, str]]:
@@ -123,30 +173,8 @@ async def get_home_meeting_events(
     user_id: int,
 ) -> list[dict[str, str]]:
     """홈에서 저장한 오늘 미팅만 반환. 데모 시드는 제외."""
-    row = await _get_demo_row(session, user_id)
-    if row is None or not row.enabled:
-        return []
-    meta = row.metadata_json if isinstance(row.metadata_json, dict) else {}
-    if meta.get("source") != "home_meetings":
-        return []
-    today = datetime.now(SEOUL).date().isoformat()
-    if meta.get("date") != today:
-        return []
-    items = meta.get("items")
-    if not isinstance(items, list):
-        return []
-    typed: list[dict[str, str]] = []
-    for x in items:
-        if isinstance(x, dict) and isinstance(x.get("title"), str):
-            typed.append(
-                {
-                    "title": str(x["title"]),
-                    "meta": str(x.get("meta") or ""),
-                    "preview": str(x.get("preview") or ""),
-                    "start_at": str(x.get("start_at") or ""),
-                }
-            )
-    return events_from_demo_items(typed)
+    items = await get_home_meeting_calendar_items(session, user_id)
+    return events_from_demo_items(items)
 
 
 async def seed_demo_calendar(
@@ -156,12 +184,16 @@ async def seed_demo_calendar(
     """오늘 데모 일정을 user_integrations(demo_calendar)에 저장."""
     items = build_today_demo_items()
     today = datetime.now(SEOUL).date().isoformat()
+    row = await _get_demo_row(session, user_id)
+    prev = row.metadata_json if row and isinstance(row.metadata_json, dict) else {}
+    home_items = _read_home_items(prev) if prev.get("date") == today else []
     meta: dict[str, Any] = {
         "date": today,
         "items": items,
+        "home_items": home_items,
         "seeded_at": datetime.now(SEOUL).isoformat(),
+        "source": "demo_seed",
     }
-    row = await _get_demo_row(session, user_id)
     now = datetime.now(SEOUL)
     if row is None:
         row = UserIntegration(
@@ -216,13 +248,16 @@ async def save_user_meetings(
             }
         )
     today = datetime.now(SEOUL).date().isoformat()
+    row = await _get_demo_row(session, user_id)
+    prev = row.metadata_json if row and isinstance(row.metadata_json, dict) else {}
+    demo_items = _read_demo_seed_items(prev) if prev.get("date") == today else []
     meta: dict[str, Any] = {
         "date": today,
-        "items": items,
+        "items": demo_items,
+        "home_items": items,
         "seeded_at": datetime.now(SEOUL).isoformat(),
         "source": "home_meetings",
     }
-    row = await _get_demo_row(session, user_id)
     now = datetime.now(SEOUL)
     if row is None:
         row = UserIntegration(

@@ -9,6 +9,7 @@ import {
 } from "@/components/home/tool-stream";
 import { getAuthSession } from "@/lib/auth-api";
 import { fetchTodayBriefing } from "@/lib/briefing-api";
+import { HOME_MEETINGS_SAVED_EVENT } from "@/lib/home-meetings-events";
 import { loadMyPagePreferences } from "@/lib/mypage-preferences";
 import { BriefingNotesField } from "@/components/chat/briefing-notes-field";
 
@@ -120,6 +121,7 @@ export function AgentPreview({
   /** 로그인 사용자 — /agent/briefing/today 실데이터 */
   live?: boolean;
 }) {
+  const [briefingRefreshToken, setBriefingRefreshToken] = useState(0);
   const [ui, setUi] = useState({
     mode: "demo" as "demo" | "live" | "loading" | "error",
     chatLines: CHAT_LINES as PreviewChatLine[],
@@ -158,7 +160,7 @@ export function AgentPreview({
     }
 
     let cancelled = false;
-    setUi((prev) => ({ ...prev, mode: "loading", error: null }));
+    setUi((prev) => ({ ...prev, mode: "loading", error: null, userId: session.user_id }));
     const prefs = loadMyPagePreferences(session.user_id);
 
     void (async () => {
@@ -167,6 +169,7 @@ export function AgentPreview({
           speechTone: prefs.speechTone,
           userType: prefs.userType,
           industry: prefs.industry,
+          forceRefresh: briefingRefreshToken > 0,
         });
         if (cancelled) return;
         setUi({
@@ -205,6 +208,15 @@ export function AgentPreview({
     return () => {
       cancelled = true;
     };
+  }, [live, briefingRefreshToken]);
+
+  useEffect(() => {
+    if (!live) return;
+    const onMeetingsSaved = () => {
+      setBriefingRefreshToken((prev) => prev + 1);
+    };
+    window.addEventListener(HOME_MEETINGS_SAVED_EVENT, onMeetingsSaved);
+    return () => window.removeEventListener(HOME_MEETINGS_SAVED_EVENT, onMeetingsSaved);
   }, [live]);
 
   const lines = ui.chatLines.length > 0 ? ui.chatLines : CHAT_LINES;

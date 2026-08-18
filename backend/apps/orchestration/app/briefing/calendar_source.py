@@ -185,6 +185,42 @@ def detect_calendar_conflicts(events: list[dict[str, Any]]) -> list[Any]:
     return issues
 
 
+def _calendar_item_key(item: dict[str, str]) -> str:
+    return f"{(item.get('meta') or '').strip()}|{(item.get('title') or '').strip()}"
+
+
+def _merge_calendar_display_items(
+    *lists: list[dict[str, str]],
+) -> list[dict[str, str]]:
+    seen: set[str] = set()
+    merged: list[dict[str, str]] = []
+    for items in lists:
+        for item in items:
+            title = str(item.get("title") or "").strip()
+            if not title:
+                continue
+            key = _calendar_item_key(item)
+            if key in seen:
+                continue
+            seen.add(key)
+            merged.append({"title": title, "meta": str(item.get("meta") or "").strip()})
+    return sorted(merged, key=lambda row: row.get("meta") or "")
+
+
+async def _append_home_meetings(
+    session: AsyncSession,
+    user_id: int,
+    items: list[dict[str, str]],
+) -> list[dict[str, str]]:
+    from orchestration.app.briefing.demo_schedule import get_home_meeting_calendar_items
+
+    home = await get_home_meeting_calendar_items(session, user_id)
+    if not home:
+        return items
+    display_home = [{"title": i["title"], "meta": i.get("meta") or ""} for i in home]
+    return _merge_calendar_display_items(items, display_home)
+
+
 async def _demo_calendar_result(
     session: AsyncSession,
     user_id: int,
@@ -227,6 +263,7 @@ async def fetch_today_calendar(session: AsyncSession, user_id: int) -> dict[str,
         return {"source": "calendar", **err, "items": []}
 
     items = [_format_event(e) for e in events]
+    items = await _append_home_meetings(session, user_id, items)
     if not items:
         demo = await _demo_calendar_result(session, user_id)
         if demo:
