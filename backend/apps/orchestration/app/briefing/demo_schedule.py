@@ -105,6 +105,50 @@ async def get_demo_calendar_items(
     return out
 
 
+def events_from_demo_items(items: list[dict[str, str]]) -> list[dict[str, str]]:
+    """홈 위젯용 {time, title} 목록."""
+    out: list[dict[str, str]] = []
+    for x in items:
+        title = (x.get("title") or "").strip()
+        time = (x.get("meta") or "").strip()
+        if len(time) >= 5:
+            time = time[:5]
+        if title and time:
+            out.append({"time": time, "title": title})
+    return out
+
+
+async def get_home_meeting_events(
+    session: AsyncSession,
+    user_id: int,
+) -> list[dict[str, str]]:
+    """홈에서 저장한 오늘 미팅만 반환. 데모 시드는 제외."""
+    row = await _get_demo_row(session, user_id)
+    if row is None or not row.enabled:
+        return []
+    meta = row.metadata_json if isinstance(row.metadata_json, dict) else {}
+    if meta.get("source") != "home_meetings":
+        return []
+    today = datetime.now(SEOUL).date().isoformat()
+    if meta.get("date") != today:
+        return []
+    items = meta.get("items")
+    if not isinstance(items, list):
+        return []
+    typed: list[dict[str, str]] = []
+    for x in items:
+        if isinstance(x, dict) and isinstance(x.get("title"), str):
+            typed.append(
+                {
+                    "title": str(x["title"]),
+                    "meta": str(x.get("meta") or ""),
+                    "preview": str(x.get("preview") or ""),
+                    "start_at": str(x.get("start_at") or ""),
+                }
+            )
+    return events_from_demo_items(typed)
+
+
 async def seed_demo_calendar(
     session: AsyncSession,
     user_id: int,
@@ -116,6 +160,67 @@ async def seed_demo_calendar(
         "date": today,
         "items": items,
         "seeded_at": datetime.now(SEOUL).isoformat(),
+    }
+    row = await _get_demo_row(session, user_id)
+    now = datetime.now(SEOUL)
+    if row is None:
+        row = UserIntegration(
+            user_id=user_id,
+            provider=DEMO_PROVIDER,
+            access_token="demo",
+            refresh_token=None,
+            expires_at=None,
+            enabled=True,
+            metadata_json=meta,
+            connected_at=now,
+        )
+        session.add(row)
+    else:
+        row.access_token = "demo"
+        row.enabled = True
+        row.metadata_json = meta
+        row.connected_at = row.connected_at or now
+    await session.commit()
+    return items
+
+
+async def save_user_meetings(
+    session: AsyncSession,
+    user_id: int,
+    events: list[dict[str, str]],
+) -> list[dict[str, str]]:
+    """홈에서 입력한 오늘 중요 미팅을 demo_calendar에 저장."""
+    day = datetime.now(SEOUL).replace(second=0, microsecond=0)
+    items: list[dict[str, str]] = []
+    for ev in events:
+        raw_time = (ev.get("time") or "").strip()
+        title = (ev.get("title") or "").strip()
+        if not raw_time or not title:
+            continue
+        parts = raw_time.split(":")
+        if len(parts) < 2:
+            continue
+        try:
+            hour, minute = int(parts[0]), int(parts[1])
+        except ValueError:
+            continue
+        if hour > 23 or minute > 59:
+            continue
+        start = day.replace(hour=hour, minute=minute)
+        items.append(
+            {
+                "title": title[:120],
+                "meta": start.strftime("%H:%M"),
+                "preview": title[:120],
+                "start_at": start.isoformat(),
+            }
+        )
+    today = datetime.now(SEOUL).date().isoformat()
+    meta: dict[str, Any] = {
+        "date": today,
+        "items": items,
+        "seeded_at": datetime.now(SEOUL).isoformat(),
+        "source": "home_meetings",
     }
     row = await _get_demo_row(session, user_id)
     now = datetime.now(SEOUL)

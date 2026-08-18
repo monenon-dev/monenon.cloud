@@ -8,12 +8,23 @@ from datetime import datetime, timedelta
 from typing import Literal
 from zoneinfo import ZoneInfo
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from core.matrix.grid_oracle_database_manager import get_db
 from orchestration.app.briefing.calendar_source import (
     detect_calendar_conflicts,
     detect_calendar_density,
+)
+from orchestration.app.briefing.demo_schedule import (
+    events_from_demo_items,
+    get_home_meeting_events,
+    save_user_meetings,
+)
+from orchestration.app.composition.providers import get_orchestration_pg_repository
+from orchestration.adapter.outbound.pg.orchestration_pg_repository import (
+    OrchestrationPgRepository,
 )
 
 logger = logging.getLogger(__name__)
@@ -44,6 +55,15 @@ class DemoCalendarCheckResponse(BaseModel):
     headline: str
     issues: list[DemoIssueOut]
     event_count: int
+
+
+class DemoMeetingsSaveRequest(BaseModel):
+    user_id: int = Field(..., ge=1)
+    events: list[DemoCalendarEventIn] = Field(default_factory=list, max_length=10)
+
+
+class DemoMeetingsResponse(BaseModel):
+    events: list[DemoCalendarEventIn]
 
 
 def _parse_today_event(index: int, item: DemoCalendarEventIn) -> dict:
@@ -125,3 +145,38 @@ def demo_calendar_check(body: DemoCalendarCheckRequest) -> DemoCalendarCheckResp
         issues=issues,
         event_count=len(events),
     )
+
+
+def _events_out(rows: list[dict[str, str]]) -> list[DemoCalendarEventIn]:
+    out: list[DemoCalendarEventIn] = []
+    for row in rows:
+        time = (row.get("time") or "").strip()
+        title = (row.get("title") or "").strip()
+        if time and title:
+            out.append(DemoCalendarEventIn(time=time, title=title))
+    return out
+
+
+@demo_router.get("/meetings", response_model=DemoMeetingsResponse)
+async def get_demo_meetings(
+    user_id: int = Query(..., ge=1),
+    session: AsyncSession = Depends(get_db),
+    repo: OrchestrationPgRepository = Depends(get_orchestration_pg_repository),
+) -> DemoMeetingsResponse:
+    """홈에서 저장한 오늘 중요 미팅을 불러온다."""
+    await repo.verify_user(user_id)
+    items = await get_home_meeting_events(session, user_id)
+    return DemoMeetingsResponse(events=_events_out(items))
+
+
+@demo_router.put("/meetings", response_model=DemoMeetingsResponse)
+async def put_demo_meetings(
+    body: DemoMeetingsSaveRequest,
+    session: AsyncSession = Depends(get_db),
+    repo: OrchestrationPgRepository = Depends(get_orchestration_pg_repository),
+) -> DemoMeetingsResponse:
+    """홈에서 입력한 오늘 중요 미팅을 저장한다."""
+    await repo.verify_user(body.user_id)
+    payload = [{"time": e.time, "title": e.title} for e in body.events]
+    items = await save_user_meetings(session, body.user_id, payload)
+    return DemoMeetingsResponse(events=_events_out(events_from_demo_items(items)))

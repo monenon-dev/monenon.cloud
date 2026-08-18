@@ -1,13 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { Loader2, Plus, X } from "lucide-react";
 
 import {
+  fetchSavedMeetings,
+  loadSavedMeetings,
+  persistSavedMeetings,
   postDemoCalendarCheck,
+  saveMeetings,
   type DemoCalendarCheckResult,
+  type DemoCalendarEventInput,
 } from "@/lib/demo-calendar-check-api";
+import { getAuthSession } from "@/lib/auth-api";
 import { routes, mypageSectionUrl } from "@/lib/routes";
 import { todaySeoulLabel } from "@/lib/seoul-date";
 
@@ -17,6 +23,25 @@ const MAX_SLOTS = 10;
 
 function emptySlot(id: number): Slot {
   return { id, time: "", title: "" };
+}
+
+function slotsFromEvents(events: DemoCalendarEventInput[], startId = 1): { slots: Slot[]; nextId: number } {
+  if (events.length === 0) {
+    return { slots: [emptySlot(startId)], nextId: startId + 1 };
+  }
+  const slots = events.slice(0, MAX_SLOTS).map((ev, i) => ({
+    id: startId + i,
+    time: ev.time,
+    title: ev.title,
+  }));
+  return { slots, nextId: startId + slots.length };
+}
+
+function filledEvents(slots: Slot[]): DemoCalendarEventInput[] {
+  return slots
+    .map((s) => ({ time: s.time.trim(), title: s.title.trim() }))
+    .filter((s) => s.time && s.title)
+    .slice(0, MAX_SLOTS);
 }
 
 type CalendarCheckWidgetProps = {
@@ -33,12 +58,33 @@ export function CalendarCheckWidget({
     slots: [emptySlot(1)],
     nextId: 2,
     loading: false,
+    saving: false,
+    savedFlash: false,
     error: null as string | null,
     result: null as DemoCalendarCheckResult | null,
   });
 
   const patchUi = (patch: Partial<typeof ui>) =>
     setUi((prev) => ({ ...prev, ...patch }));
+
+  useEffect(() => {
+    const local = loadSavedMeetings();
+    const fromLocal = slotsFromEvents(local, 1);
+    patchUi({ slots: fromLocal.slots, nextId: fromLocal.nextId });
+    if (!isLoggedIn) return;
+    const session = getAuthSession();
+    if (!session) return;
+    void fetchSavedMeetings(session.user_id)
+      .then((events) => {
+        if (events.length === 0) return;
+        persistSavedMeetings(events);
+        const fromApi = slotsFromEvents(events, 1);
+        patchUi({ slots: fromApi.slots, nextId: fromApi.nextId, error: null });
+      })
+      .catch(() => {
+        /* 로컬 저장분 유지 */
+      });
+  }, [isLoggedIn]);
 
   const updateSlot = (id: number, patch: Partial<Slot>) => {
     setUi((prev) => ({
@@ -73,18 +119,44 @@ export function CalendarCheckWidget({
     });
   };
 
+  const handleSave = async () => {
+    const filled = filledEvents(ui.slots);
+    persistSavedMeetings(filled);
+    const session = isLoggedIn ? getAuthSession() : null;
+    patchUi({ saving: true, error: null, savedFlash: false });
+    try {
+      if (session) {
+        const saved = await saveMeetings(session.user_id, filled);
+        persistSavedMeetings(saved);
+        const next = slotsFromEvents(saved.length > 0 ? saved : filled, 1);
+        patchUi({
+          saving: false,
+          savedFlash: true,
+          slots: next.slots,
+          nextId: next.nextId,
+        });
+      } else {
+        patchUi({ saving: false, savedFlash: true });
+      }
+      window.setTimeout(() => patchUi({ savedFlash: false }), 1600);
+    } catch (err) {
+      patchUi({
+        saving: false,
+        error: err instanceof Error ? err.message : "저장에 실패했습니다.",
+      });
+    }
+  };
+
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const filled = ui.slots
-      .map((s) => ({ time: s.time.trim(), title: s.title.trim() }))
-      .filter((s) => s.time && s.title);
+    const filled = filledEvents(ui.slots);
     if (filled.length === 0) {
       patchUi({ error: "시간과 제목을 하나 이상 입력해 주세요.", result: null });
       return;
     }
     patchUi({ loading: true, error: null });
     try {
-      const result = await postDemoCalendarCheck(filled.slice(0, MAX_SLOTS));
+      const result = await postDemoCalendarCheck(filled);
       patchUi({ loading: false, result });
     } catch (err) {
       patchUi({
@@ -108,7 +180,7 @@ export function CalendarCheckWidget({
       </h2>
       <p className="mt-1 text-sm font-medium text-indigo-200/85">{todaySeoulLabel()}</p>
       <p className="mt-1.5 text-sm leading-relaxed text-[var(--moneo-muted)]">
-        겹치거나 몰려 있으면, 로그인 없이도 바로 알려드려요.
+        겹치거나 몰려 있으면, 로그인 없이도 바로 알려드려요. 저장하면 새로고침 후에도 남아 있어요.
       </p>
 
       <form onSubmit={(e) => void handleSubmit(e)} className="mt-5 space-y-3">
@@ -159,6 +231,15 @@ export function CalendarCheckWidget({
           >
             <Plus className="size-4" aria-hidden />
             미팅 추가
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleSave()}
+            disabled={ui.saving}
+            className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-indigo-400/40 bg-indigo-500/15 px-4 py-2.5 text-sm font-medium text-indigo-100 transition-colors hover:bg-indigo-500/25 disabled:opacity-60 sm:w-auto"
+          >
+            {ui.saving ? <Loader2 className="size-4 animate-spin" aria-hidden /> : null}
+            {ui.savedFlash ? "저장됨" : "저장"}
           </button>
           <button
             type="submit"
