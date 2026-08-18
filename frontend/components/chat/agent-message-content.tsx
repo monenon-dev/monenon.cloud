@@ -24,6 +24,7 @@ import {
   injectChipsInChildren,
   preserveEscapedBrackets,
 } from "@/components/chat/markdown-chip-utils";
+import { stripBriefingTitleHeading } from "@/lib/briefing-api";
 
 export type AgentMessageContentProps = {
   text: string;
@@ -714,12 +715,19 @@ export function AgentMessageContent({
   onRegenerate,
   kind: kindProp,
 }: AgentMessageContentProps) {
-  const kind = useMemo(
-    () => kindProp ?? inferKind(text),
+  const displayText = useMemo(
+    () =>
+      (kindProp ?? inferKind(text)) === "briefing"
+        ? stripBriefingTitleHeading(text)
+        : text,
     [kindProp, text]
   );
-  const summary = useMemo(() => summarize(kind, text), [kind, text]);
-  const parsed = useMemo(() => splitByH2(text), [text]);
+  const kind = useMemo(
+    () => kindProp ?? inferKind(displayText),
+    [kindProp, displayText]
+  );
+  const summary = useMemo(() => summarize(kind, displayText), [kind, displayText]);
+  const parsed = useMemo(() => splitByH2(displayText), [displayText]);
   const collapsible = parsed.sections.length >= 3;
   const Icon = summary.Icon;
   const basename =
@@ -743,7 +751,7 @@ export function AgentMessageContent({
           <SectionAccordion sections={parsed.sections} enabled={collapsible} />
         </div>
       ) : !parsed.intro ? (
-        <MarkdownBody content={text} />
+        <MarkdownBody content={displayText} />
       ) : null}
 
       {streaming ? (
@@ -755,7 +763,7 @@ export function AgentMessageContent({
       ) : null}
 
       {!streaming ? (
-        <ActionBar text={text} basename={basename} onRegenerate={onRegenerate} />
+        <ActionBar text={displayText} basename={basename} onRegenerate={onRegenerate} />
       ) : null}
     </div>
   );

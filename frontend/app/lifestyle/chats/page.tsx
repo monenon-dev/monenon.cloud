@@ -286,7 +286,7 @@ function ChatsPageContent() {
           industry: prefs.industry,
         });
         if (cancelled) return;
-        const text = `## 오늘의 브리핑\n\n${briefing.content}`.trim();
+        const text = briefing.content.trim();
         const assistantMsg: GeminiChatMessage = {
           role: "assistant",
           text,

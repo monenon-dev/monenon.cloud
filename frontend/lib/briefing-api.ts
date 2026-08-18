@@ -97,6 +97,18 @@ export function stripDocsHallucinationFromChat(text: string): string {
   return cleaned.replace(/\n{3,}/g, "\n\n").trim();
 }
 
+/** 본문 맨 앞의 「오늘의 브리핑」 제목 줄을 제거한다. */
+export function stripBriefingTitleHeading(text: string): string {
+  const lines = text.replace(/\r\n/g, "\n").split("\n");
+  while (lines.length > 0 && !lines[0]!.trim()) lines.shift();
+  const first = lines[0]?.trim() ?? "";
+  if (/^#{1,6}\s*오늘의\s*(업무\s*)?브리핑\s*$/i.test(first)) {
+    lines.shift();
+    while (lines.length > 0 && !lines[0]!.trim()) lines.shift();
+  }
+  return lines.join("\n").trim();
+}
+
 function parseTodayBriefing(
   data: Record<string, unknown>,
   fallbackId?: number | null
@@ -106,7 +118,10 @@ function parseTodayBriefing(
   }
   const logsRaw = Array.isArray(data.tool_logs) ? data.tool_logs : [];
   return {
-    content: stripDocsHallucinationFromChat(data.content) || data.content,
+    content:
+      stripBriefingTitleHeading(
+        stripDocsHallucinationFromChat(data.content) || data.content
+      ) || data.content,
     tool_logs: logsRaw
       .map(normalizeToolLog)
       .filter((x): x is ToolCallResult => x !== null),

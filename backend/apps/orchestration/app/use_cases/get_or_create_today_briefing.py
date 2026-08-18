@@ -14,6 +14,7 @@ from orchestration.adapter.outbound.orm.daily_briefing_orm import DailyBriefing
 from orchestration.adapter.outbound.pg.daily_briefing_pg_repository import (
     DailyBriefingPgRepository,
 )
+from orchestration.app.briefing.format import strip_briefing_title_heading
 from orchestration.app.briefing.validator_review import normalize_pending_review
 from orchestration.app.use_cases.run_briefing import run_briefing
 from secretary.adapter.outbound.orm.user_model import User, UserRole
@@ -31,7 +32,7 @@ def today_seoul() -> date:
 def _row_to_payload(row: DailyBriefing, *, created: bool) -> dict[str, Any]:
     logs = row.tool_logs if isinstance(row.tool_logs, list) else []
     return {
-        "content": row.content or "",
+        "content": strip_briefing_title_heading(row.content or ""),
         "tool_logs": logs,
         "briefing_date": row.briefing_date.isoformat(),
         "created": created,

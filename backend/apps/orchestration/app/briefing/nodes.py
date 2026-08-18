@@ -12,6 +12,7 @@ from gemini_caller import call_gemini
 from orchestration.app.agent_system_prompt import with_agent_system_prompt
 from orchestration.app.briefing.calendar_source import fetch_today_calendar
 from orchestration.app.briefing.docs_source import fetch_recent_docs
+from orchestration.app.briefing.format import strip_briefing_title_heading
 from orchestration.app.briefing.gmail_source import fetch_gmail_digest
 from orchestration.app.briefing.history_source import fetch_recent_history
 from orchestration.app.briefing.slack_source import fetch_slack_digest
@@ -434,7 +435,7 @@ def _is_synth_error_answer(answer: str) -> bool:
 
 def _fallback_briefing_from_sources(state: BriefingState) -> str:
     """Gemini 실패 시 도구 JSON만으로 만드는 최소 브리핑 초안."""
-    sections: list[str] = ["## 오늘의 브리핑", ""]
+    sections: list[str] = []
     cal_items = _source_items(state.get("calendar_result"))
     hist_items = [
         item
@@ -488,9 +489,8 @@ def _fallback_briefing_from_sources(state: BriefingState) -> str:
         ln for ln in body.splitlines() if SYNTH_ERROR_MARKER not in ln
     ]
     body = "\n".join(cleaned_lines).strip()
-    if body == "## 오늘의 브리핑" or not body:
+    if not body:
         return (
-            "## 오늘의 브리핑\n\n"
             "연동된 일정·문서·메시지가 거의 없어 초안을 비워 두었습니다. "
             "일정을 추가하거나 연동 후 다시 생성해 주세요."
         )
@@ -589,6 +589,8 @@ async def synthesizer_node(state: BriefingState) -> dict:
     user_prompt = (
         f"{(state.get('query') or '오늘의 업무 브리핑을 작성해 줘').strip()}\n\n"
         "아래 도구 수집 결과만 근거로 스탠드업 브리핑을 작성하세요.\n"
+        "본문은 날짜와 일정·할 일부터 시작하고, "
+        "「오늘의 브리핑」「오늘의 업무 브리핑」 같은 제목 헤딩은 넣지 마세요.\n"
         "연동되지 않은 소스(Slack/Gmail 등 skipped)는 언급하지 말고 자연스럽게 생략하세요.\n"
         "마크다운 헤딩·불릿을 쓰고, 근거 없는 추측은 넣지 마세요.\n\n"
         f"{context}{repair}"
@@ -604,6 +606,7 @@ async def synthesizer_node(state: BriefingState) -> dict:
     gemini_error: str | None = None
     try:
         answer = call_gemini(prompt, model=get_keymaker().gemini_chat_model_id())
+        answer = strip_briefing_title_heading(answer)
     except Exception as exc:
         logger.exception("[briefing_synthesizer] gemini failed: %s", exc)
         gemini_error = str(exc)
@@ -622,6 +625,8 @@ async def synthesizer_node(state: BriefingState) -> dict:
         if _DOCS_HALLUCINATION_SNIPPET not in answer:
             answer = f"{answer.rstrip()}\n\n{_DOCS_HALLUCINATION_SNIPPET}"
             injected = True
+
+    answer = strip_briefing_title_heading(answer)
 
     retries = int(state.get("synth_retries") or 0)
     done_detail = f"{pass_n}차 브리핑 초안 생성 완료"

@@ -5,6 +5,7 @@ import type { WeeklyAction, WeeklyRisk } from "@/lib/weekly-report-api";
 import type { PendingReview } from "@/lib/briefing-api";
 import {
   isDocsHallucinationText,
+  stripBriefingTitleHeading,
   stripDocsHallucinationFromChat,
 } from "@/lib/briefing-api";
 
@@ -113,7 +114,9 @@ function parseAgentChatResponse(raw: unknown): AgentChatResponse {
       : typeof data.answer === "string"
         ? data.answer
         : "";
-  const stripped = stripDocsHallucinationFromChat(contentRaw);
+  const stripped = stripBriefingTitleHeading(
+    stripDocsHallucinationFromChat(contentRaw) || contentRaw
+  );
   const content = stripped || contentRaw;
   if (!content) {
     throw new Error("응답에 content가 없습니다.");

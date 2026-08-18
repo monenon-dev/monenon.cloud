@@ -538,9 +538,7 @@ export function GeminiChatPanel({
                           rowIdx === idx
                             ? {
                                 ...row,
-                                text: updated.content.startsWith("##")
-                                  ? updated.content
-                                  : `## 오늘의 브리핑\n\n${updated.content}`,
+                                text: updated.content,
                                 toolLogs: updated.tool_logs,
                                 pendingReview: updated.pending_review ?? null,
                                 briefingId: updated.id ?? msg.briefingId,
