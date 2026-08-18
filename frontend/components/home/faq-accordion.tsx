@@ -25,7 +25,7 @@ const FAQ_CATEGORIES: FaqCategory[] = [
         q: "Moneo는 어떤 서비스인가요?",
         a: (
           <>
-            Moneo는 카카오 톡캘린더, Gmail, Slack을 연결해 매일 아침 업무 브리핑을 자동으로 만들어 주는 AI 라이프 어시스턴트입니다.
+            Moneo는 카카오 톡캘린더와 Gmail을 연결해 매일 아침 업무 브리핑을 자동으로 만들어 주는 AI 라이프 어시스턴트입니다.
             연결된 데이터만 모아 브리핑·알림·주간 리포트를 생성하고, 채팅으로도 언제든 조회할 수 있습니다.
             {" "}
             <Link href={routes.about} className="inline-link">기능 소개 →</Link>
@@ -61,9 +61,9 @@ const FAQ_CATEGORIES: FaqCategory[] = [
         q: "연동을 안 하면 브리핑이 비어있나요?",
         a: (
           <>
-            연동 없이도 브리핑은 생성되지만, 연결되지 않은 소스(캘린더·Gmail·Slack)는 자동으로 건너뜁니다.
+            연동 없이도 브리핑은 생성되지만, 연결되지 않은 소스(캘린더·Gmail)는 자동으로 건너뜁니다.
             연동한 항목이 많을수록 브리핑 내용도 풍부해집니다.
-            브리핑을 이메일이나 Slack으로 받으려면 Gmail 또는 Slack 연동이 필요합니다.
+            브리핑을 이메일로 받으려면 Gmail 연동이 필요합니다.
           </>
         ),
       },
@@ -88,10 +88,9 @@ const FAQ_CATEGORIES: FaqCategory[] = [
         q: "어떤 서비스와 연동할 수 있나요?",
         a: (
           <>
-            현재 연동 가능한 서비스는 <strong className="text-indigo-300">Gmail</strong>,{" "}
-            <strong className="text-indigo-300">Slack</strong>,{" "}
-            <strong className="text-indigo-300">카카오 톡캘린더</strong> 세 가지입니다.
-            Gmail·Slack은 브리핑 발송과 상황 감지 알림에 사용되고, 카카오 톡캘린더는 일정 정보를 브리핑에 반영합니다.
+            현재 연동 가능한 서비스는 <strong className="text-indigo-300">Gmail</strong>과{" "}
+            <strong className="text-indigo-300">카카오 톡캘린더</strong>입니다.
+            Gmail은 브리핑 발송과 상황 감지 알림에 사용되고, 카카오 톡캘린더는 일정 정보를 브리핑에 반영합니다.
             {" "}
             <Link href={routes.oauth.mypageNotifications} className="inline-link">연동 설정 →</Link>
           </>
@@ -102,7 +101,7 @@ const FAQ_CATEGORIES: FaqCategory[] = [
         a: (
           <>
             네, 마이페이지 알림 설정에서 언제든 연동을 끌 수 있습니다.
-            Gmail·Slack은 비활성화하면 토큰이 해제되고, 다시 사용하려면 OAuth를 재연결해야 합니다.
+            Gmail은 비활성화하면 토큰이 해제되고, 다시 사용하려면 OAuth를 재연결해야 합니다.
             카카오 톡캘린더는 동기화 토글을 끄면 일정 연동이 중단됩니다.
             {" "}
             <Link href={routes.oauth.mypageNotifications} className="inline-link">연동 관리 →</Link>
@@ -119,7 +118,7 @@ const FAQ_CATEGORIES: FaqCategory[] = [
         a: (
           <>
             기본 오전 8시~오후 8시 사이에 30분 간격으로 상황을 점검합니다.
-            향후 3시간 일정이 밀리거나, Slack 긴급 멘션·Gmail 마감 메일이 감지되면 앱 알림과 함께 Slack DM 또는 Gmail로 즉시 발송됩니다.
+            향후 3시간 일정이 밀리거나 Gmail 마감 메일이 감지되면 앱 알림과 함께 Gmail로 즉시 발송됩니다.
             같은 감지 내용은 24시간 내 중복 발송하지 않습니다.
             {" "}
             <Link href={routes.oauth.mypageNotifications} className="inline-link">알림 설정 →</Link>
