@@ -47,6 +47,7 @@ except ModuleNotFoundError:
 try:
     from orchestration.adapter.inbound.api.v1 import orchestration_router
     from orchestration.adapter.inbound.api.schemas.briefing_schema import (
+        BriefingNotesRequest,
         BriefingReviewRequest,
     )
     from orchestration.adapter.inbound.api.schemas.weekly_report_schema import (
@@ -56,6 +57,7 @@ except ModuleNotFoundError:
     orchestration_router = None
     WeeklyReportRequest = None  # type: ignore[misc, assignment]
     BriefingReviewRequest = None  # type: ignore[misc, assignment]
+    BriefingNotesRequest = None  # type: ignore[misc, assignment]
 try:
     from secretary.adapter.inbound.api.v1 import secretary_router
 except Exception as e:
@@ -622,6 +624,33 @@ async def agent_briefing_review(
     except Exception as e:
         logger.exception("[agent_briefing_review] failed: %s", e)
         return JSONResponse({"detail": "브리핑 검토 결과를 저장하지 못했습니다."}, status_code=502)
+    return payload
+
+
+@app.patch("/agent/briefing/today/notes")
+async def agent_briefing_today_notes(
+    body: BriefingNotesRequest,
+    session: AsyncSession = Depends(get_db),
+):
+    """오늘 브리핑에 사용자 메모를 저장한다."""
+    from orchestration.app.use_cases.update_briefing_notes import update_today_briefing_notes
+    from secretary.adapter.outbound.orm.user_model import User
+    from sqlalchemy import select
+
+    user_row = await session.execute(select(User).where(User.id == body.user_id))
+    if user_row.scalar_one_or_none() is None:
+        return JSONResponse({"detail": "사용자를 찾을 수 없습니다."}, status_code=404)
+    try:
+        payload = await update_today_briefing_notes(
+            session,
+            user_id=body.user_id,
+            notes=body.notes,
+        )
+    except ValueError as e:
+        return JSONResponse({"detail": str(e)}, status_code=400)
+    except Exception as e:
+        logger.exception("[agent_briefing_notes] failed: %s", e)
+        return JSONResponse({"detail": "브리핑 메모를 저장하지 못했습니다."}, status_code=502)
     return payload
 
 

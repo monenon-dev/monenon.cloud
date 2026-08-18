@@ -13,6 +13,7 @@ export type TodayBriefing = {
   created: boolean;
   id?: number | null;
   pending_review?: PendingReview | null;
+  user_notes?: string;
 };
 
 const NODE_STATUSES: ToolNodeStatus[] = [
@@ -96,6 +97,30 @@ export function stripDocsHallucinationFromChat(text: string): string {
   return cleaned.replace(/\n{3,}/g, "\n\n").trim();
 }
 
+function parseTodayBriefing(
+  data: Record<string, unknown>,
+  fallbackId?: number | null
+): TodayBriefing {
+  if (typeof data.content !== "string") {
+    throw new Error("브리핑 본문이 없습니다.");
+  }
+  const logsRaw = Array.isArray(data.tool_logs) ? data.tool_logs : [];
+  return {
+    content: stripDocsHallucinationFromChat(data.content) || data.content,
+    tool_logs: logsRaw
+      .map(normalizeToolLog)
+      .filter((x): x is ToolCallResult => x !== null),
+    briefing_date:
+      typeof data.briefing_date === "string"
+        ? data.briefing_date
+        : new Date().toISOString().slice(0, 10),
+    created: Boolean(data.created),
+    id: typeof data.id === "number" ? data.id : fallbackId ?? null,
+    pending_review: normalizePendingReview(data.pending_review),
+    user_notes: typeof data.user_notes === "string" ? data.user_notes : "",
+  };
+}
+
 export async function fetchTodayBriefing(
   userId: number,
   options?: {
@@ -130,24 +155,7 @@ export async function fetchTodayBriefing(
     throw new Error("브리핑 응답 형식이 올바르지 않습니다.");
   }
   const data = raw as Record<string, unknown>;
-  if (typeof data.content !== "string") {
-    throw new Error("브리핑 본문이 없습니다.");
-  }
-  const logsRaw = Array.isArray(data.tool_logs) ? data.tool_logs : [];
-  const tool_logs = logsRaw
-    .map(normalizeToolLog)
-    .filter((x): x is ToolCallResult => x !== null);
-  return {
-    content: stripDocsHallucinationFromChat(data.content) || data.content,
-    tool_logs,
-    briefing_date:
-      typeof data.briefing_date === "string"
-        ? data.briefing_date
-        : new Date().toISOString().slice(0, 10),
-    created: Boolean(data.created),
-    id: typeof data.id === "number" ? data.id : null,
-    pending_review: normalizePendingReview(data.pending_review),
-  };
+  return parseTodayBriefing(data);
 }
 
 export async function submitBriefingReview(
@@ -177,21 +185,33 @@ export async function submitBriefingReview(
     throw new Error("검토 응답 형식이 올바르지 않습니다.");
   }
   const data = raw as Record<string, unknown>;
-  if (typeof data.content !== "string") {
-    throw new Error("브리핑 본문이 없습니다.");
+  return parseTodayBriefing(data, briefingId);
+}
+
+export async function saveTodayBriefingNotes(
+  userId: number,
+  notes: string,
+  options?: { apiBaseUrl?: string }
+): Promise<TodayBriefing> {
+  const base = (options?.apiBaseUrl ?? getApiBaseUrl()).replace(/\/$/, "");
+  const res = await fetch(`${base}/agent/briefing/today/notes`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify({ user_id: userId, notes }),
+  });
+  const raw: unknown = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const detail =
+      typeof raw === "object" &&
+      raw !== null &&
+      "detail" in raw &&
+      typeof (raw as { detail: unknown }).detail === "string"
+        ? (raw as { detail: string }).detail
+        : `메모 저장 실패 (${res.status})`;
+    throw new Error(detail);
   }
-  const logsRaw = Array.isArray(data.tool_logs) ? data.tool_logs : [];
-  return {
-    content: stripDocsHallucinationFromChat(data.content) || data.content,
-    tool_logs: logsRaw
-      .map(normalizeToolLog)
-      .filter((x): x is ToolCallResult => x !== null),
-    briefing_date:
-      typeof data.briefing_date === "string"
-        ? data.briefing_date
-        : new Date().toISOString().slice(0, 10),
-    created: Boolean(data.created),
-    id: typeof data.id === "number" ? data.id : briefingId,
-    pending_review: normalizePendingReview(data.pending_review),
-  };
+  if (typeof raw !== "object" || raw === null) {
+    throw new Error("메모 저장 응답 형식이 올바르지 않습니다.");
+  }
+  return parseTodayBriefing(raw as Record<string, unknown>);
 }

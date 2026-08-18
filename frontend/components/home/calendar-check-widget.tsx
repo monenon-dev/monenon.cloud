@@ -103,10 +103,10 @@ export function CalendarCheckWidget({
         try now · no login
       </p>
       <h2 className="mt-2 text-base font-semibold text-white sm:text-lg">
-        오늘 중요한 일정을 적어보세요
+        오늘 가장 중요한 미팅을 적어보세요
       </h2>
       <p className="mt-1.5 text-sm leading-relaxed text-[var(--moneo-muted)]">
-        몰려 있거나 겹치면, 로그인 없이도 바로 알려드려요.
+        겹치거나 몰려 있으면, 로그인 없이도 바로 알려드려요.
       </p>
 
       <form onSubmit={(e) => void handleSubmit(e)} className="mt-5 space-y-3">
@@ -133,7 +133,7 @@ export function CalendarCheckWidget({
               type="text"
               value={slot.title}
               onChange={(e) => updateSlot(slot.id, { title: e.target.value })}
-              placeholder="중요한 일정"
+              placeholder="중요한 미팅"
               maxLength={120}
               className="min-w-0 rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm text-zinc-100 outline-none placeholder:text-zinc-500 focus:border-indigo-400/50"
             />
@@ -156,7 +156,7 @@ export function CalendarCheckWidget({
             className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-white/15 bg-white/5 px-4 py-2.5 text-sm font-medium text-zinc-100 transition-colors hover:bg-white/10 disabled:opacity-50"
           >
             <Plus className="size-4" aria-hidden />
-            일정 추가
+            미팅 추가
           </button>
           <button
             type="submit"
@@ -199,7 +199,7 @@ export function CalendarCheckWidget({
       <div className="mt-5 flex flex-col gap-3 border-t border-white/10 pt-4 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm leading-relaxed text-[var(--moneo-muted)]">
           {isLoggedIn
-            ? "연동해 두면 매일 아침 일정 밀도와 겹침을 자동으로 확인해 드려요."
+            ? "연동해 두면 매일 아침 미팅 밀도와 겹침을 자동으로 확인해 드려요."
             : "로그인하면 매일 아침 이걸 자동으로 보내드려요."}
         </p>
         {!isLoggedIn ? (

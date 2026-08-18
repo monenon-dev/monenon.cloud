@@ -71,6 +71,7 @@ class DailyBriefingPgRepository:
         content: str,
         tool_logs: list[dict[str, Any]],
         pending_review: dict[str, str] | None = None,
+        user_notes: str = "",
     ) -> DailyBriefing:
         """이미 있으면 기존 행을 반환하고, 없으면 INSERT."""
         existing = await self.get_by_user_date(user_id, briefing_date)
@@ -85,6 +86,7 @@ class DailyBriefingPgRepository:
                 content=content,
                 tool_logs=tool_logs,
                 pending_review=pending_review,
+                user_notes=user_notes,
             )
             .on_conflict_do_nothing(constraint="uq_daily_briefings_user_date")
             .returning(DailyBriefing.id)
@@ -157,4 +159,20 @@ class DailyBriefingPgRepository:
             briefing_id,
             decision,
         )
+        return row
+
+    async def update_user_notes(
+        self,
+        briefing_id: int,
+        *,
+        user_id: int,
+        notes: str,
+    ) -> DailyBriefing | None:
+        row = await self.get_owned(briefing_id, user_id)
+        if row is None:
+            return None
+        row.user_notes = notes
+        await self._session.flush()
+        await self._session.refresh(row)
+        logger.info("[DailyBriefingPgRepository] notes updated id=%s", briefing_id)
         return row

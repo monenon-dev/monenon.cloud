@@ -37,6 +37,7 @@ def _row_to_payload(row: DailyBriefing, *, created: bool) -> dict[str, Any]:
         "created": created,
         "id": row.id,
         "pending_review": normalize_pending_review(row.pending_review),
+        "user_notes": getattr(row, "user_notes", "") or "",
     }
 
 
@@ -70,6 +71,9 @@ async def get_or_create_today_briefing(
     briefing_date = today_seoul()
     repo = DailyBriefingPgRepository(session)
     existing = await repo.get_by_user_date(user_id, briefing_date)
+    preserved_notes = (
+        (getattr(existing, "user_notes", None) or "") if existing is not None else ""
+    )
     should_refresh = force_refresh or (
         existing is not None and _is_failed_briefing_content(existing.content)
     )
@@ -100,6 +104,7 @@ async def get_or_create_today_briefing(
         content=content,
         tool_logs=tool_logs,
         pending_review=pending_review,
+        user_notes=preserved_notes,
     )
     await session.commit()
     refreshed = await repo.get_by_user_date(user_id, briefing_date) or row

@@ -39,3 +39,4 @@ class DailyBriefing(IntIdPrimaryKeyMixin, Base):
     )
     notification_channel: Mapped[str | None] = mapped_column(String(32), nullable=True)
     pending_review: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    user_notes: Mapped[str] = mapped_column(Text, nullable=False, default="", server_default="")

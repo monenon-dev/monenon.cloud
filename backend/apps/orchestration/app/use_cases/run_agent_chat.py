@@ -41,6 +41,7 @@ def _chat_response(
     intent: ChatIntent | None = None,
     pending_review: dict[str, str] | None = None,
     briefing_id: int | None = None,
+    user_notes: str | None = None,
 ) -> dict[str, Any]:
     logs = tool_logs if isinstance(tool_logs, list) else []
     payload: dict[str, Any] = {
@@ -61,6 +62,8 @@ def _chat_response(
         payload["pending_review"] = pending_review
     if briefing_id is not None:
         payload["briefing_id"] = briefing_id
+    if user_notes is not None:
+        payload["user_notes"] = user_notes
     return payload
 
 
@@ -121,6 +124,7 @@ async def _run_briefing_response(
         intent="briefing_request",
         pending_review=briefing.get("pending_review"),
         briefing_id=briefing.get("id"),
+        user_notes=briefing.get("user_notes") or "",
     )
 
 

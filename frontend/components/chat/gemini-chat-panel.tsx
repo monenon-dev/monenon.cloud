@@ -18,6 +18,7 @@ import {
 } from "@/components/chat/agent-message-content";
 import { ChatToolStreamPanel } from "@/components/chat/chat-tool-stream-panel";
 import { BriefingPendingReviewCard } from "@/components/chat/briefing-pending-review";
+import { BriefingNotesField } from "@/components/chat/briefing-notes-field";
 import type { AgentChatResponseType } from "@/lib/agent-chat-api";
 import type { PendingReview } from "@/lib/briefing-api";
 import {
@@ -45,6 +46,7 @@ export interface GeminiChatMessage {
   toolLogs?: ToolCallResult[];
   pendingReview?: PendingReview | null;
   briefingId?: number | null;
+  userNotes?: string;
   /** needs_data 등 — 클릭 시 해당 문구로 전송 */
   quickReplies?: string[];
 }
@@ -383,6 +385,9 @@ export function GeminiChatPanel({
   const messageKind = (msg: GeminiChatMessage): "briefing" | "report" | undefined => {
     if (msg.responseType === "briefing") return "briefing";
     if (msg.responseType === "report") return "report";
+    if (msg.role === "assistant" && /오늘의 브리핑|업무 브리핑/.test(msg.text)) {
+      return "briefing";
+    }
     return undefined;
   };
 
@@ -502,6 +507,16 @@ export function GeminiChatPanel({
                   isLastAssistant ? (
                   <ChatToolStreamPanel
                     toolLogs={msg.toolLogs}
+                    className="mt-3"
+                  />
+                ) : null}
+                {msg.role === "assistant" &&
+                  isLastAssistant &&
+                  messageKind(msg) === "briefing" &&
+                  chatUserId ? (
+                  <BriefingNotesField
+                    userId={chatUserId}
+                    initialNotes={msg.userNotes ?? ""}
                     className="mt-3"
                   />
                 ) : null}

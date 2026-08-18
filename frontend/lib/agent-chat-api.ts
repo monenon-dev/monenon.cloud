@@ -22,6 +22,7 @@ export type AgentChatResponse = {
   next_actions?: WeeklyAction[];
   pending_review?: PendingReview | null;
   briefing_id?: number | null;
+  user_notes?: string;
 };
 
 const NODE_STATUSES: ToolNodeStatus[] = [
@@ -155,6 +156,7 @@ function parseAgentChatResponse(raw: unknown): AgentChatResponse {
         : undefined,
     pending_review: normalizePendingReview(data.pending_review),
     briefing_id: typeof data.briefing_id === "number" ? data.briefing_id : null,
+    user_notes: typeof data.user_notes === "string" ? data.user_notes : "",
   };
 }
 

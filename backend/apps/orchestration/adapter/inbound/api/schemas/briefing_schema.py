@@ -35,8 +35,14 @@ class TodayBriefingResponse(BaseModel):
     created: bool = Field(description="이번 요청에서 새로 생성했는지")
     id: int | None = None
     pending_review: PendingReviewOut | None = None
+    user_notes: str = ""
 
 
 class BriefingReviewRequest(BaseModel):
     user_id: int = Field(..., ge=1)
     decision: Literal["include", "exclude"]
+
+
+class BriefingNotesRequest(BaseModel):
+    user_id: int = Field(..., ge=1)
+    notes: str = Field(default="", max_length=4000)

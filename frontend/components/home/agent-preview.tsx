@@ -10,6 +10,7 @@ import {
 import { getAuthSession } from "@/lib/auth-api";
 import { fetchTodayBriefing } from "@/lib/briefing-api";
 import { loadMyPagePreferences } from "@/lib/mypage-preferences";
+import { BriefingNotesField } from "@/components/chat/briefing-notes-field";
 
 const CHAT_LINES = [
   { role: "user" as const, text: "오늘 오전 스탠드업 브리핑 요약해 줘." },
@@ -124,6 +125,8 @@ export function AgentPreview({
     chatLines: CHAT_LINES as PreviewChatLine[],
     toolLogs: [] as ToolCallResult[],
     error: null as string | null,
+    notes: "",
+    userId: null as number | null,
   });
   const [chat, setChat] = useState({ chars: 0, line: 0 });
   const chatScrollRef = useRef<HTMLDivElement>(null);
@@ -135,6 +138,8 @@ export function AgentPreview({
         chatLines: CHAT_LINES,
         toolLogs: [],
         error: null,
+        notes: "",
+        userId: null,
       });
       return;
     }
@@ -146,6 +151,8 @@ export function AgentPreview({
         chatLines: CHAT_LINES,
         toolLogs: [],
         error: null,
+        notes: "",
+        userId: null,
       });
       return;
     }
@@ -170,6 +177,8 @@ export function AgentPreview({
           ],
           toolLogs: briefing.tool_logs,
           error: null,
+          notes: briefing.user_notes ?? "",
+          userId: session.user_id,
         });
         setChat({ chars: 0, line: 0 });
       } catch (e) {
@@ -187,6 +196,8 @@ export function AgentPreview({
           ],
           toolLogs: [],
           error: e instanceof Error ? e.message : "briefing_error",
+          notes: "",
+          userId: session.user_id,
         });
       }
     })();
@@ -264,6 +275,13 @@ export function AgentPreview({
               />
             </>
           )}
+          {ui.mode === "live" && ui.userId ? (
+            <BriefingNotesField
+              userId={ui.userId}
+              initialNotes={ui.notes}
+              className="mt-1"
+            />
+          ) : null}
         </div>
 
         <ToolStreamPanel liveLogs={ui.mode === "live" ? ui.toolLogs : null} />
