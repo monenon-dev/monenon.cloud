@@ -16,6 +16,7 @@ from orchestration.adapter.outbound.pg.daily_briefing_pg_repository import (
 )
 from orchestration.app.briefing.format import (
     ensure_today_date_in_briefing,
+    strip_example_data_disclaimer,
     today_seoul,
 )
 from orchestration.app.briefing.validator_review import normalize_pending_review
@@ -32,7 +33,9 @@ def _row_to_payload(row: DailyBriefing, *, created: bool) -> dict[str, Any]:
     logs = row.tool_logs if isinstance(row.tool_logs, list) else []
     day = row.briefing_date
     return {
-        "content": ensure_today_date_in_briefing(row.content or "", day),
+        "content": strip_example_data_disclaimer(
+            ensure_today_date_in_briefing(row.content or "", day)
+        ),
         "tool_logs": logs,
         "briefing_date": row.briefing_date.isoformat(),
         "created": created,
@@ -94,9 +97,11 @@ async def get_or_create_today_briefing(
         industry=industry,
         user_notes=preserved_notes,
     )
-    content = ensure_today_date_in_briefing(
-        (result.get("answer") or "").strip() or "오늘의 브리핑을 생성하지 못했습니다.",
-        briefing_date,
+    content = strip_example_data_disclaimer(
+        ensure_today_date_in_briefing(
+            (result.get("answer") or "").strip() or "오늘의 브리핑을 생성하지 못했습니다.",
+            briefing_date,
+        )
     )
     tool_logs = result.get("tool_logs") or []
     if not isinstance(tool_logs, list):

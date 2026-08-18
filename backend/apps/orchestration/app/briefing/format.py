@@ -17,6 +17,10 @@ _DATE_LINE = re.compile(
     r"^(\*\*)?\d{4}년\s*\d{1,2}월\s*\d{1,2}일"
     r"(?:\s*[월화수목금토일]요일)?(\*\*)?\s*$"
 )
+_EXAMPLE_DATA_DISCLAIMER = re.compile(
+    r"^\s*[*\-•]?\s*현재\s*예시\s*데이터(?:로\s*표시(?:되고\s*있습니다|됩니다)|를\s*사용)",
+    re.IGNORECASE,
+)
 
 
 def today_seoul() -> date:
@@ -38,6 +42,16 @@ def strip_briefing_title_heading(text: str) -> str:
         while lines and not lines[0].strip():
             lines.pop(0)
     return "\n".join(lines).strip()
+
+
+def strip_example_data_disclaimer(text: str) -> str:
+    """브리핑 하단 「현재 예시 데이터로…」 안내 줄을 제거한다."""
+    lines = (text or "").replace("\r\n", "\n").split("\n")
+    filtered = [ln for ln in lines if not _EXAMPLE_DATA_DISCLAIMER.match(ln.strip())]
+    body = "\n".join(filtered).strip()
+    while body.endswith("\n\n"):
+        body = body.rstrip()
+    return body
 
 
 def ensure_today_date_in_briefing(text: str, day: date | None = None) -> str:

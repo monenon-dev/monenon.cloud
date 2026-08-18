@@ -11,7 +11,7 @@ from gemini_caller import call_gemini
 from core.matrix.vault_keymaker_secret_manager import get_keymaker
 from orchestration.app.agent_system_prompt import with_agent_system_prompt
 from orchestration.app.briefing.calendar_source import today_calendar_has_items
-from orchestration.app.briefing.format import strip_briefing_title_heading
+from orchestration.app.briefing.format import strip_briefing_title_heading, strip_example_data_disclaimer
 from orchestration.app.briefing.demo_schedule import (
     format_seed_done_prefix,
     format_seed_offer_markdown,
@@ -116,7 +116,9 @@ async def _run_briefing_response(
         industry=industry,
         force_refresh=force_refresh,
     )
-    body = strip_briefing_title_heading((briefing.get("content") or "").strip())
+    body = strip_example_data_disclaimer(
+        strip_briefing_title_heading((briefing.get("content") or "").strip())
+    )
     content = f"{content_prefix}{body}".strip() if body else content_prefix.strip()
     return _chat_response(
         response_type="briefing",

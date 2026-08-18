@@ -12,7 +12,11 @@ from gemini_caller import call_gemini
 from orchestration.app.agent_system_prompt import with_agent_system_prompt
 from orchestration.app.briefing.calendar_source import fetch_today_calendar
 from orchestration.app.briefing.docs_source import fetch_recent_docs
-from orchestration.app.briefing.format import format_today_ko, strip_briefing_title_heading
+from orchestration.app.briefing.format import (
+    format_today_ko,
+    strip_briefing_title_heading,
+    strip_example_data_disclaimer,
+)
 from orchestration.app.briefing.gmail_source import fetch_gmail_digest
 from orchestration.app.briefing.history_source import fetch_recent_history
 from orchestration.app.briefing.slack_source import fetch_slack_digest
@@ -618,6 +622,8 @@ async def synthesizer_node(state: BriefingState) -> dict:
         f"{(state.get('query') or '오늘의 업무 브리핑을 작성해 줘').strip()}\n\n"
         f"오늘 날짜는 {format_today_ko()} 입니다. 본문 맨 위 날짜는 반드시 이 날짜로 쓰세요.\n"
         "아래 도구 수집 결과만 근거로 스탠드업 브리핑을 작성하세요.\n"
+        "캘린더·사용자 메모에 있는 일정은 사용자가 입력한 실제 데이터입니다. "
+        "'예시 데이터'·'데모' 안내 문구를 붙이지 마세요.\n"
         "본문은 날짜와 일정·할 일부터 시작하고, "
         "「오늘의 브리핑」「오늘의 업무 브리핑」 같은 제목 헤딩은 넣지 마세요.\n"
         "연동되지 않은 소스(Slack/Gmail 등 skipped)는 언급하지 말고 자연스럽게 생략하세요.\n"
@@ -630,13 +636,14 @@ async def synthesizer_node(state: BriefingState) -> dict:
         speech_tone=state.get("speech_tone"),
         user_type=state.get("user_type"),
         industry=state.get("industry"),
+        include_example_data_footer=False,
     )
 
     used_fallback = False
     gemini_error: str | None = None
     try:
         answer = call_gemini(prompt, model=get_keymaker().gemini_chat_model_id())
-        answer = strip_briefing_title_heading(answer)
+        answer = strip_example_data_disclaimer(strip_briefing_title_heading(answer))
     except Exception as exc:
         logger.exception("[briefing_synthesizer] gemini failed: %s", exc)
         gemini_error = str(exc)
@@ -656,7 +663,7 @@ async def synthesizer_node(state: BriefingState) -> dict:
             answer = f"{answer.rstrip()}\n\n{_DOCS_HALLUCINATION_SNIPPET}"
             injected = True
 
-    answer = strip_briefing_title_heading(answer)
+    answer = strip_example_data_disclaimer(strip_briefing_title_heading(answer))
 
     retries = int(state.get("synth_retries") or 0)
     done_detail = f"{pass_n}차 브리핑 초안 생성 완료"

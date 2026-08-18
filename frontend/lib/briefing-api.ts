@@ -110,6 +110,16 @@ export function stripBriefingTitleHeading(text: string): string {
   return lines.join("\n").trim();
 }
 
+/** 브리핑 하단 「현재 예시 데이터로…」 안내 줄 제거 */
+export function stripExampleDataDisclaimer(text: string): string {
+  return text
+    .replace(/\r\n/g, "\n")
+    .split("\n")
+    .filter((line) => !/^\s*[*\-•]?\s*현재\s*예시\s*데이터/i.test(line.trim()))
+    .join("\n")
+    .trim();
+}
+
 function parseTodayBriefing(
   data: Record<string, unknown>,
   fallbackId?: number | null
@@ -120,9 +130,11 @@ function parseTodayBriefing(
   const logsRaw = Array.isArray(data.tool_logs) ? data.tool_logs : [];
   return {
     content: ensureTodayDateInBriefing(
-      stripBriefingTitleHeading(
-        stripDocsHallucinationFromChat(data.content) || data.content
-      ) || data.content
+      stripExampleDataDisclaimer(
+        stripBriefingTitleHeading(
+          stripDocsHallucinationFromChat(data.content) || data.content
+        ) || data.content
+      )
     ),
     tool_logs: logsRaw
       .map(normalizeToolLog)

@@ -1,4 +1,5 @@
 import type { GeminiChatMessage } from "@/components/chat/gemini-chat-panel";
+import { stripExampleDataDisclaimer } from "@/lib/briefing-api";
 import type { StoredMessage } from "@/lib/chat-sessions";
 
 export function storedMessagesToGemini(messages: StoredMessage[]): GeminiChatMessage[] {
@@ -6,7 +7,10 @@ export function storedMessagesToGemini(messages: StoredMessage[]): GeminiChatMes
     .filter((m) => m.role === "user" || m.role === "assistant")
     .map((m) => ({
       role: m.role as "user" | "assistant",
-      text: m.content,
+      text:
+        m.role === "assistant"
+          ? stripExampleDataDisclaimer(m.content)
+          : m.content,
       ts: m.created_at,
     }));
 }

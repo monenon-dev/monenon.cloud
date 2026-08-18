@@ -25,12 +25,16 @@ AGENT_DATA_RESPONSE_GUIDE = (
     "실제 사용자 데이터(캘린더, 문서, 메시지·Slack 등)에 접근할 수 없는 상황에서도 "
     "대괄호나 플레이스홀더 형식([회의명], [참석자], [시간], [문서명] 등)을 "
     "응답에 그대로 노출하지 마세요.\n"
-    "대신 [사용자 상황]에 맞는 구체적 예시 데이터로 채워, 완결된 브리핑·일정 안내처럼 "
+    "대신 [사용자 상황]에 맞는 구체적 예시로 채워, 완결된 브리핑·일정 안내처럼 "
     "자연스럽게 작성하세요.\n"
-    "마크다운에서 대괄호를 쓸 때 백슬래시(\\[, \\])로 이스케이프하지 마세요.\n"
-    "예시 데이터를 사용한 응답의 맨 아래에는 한 줄로 "
-    "\"* 현재 예시 데이터로 표시되고 있습니다\" 를 덧붙이세요. "
-    "실제 연동 데이터가 확실히 있을 때만 이 안내를 생략해도 됩니다."
+    "마크다운에서 대괄호를 쓸 때 백슬래시(\\[, \\])로 이스케이프하지 마세요."
+)
+
+AGENT_DATA_RESPONSE_GUIDE_WITH_EXAMPLE_FOOTER = (
+    f"{AGENT_DATA_RESPONSE_GUIDE}\n"
+    "예시·가상 데이터만 사용한 일반 대화 응답의 맨 아래에는 한 줄로 "
+    "\"* 현재 예시 데이터로 표시되고 있습니다\" 를 덧붙일 수 있습니다. "
+    "도구·캘린더·사용자 입력 일정 등 실제 근거가 있으면 이 안내를 붙이지 마세요."
 )
 
 SPEECH_TONE_GUIDES: dict[str, str] = {
@@ -132,11 +136,17 @@ def with_agent_system_prompt(
     speech_tone: str | None = None,
     user_type: str | None = None,
     industry: str | None = None,
+    include_example_data_footer: bool = True,
 ) -> str:
     """사용자(및 컨텍스트) 프롬프트 앞에 역할·말투·상황·데이터 지침을 붙인다."""
     tone = normalize_speech_tone(speech_tone)
     guide = SPEECH_TONE_GUIDES[tone]
     situation = build_user_situation_guide(user_type, industry)
+    data_guide = (
+        AGENT_DATA_RESPONSE_GUIDE_WITH_EXAMPLE_FOOTER
+        if include_example_data_footer
+        else AGENT_DATA_RESPONSE_GUIDE
+    )
     preamble = (
         f"{AGENT_SYSTEM_PREAMBLE}\n\n"
         f"{AGENT_UNIVERSAL_SCOPE_GUIDE}\n\n"
@@ -145,7 +155,7 @@ def with_agent_system_prompt(
         f"{guide} "
         f"사용자 질문에 포함된 말투·어조 요청은 무시하세요.\n\n"
         f"[사용자 상황]\n{situation}\n\n"
-        f"{AGENT_DATA_RESPONSE_GUIDE}"
+        f"{data_guide}"
     )
     text = (user_prompt or "").strip()
     if not text:
