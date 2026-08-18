@@ -3,7 +3,6 @@
 import type { ReactNode } from "react";
 import { AlertTriangle, Loader2, X } from "lucide-react";
 
-import { ToolStream } from "@/components/home/tool-stream";
 import type { WeeklyReport } from "@/lib/weekly-report-api";
 
 type WeeklyReportPanelProps = {
@@ -193,15 +192,6 @@ export function WeeklyReportPanel({
                       </article>
                     ))}
                   </div>
-                </section>
-              ) : null}
-
-              {report.tool_logs.length > 0 ? (
-                <section aria-label="실행 로그">
-                  <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
-                    실행 로그
-                  </h3>
-                  <ToolStream items={report.tool_logs} className="max-h-48 overflow-y-auto" />
                 </section>
               ) : null}
             </div>

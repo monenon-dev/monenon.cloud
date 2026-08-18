@@ -542,7 +542,8 @@ export function GeminiChatPanel({
                 {msg.role === "assistant" &&
                   msg.toolLogs &&
                   msg.toolLogs.length > 0 &&
-                  isLastAssistant ? (
+                  isLastAssistant &&
+                  !guestMode ? (
                   <ChatToolStreamPanel
                     toolLogs={msg.toolLogs}
                     className="mt-3"
