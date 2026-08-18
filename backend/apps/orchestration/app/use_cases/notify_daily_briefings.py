@@ -17,10 +17,14 @@ from orchestration.app.use_cases.get_or_create_today_briefing import (
 logger = logging.getLogger(__name__)
 
 
-async def notify_briefings_for_active_users(session: AsyncSession) -> dict[str, int]:
+async def notify_briefings_for_active_users(
+    session: AsyncSession,
+    user_ids: list[int] | None = None,
+) -> dict[str, int]:
     """오늘자 브리핑 중 아직 notified_at 없는 건에 대해 알림 발송."""
     briefing_date = today_seoul()
-    user_ids = await list_active_user_ids(session)
+    if user_ids is None:
+        user_ids = await list_active_user_ids(session)
     sent = 0
     skipped = 0
     failed = 0

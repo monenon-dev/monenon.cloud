@@ -261,6 +261,36 @@ async def lifespan(app: FastAPI):
                     "kakao_calendar_sync BOOLEAN NOT NULL DEFAULT FALSE"
                 )
             )
+            await conn.execute(
+                text(
+                    "ALTER TABLE user_notification_settings "
+                    "ADD COLUMN IF NOT EXISTS briefing_hour INTEGER NOT NULL DEFAULT 7"
+                )
+            )
+            await conn.execute(
+                text(
+                    "ALTER TABLE user_notification_settings "
+                    "ADD COLUMN IF NOT EXISTS briefing_minute INTEGER NOT NULL DEFAULT 0"
+                )
+            )
+            await conn.execute(
+                text(
+                    "ALTER TABLE user_notification_settings "
+                    "ADD COLUMN IF NOT EXISTS density_threshold INTEGER NOT NULL DEFAULT 3"
+                )
+            )
+            await conn.execute(
+                text(
+                    "ALTER TABLE user_notification_settings "
+                    "ADD COLUMN IF NOT EXISTS active_hours_start INTEGER NOT NULL DEFAULT 8"
+                )
+            )
+            await conn.execute(
+                text(
+                    "ALTER TABLE user_notification_settings "
+                    "ADD COLUMN IF NOT EXISTS active_hours_end INTEGER NOT NULL DEFAULT 20"
+                )
+            )
             for drop_sql in (
                 "DROP TABLE IF EXISTS playing_with_neon CASCADE",
                 "DROP TABLE IF EXISTS tool_usage_history CASCADE",

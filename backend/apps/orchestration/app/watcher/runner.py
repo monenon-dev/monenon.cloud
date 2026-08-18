@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import logging
 import os
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -14,8 +16,10 @@ from orchestration.adapter.outbound.pg.notification_settings_pg_repository impor
 from orchestration.app.use_cases.get_or_create_today_briefing import list_active_user_ids
 from orchestration.app.watcher.checks import run_detection_checks
 from orchestration.app.watcher.notify import deliver_proactive_notification, filter_unsent_issues
+from orchestration.app.watcher.scheduler import within_active_hours
 
 logger = logging.getLogger(__name__)
+SEOUL = ZoneInfo("Asia/Seoul")
 
 
 def _interval_seconds() -> float:
@@ -31,6 +35,12 @@ async def run_watcher_for_user(session: AsyncSession, user_id: int) -> dict:
     settings = await NotificationSettingsPgRepository(session).get(user_id)
     if not settings.alert_calendar_density and not settings.alert_urgent_messages:
         return {"status": "skipped", "reason": "settings_off"}
+    if not within_active_hours(
+        datetime.now(SEOUL).hour,
+        getattr(settings, "active_hours_start", 8),
+        getattr(settings, "active_hours_end", 20),
+    ):
+        return {"status": "skipped", "reason": "outside_active_hours"}
 
     integ_repo = IntegrationPgRepository(session)
     slack_ok = await integ_repo.is_active(user_id, "slack")

@@ -4,15 +4,12 @@ from __future__ import annotations
 
 import logging
 import os
-from datetime import datetime
 from typing import Any
-from zoneinfo import ZoneInfo
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 
 logger = logging.getLogger(__name__)
-SEOUL = ZoneInfo("Asia/Seoul")
 
 _watcher_scheduler: AsyncIOScheduler | None = None
 
@@ -43,17 +40,24 @@ def _active_hours() -> tuple[int, int]:
     return start, end
 
 
-def _within_active_hours() -> bool:
-    start, end = _active_hours()
-    hour = datetime.now(SEOUL).hour
-    return start <= hour < end
+def within_active_hours(now_hour: int, start: int, end: int) -> bool:
+    """시작 시각 이상, 종료 시각 미만. start==end 이면 24시간, start>end 이면 자정 넘김."""
+    try:
+        start_h = max(0, min(23, int(start)))
+    except (TypeError, ValueError):
+        start_h = 8
+    try:
+        end_h = max(0, min(24, int(end)))
+    except (TypeError, ValueError):
+        end_h = 20
+    if start_h == end_h:
+        return True
+    if start_h < end_h:
+        return start_h <= now_hour < end_h
+    return now_hour >= start_h or now_hour < end_h
 
 
 async def run_watcher_job() -> None:
-    if not _within_active_hours():
-        logger.debug("[watcher] outside active hours — skip")
-        return
-
     from core.matrix import grid_oracle_database_manager as db
     from orchestration.app.watcher.runner import run_watcher_cycle
 
@@ -87,7 +91,7 @@ def start_watcher_scheduler() -> AsyncIOScheduler | None:
     _watcher_scheduler = scheduler
     start_h, end_h = _active_hours()
     logger.info(
-        "[watcher] started every %sm, active hours %02d:00–%02d:00 KST",
+        "[watcher] started every %sm KST (per-user active hours, env fallback %02d:00–%02d:00)",
         minutes,
         start_h,
         end_h,

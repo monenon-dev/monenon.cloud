@@ -135,9 +135,13 @@ async def list_active_user_ids(session: AsyncSession) -> list[int]:
     return [int(x) for x in rows]
 
 
-async def generate_briefings_for_active_users(session: AsyncSession) -> dict[str, int]:
-    """cron용 — 활성 사용자 전원 idempotent 생성."""
-    user_ids = await list_active_user_ids(session)
+async def generate_briefings_for_active_users(
+    session: AsyncSession,
+    user_ids: list[int] | None = None,
+) -> dict[str, int]:
+    """cron용 — 지정 사용자(없으면 활성 전원) idempotent 생성."""
+    if user_ids is None:
+        user_ids = await list_active_user_ids(session)
     created = 0
     skipped = 0
     failed = 0

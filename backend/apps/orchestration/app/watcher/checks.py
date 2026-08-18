@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import os
 from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -21,12 +20,14 @@ from orchestration.app.briefing.slack_source import fetch_slack_urgent_since
 from orchestration.app.watcher.types import DetectedIssue
 
 
-def _density_threshold() -> int:
-    raw = os.getenv("CALENDAR_DENSITY_THRESHOLD", "3").strip()
+def _user_density_threshold(prefs: Any) -> int:
     try:
-        return max(2, int(raw))
-    except ValueError:
+        value = int(getattr(prefs, "density_threshold", 3))
+    except (TypeError, ValueError):
+        value = 3
+    if value not in (2, 3, 4):
         return 3
+    return value
 
 
 async def run_detection_checks(
@@ -47,7 +48,7 @@ async def run_detection_checks(
             issues.extend(
                 detect_calendar_density(
                     events,
-                    threshold=_density_threshold(),
+                    threshold=_user_density_threshold(prefs),
                     hours_ahead=3.0,
                 )
             )

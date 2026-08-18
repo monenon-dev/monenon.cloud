@@ -20,3 +20,15 @@ class ProactiveAlertOut(BaseModel):
 class ProactiveAlertListOut(BaseModel):
     items: list[ProactiveAlertOut] = Field(default_factory=list)
     unread_count: int = 0
+
+
+class RecentAlertOut(BaseModel):
+    id: int
+    sent_at: datetime
+    alert_type: str
+    label: str
+    summary: str
+
+
+class RecentAlertListOut(BaseModel):
+    items: list[RecentAlertOut] = Field(default_factory=list)

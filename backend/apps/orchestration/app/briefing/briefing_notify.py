@@ -21,6 +21,9 @@ from orchestration.adapter.outbound.pg.daily_briefing_pg_repository import (
     DailyBriefingPgRepository,
 )
 from orchestration.adapter.outbound.pg.integration_pg_repository import IntegrationPgRepository
+from orchestration.adapter.outbound.pg.proactive_alert_pg_repository import (
+    ProactiveAlertPgRepository,
+)
 from orchestration.app.integrations.gmail_oauth import refresh_gmail_access_token
 from secretary.adapter.outbound.orm.user_model import User
 
@@ -195,6 +198,13 @@ async def deliver_briefing_notification(
         await briefing_repo.mark_notified(
             briefing.id,
             channel=channel_label,
+        )
+        summary = briefing_summary_lines(briefing.content or "")
+        await ProactiveAlertPgRepository(session).record_sent(
+            user_id=user_id,
+            alert_type="morning_briefing",
+            trigger_key=f"morning_briefing:{briefing.briefing_date.isoformat()}",
+            message=summary[0] if summary else "오늘의 브리핑이 준비되었습니다.",
         )
         await session.commit()
         return {

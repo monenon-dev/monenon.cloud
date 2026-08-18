@@ -15,6 +15,18 @@ export type ProactiveAlertList = {
   unread_count: number;
 };
 
+export type RecentAlertItem = {
+  id: number;
+  sent_at: string;
+  alert_type: string;
+  label: string;
+  summary: string;
+};
+
+export type RecentAlertList = {
+  items: RecentAlertItem[];
+};
+
 function base(apiBaseUrl?: string) {
   return (apiBaseUrl ?? getApiBaseUrl()).replace(/\/$/, "");
 }
@@ -45,6 +57,21 @@ export async function fetchProactiveAlerts(
     throw new Error(errorDetail(raw, `알림 조회 실패 (${res.status})`));
   }
   return raw as ProactiveAlertList;
+}
+
+export async function fetchRecentAlerts(
+  userId: number,
+  apiBaseUrl?: string
+): Promise<RecentAlertList> {
+  const res = await fetch(
+    `${base(apiBaseUrl)}/orchestration/alerts/recent?user_id=${userId}&limit=8`,
+    { headers: { Accept: "application/json" } }
+  );
+  const raw: unknown = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(errorDetail(raw, `최근 알림 조회 실패 (${res.status})`));
+  }
+  return raw as RecentAlertList;
 }
 
 export async function markProactiveAlertRead(
