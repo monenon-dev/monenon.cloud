@@ -76,11 +76,11 @@ export default function AboutPage() {
                   moneo가 하는 일
                 </h1>
                 <p className="mt-4 max-w-lg text-base leading-relaxed text-[var(--moneo-muted)] sm:text-lg">
-                  AI Agents, Orchestrated for Work
+                  연결된 일정·대화·메일만 모아, 하루를 시작하고 정리하는 반복 업무를 덜어 줍니다.
                 </p>
                 <p className="mt-4 max-w-lg text-sm leading-relaxed text-gray-400 sm:text-base">
-                  업무 맥락을 이해하는 에이전트가 일정·문서·대화를 엮어, 하루를 시작하고
-                  정리하고 보고하는 반복 업무를 대신 처리합니다.
+                  아래는 실제로 동작하는 기능만 정리했습니다. 연동하지 않은 데이터는
+                  빠지고, 준비 중인 항목은 별도로 표시합니다.
                 </p>
               </div>
 
@@ -117,7 +117,8 @@ export default function AboutPage() {
                 에이전트와 업무를 시작해 보세요
               </h2>
               <p className="mt-3 max-w-md text-sm leading-relaxed text-[var(--moneo-muted)]">
-                브리핑부터 리포트까지, 반복 업무는 moneo에게 맡기고 본업에 집중하세요.
+                브리핑·알림·채팅은 지금 바로 쓸 수 있습니다. 문서 정리와 주간 리포트
+                자동 발송은 순차적으로 연결 중입니다.
               </p>
               <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
                 <Link
