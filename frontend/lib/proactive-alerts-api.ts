@@ -1,4 +1,5 @@
 import { getApiBaseUrl } from "@/lib/api-base";
+import { apiFetch } from "@/lib/api-client";
 
 export type ProactiveAlertItem = {
   id: number;
@@ -48,8 +49,8 @@ export async function fetchProactiveAlerts(
   options?: { unreadOnly?: boolean; apiBaseUrl?: string }
 ): Promise<ProactiveAlertList> {
   const unreadOnly = options?.unreadOnly ?? false;
-  const res = await fetch(
-    `${base(options?.apiBaseUrl)}/orchestration/alerts?user_id=${userId}&unread_only=${unreadOnly}`,
+  const res = await apiFetch(
+    `${base(options?.apiBaseUrl)}/orchestration/alerts?unread_only=${unreadOnly}`,
     { headers: { Accept: "application/json" } }
   );
   const raw: unknown = await res.json().catch(() => ({}));
@@ -63,8 +64,8 @@ export async function fetchRecentAlerts(
   userId: number,
   apiBaseUrl?: string
 ): Promise<RecentAlertList> {
-  const res = await fetch(
-    `${base(apiBaseUrl)}/orchestration/alerts/recent?user_id=${userId}&limit=8`,
+  const res = await apiFetch(
+    `${base(apiBaseUrl)}/orchestration/alerts/recent?limit=8`,
     { headers: { Accept: "application/json" } }
   );
   const raw: unknown = await res.json().catch(() => ({}));
@@ -79,8 +80,8 @@ export async function markProactiveAlertRead(
   alertId: number,
   apiBaseUrl?: string
 ): Promise<ProactiveAlertItem> {
-  const res = await fetch(
-    `${base(apiBaseUrl)}/orchestration/alerts/${alertId}/read?user_id=${userId}`,
+  const res = await apiFetch(
+    `${base(apiBaseUrl)}/orchestration/alerts/${alertId}/read`,
     { method: "PATCH", headers: { Accept: "application/json" } }
   );
   const raw: unknown = await res.json().catch(() => ({}));

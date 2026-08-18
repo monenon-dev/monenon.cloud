@@ -1,4 +1,5 @@
 import { getApiBaseUrl } from "@/lib/api-base";
+import { apiFetch } from "@/lib/api-client";
 
 export type NotificationSettings = {
   user_id: number;
@@ -54,8 +55,8 @@ export async function fetchNotificationSettings(
   apiBaseUrl?: string
 ): Promise<NotificationSettings> {
   const base = (apiBaseUrl ?? getApiBaseUrl()).replace(/\/$/, "");
-  const res = await fetch(
-    `${base}/orchestration/notification-settings?user_id=${userId}`,
+  const res = await apiFetch(
+    `${base}/orchestration/notification-settings`,
     { headers: { Accept: "application/json" } }
   );
   const raw: unknown = await res.json().catch(() => ({}));
@@ -79,7 +80,7 @@ export async function patchNotificationSettings(
   apiBaseUrl?: string
 ): Promise<NotificationSettings> {
   const base = (apiBaseUrl ?? getApiBaseUrl()).replace(/\/$/, "");
-  const res = await fetch(`${base}/orchestration/notification-settings`, {
+  const res = await apiFetch(`${base}/orchestration/notification-settings`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json", Accept: "application/json" },
     body: JSON.stringify({ user_id: userId, ...patch }),

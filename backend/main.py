@@ -28,6 +28,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.matrix import grid_oracle_database_manager as db
 from core.matrix.grid_oracle_database_manager import Base, dispose_engine, get_db
+from core.dependencies import get_authenticated_user_id
 from db_health_adapter import check_db_connection
 from gemini_caller import GeminiQuotaError, call_gemini
 from weather_caller import fetch_current_weather
@@ -380,7 +381,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=_cors_allow_origins(),
     allow_origin_regex=_CORS_ORIGIN_REGEX,
-    allow_credentials=False,
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -554,24 +555,27 @@ def chat_guest(body: ChatMessageBody, request: Request):
 
 
 @app.post("/agent/chat")
-async def agent_chat(body: AgentChatBody, session: AsyncSession = Depends(get_db)):
+async def agent_chat(
+    body: AgentChatBody,
+    auth_user_id: int = Depends(get_authenticated_user_id),
+    session: AsyncSession = Depends(get_db),
+):
     """프론트 Monenon 채팅 — 의도 분류 후 브리핑·리포트 그래프 또는 Gemini."""
     from orchestration.app.use_cases.run_agent_chat import run_agent_chat
 
-    if body.user_id is not None:
-        logger.info(
-            "[agent_chat] user_id=%s speech_tone=%s user_type=%s industry=%s prompt_chars=%s",
-            body.user_id,
-            body.speech_tone,
-            body.user_type,
-            body.industry,
-            len(body.prompt),
-        )
+    logger.info(
+        "[agent_chat] user_id=%s speech_tone=%s user_type=%s industry=%s prompt_chars=%s",
+        auth_user_id,
+        body.speech_tone,
+        body.user_type,
+        body.industry,
+        len(body.prompt),
+    )
     try:
         return await run_agent_chat(
             session,
             prompt=body.prompt,
-            user_id=body.user_id,
+            user_id=auth_user_id,
             speech_tone=body.speech_tone,
             user_type=body.user_type,
             industry=body.industry,
@@ -590,7 +594,7 @@ async def agent_chat(body: AgentChatBody, session: AsyncSession = Depends(get_db
 
 @app.get("/agent/briefing/today")
 async def agent_briefing_today(
-    user_id: int,
+    auth_user_id: int = Depends(get_authenticated_user_id),
     speech_tone: str | None = None,
     user_type: str | None = None,
     industry: str | None = None,
@@ -601,14 +605,8 @@ async def agent_briefing_today(
     from orchestration.app.use_cases.get_or_create_today_briefing import (
         get_or_create_today_briefing,
     )
-    from secretary.adapter.outbound.orm.user_model import User
-    from sqlalchemy import select
 
-    if user_id < 1:
-        return JSONResponse({"detail": "user_id가 필요합니다."}, status_code=400)
-    user_row = await session.execute(select(User).where(User.id == user_id))
-    if user_row.scalar_one_or_none() is None:
-        return JSONResponse({"detail": "사용자를 찾을 수 없습니다."}, status_code=404)
+    user_id = auth_user_id
     try:
         payload = await get_or_create_today_briefing(
             session,
@@ -634,21 +632,17 @@ async def agent_briefing_today(
 async def agent_briefing_review(
     briefing_id: int,
     body: BriefingReviewRequest,
+    auth_user_id: int = Depends(get_authenticated_user_id),
     session: AsyncSession = Depends(get_db),
 ):
     """검토 대기 브리핑 문장에 대해 포함/제외 결정."""
     from orchestration.app.use_cases.resolve_briefing_review import resolve_briefing_review
-    from secretary.adapter.outbound.orm.user_model import User
-    from sqlalchemy import select
 
-    user_row = await session.execute(select(User).where(User.id == body.user_id))
-    if user_row.scalar_one_or_none() is None:
-        return JSONResponse({"detail": "사용자를 찾을 수 없습니다."}, status_code=404)
     try:
         payload = await resolve_briefing_review(
             session,
             briefing_id=briefing_id,
-            user_id=body.user_id,
+            user_id=auth_user_id,
             decision=body.decision,
         )
     except ValueError as e:
@@ -662,20 +656,16 @@ async def agent_briefing_review(
 @app.patch("/agent/briefing/today/notes")
 async def agent_briefing_today_notes(
     body: BriefingNotesRequest,
+    auth_user_id: int = Depends(get_authenticated_user_id),
     session: AsyncSession = Depends(get_db),
 ):
     """오늘 브리핑에 사용자 메모를 저장한다."""
     from orchestration.app.use_cases.update_briefing_notes import update_today_briefing_notes
-    from secretary.adapter.outbound.orm.user_model import User
-    from sqlalchemy import select
 
-    user_row = await session.execute(select(User).where(User.id == body.user_id))
-    if user_row.scalar_one_or_none() is None:
-        return JSONResponse({"detail": "사용자를 찾을 수 없습니다."}, status_code=404)
     try:
         payload = await update_today_briefing_notes(
             session,
-            user_id=body.user_id,
+            user_id=auth_user_id,
             notes=body.notes,
         )
     except ValueError as e:
@@ -689,16 +679,11 @@ async def agent_briefing_today_notes(
 @app.post("/agent/report/weekly")
 async def agent_weekly_report(
     body: WeeklyReportRequest,
+    auth_user_id: int = Depends(get_authenticated_user_id),
     session: AsyncSession = Depends(get_db),
 ):
     """최근 7일 daily_briefings를 종합한 주간 업무 리포트 (동기 생성)."""
     from orchestration.app.use_cases.run_weekly_report import run_weekly_report
-    from secretary.adapter.outbound.orm.user_model import User
-    from sqlalchemy import select
-
-    user_row = await session.execute(select(User).where(User.id == body.user_id))
-    if user_row.scalar_one_or_none() is None:
-        return JSONResponse({"detail": "사용자를 찾을 수 없습니다."}, status_code=404)
 
     speech_tone = body.speech_tone
     user_type = body.user_type
@@ -707,7 +692,7 @@ async def agent_weekly_report(
     try:
         payload = await run_weekly_report(
             session=session,
-            user_id=body.user_id,
+            user_id=auth_user_id,
             speech_tone=speech_tone,
             user_type=user_type,
             industry=industry,

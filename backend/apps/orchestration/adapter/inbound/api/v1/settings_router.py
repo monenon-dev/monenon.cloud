@@ -16,6 +16,7 @@ from core.matrix.grid_oracle_database_manager import get_db
 from orchestration.app.composition.providers import get_orchestration_pg_repository
 from orchestration.adapter.outbound.pg.orchestration_pg_repository import OrchestrationPgRepository
 from orchestration.adapter.inbound.api.schemas.settings_schema import PatchUserSettingsBody, UserSettingOut
+from core.dependencies import get_authenticated_user_id
 from admin.adapter.outbound.orm.registry import ADMIN_MODEL_MAP, ADMIN_TABLE_META
 from secretary.adapter.outbound.orm.user_model import User
 
@@ -59,10 +60,10 @@ MODEL_MAP = {
 
 @settings_router.get("/user-settings", response_model=UserSettingOut)
 async def get_user_settings(
-    user_id: int,
+    auth_user_id: int = Depends(get_authenticated_user_id),
     repo: OrchestrationPgRepository = Depends(get_orchestration_pg_repository),
 ) -> UserSettingOut:
-    row = await repo.get_or_create_user_setting(user_id)
+    row = await repo.get_or_create_user_setting(auth_user_id)
     return UserSettingOut(
         id=row.id,
         user_id=row.user_id,
@@ -77,10 +78,11 @@ async def get_user_settings(
 @settings_router.patch("/user-settings", response_model=UserSettingOut)
 async def patch_user_settings(
     body: PatchUserSettingsBody,
+    auth_user_id: int = Depends(get_authenticated_user_id),
     session: AsyncSession = Depends(get_db),
     repo: OrchestrationPgRepository = Depends(get_orchestration_pg_repository),
 ) -> UserSettingOut:
-    row = await repo.get_or_create_user_setting(body.user_id)
+    row = await repo.get_or_create_user_setting(auth_user_id)
 
     if body.language is not None:
         row.language = body.language.strip() or "ko"
@@ -92,7 +94,7 @@ async def patch_user_settings(
     row.updated_at = datetime.now(timezone.utc)
     await session.flush()
     await session.refresh(row)
-    logger.info("[OrchestrationController] user_settings 저장 — user_id=%s", body.user_id)
+    logger.info("[OrchestrationController] user_settings 저장 — user_id=%s", auth_user_id)
     return UserSettingOut(
         id=row.id,
         user_id=row.user_id,

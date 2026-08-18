@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { JetBrains_Mono, Playfair_Display, Space_Grotesk } from "next/font/google";
 import { ClearAdminSessionOutsideAdmin } from "@/components/auth/clear-admin-outside-admin";
+import { AuthSessionRestore } from "@/components/auth/auth-session-restore";
 import { UserWarningNotifier } from "@/components/auth/user-warning-notifier";
 import "./globals.css";
 
@@ -48,6 +49,7 @@ export default function RootLayout({
         className={`${spaceGrotesk.className} antialiased bg-[var(--moneo-bg)] text-[var(--moneo-text)]`}
       >
         <ClearAdminSessionOutsideAdmin />
+        <AuthSessionRestore />
         <UserWarningNotifier />
         {children}
       </body>

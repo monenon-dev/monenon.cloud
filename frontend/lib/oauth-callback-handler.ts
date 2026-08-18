@@ -1,22 +1,21 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
-import { getApiBaseUrl } from "@/lib/api-base";
 import { buildOAuthRedirectUri } from "@/lib/oauth-redirect-uri";
 import { routes } from "@/lib/routes";
 
 type OAuthProvider = "naver" | "kakao";
 
-const ACCESS_TOKEN_MAX_AGE_SECONDS = 60 * 60;
+const OAUTH_PENDING_MAX_AGE = 120;
 
-function authCookieOptions(origin: string) {
+function pendingCookieOptions(origin: string) {
   const secure = origin.startsWith("https://");
   return {
     httpOnly: true,
     secure,
     sameSite: "strict" as const,
     path: "/",
-    maxAge: ACCESS_TOKEN_MAX_AGE_SECONDS,
+    maxAge: OAUTH_PENDING_MAX_AGE,
   };
 }
 
@@ -43,59 +42,19 @@ export async function handleOAuthCallback(request: Request, provider: OAuthProvi
   }
 
   const redirectUri = buildOAuthRedirectUri(provider, url.origin);
-  const apiBase = getApiBaseUrl();
-
-  let data: Record<string, unknown> = {};
-  try {
-    const res = await fetch(`${apiBase}/auth/${provider}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ code, redirect_uri: redirectUri }),
-    });
-    data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
-    if (!res.ok) {
-      const detail =
-        typeof data.detail === "string" ? data.detail : `${provider} 로그인에 실패했습니다.`;
-      loginUrl.searchParams.set("error", detail);
-      return NextResponse.redirect(loginUrl);
-    }
-  } catch {
-    loginUrl.searchParams.set("error", "api-unreachable");
-    return NextResponse.redirect(loginUrl);
-  }
-
-  const accessToken = data.access_token;
-  const userId = data.user_id;
-  const nickname = data.nickname;
-  const role = data.role;
-
-  if (
-    typeof accessToken !== "string" ||
-    typeof nickname !== "string" ||
-    typeof role !== "string" ||
-    typeof userId !== "number"
-  ) {
-    loginUrl.searchParams.set("error", "oauth-invalid-response");
-    return NextResponse.redirect(loginUrl);
-  }
-
-  const complete = new URL("/oauth/complete", request.url);
-  complete.searchParams.set("user_id", String(userId));
-  complete.searchParams.set("nickname", nickname);
-  complete.searchParams.set("role", role);
-  complete.searchParams.set("provider", provider);
-  complete.searchParams.set(
-    "expires_at",
-    String(Date.now() + ACCESS_TOKEN_MAX_AGE_SECONDS * 1000)
-  );
-  complete.searchParams.set("next", next);
+  const exchange = new URL("/oauth/exchange", request.url);
+  exchange.searchParams.set("provider", provider);
+  exchange.searchParams.set("next", next);
   const intent = cookieStore.get("moneo_oauth_intent")?.value;
   if (provider === "kakao" && intent === "kakao_calendar_sync") {
-    complete.searchParams.set("kakao_calendar_sync", "1");
+    exchange.searchParams.set("kakao_calendar_sync", "1");
   }
 
-  const response = NextResponse.redirect(complete);
-  response.cookies.set("moneo_auth_token", accessToken, authCookieOptions(url.origin));
+  const response = NextResponse.redirect(exchange);
+  const cookieOpts = pendingCookieOptions(url.origin);
+  response.cookies.set("moneo_oauth_code", code, cookieOpts);
+  response.cookies.set("moneo_oauth_redirect_uri", redirectUri, cookieOpts);
+  response.cookies.set("moneo_oauth_provider", provider, cookieOpts);
   response.cookies.delete("moneo_oauth_state");
   response.cookies.delete("moneo_oauth_next");
   response.cookies.delete("moneo_oauth_intent");

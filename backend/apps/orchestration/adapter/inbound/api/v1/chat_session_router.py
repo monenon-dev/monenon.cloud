@@ -5,11 +5,12 @@ from __future__ import annotations
 import logging
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from orchestration.adapter.inbound.api.schemas.chat_session_schema import (
+    AgentHistoryListOut,
     BulkDeleteChatSessionsBody,
     ChatSessionOut,
     CreateChatSessionBody,
@@ -19,6 +20,8 @@ from orchestration.adapter.outbound.orm.chat_orm import ChatSession, Message
 from core.matrix.grid_oracle_database_manager import get_db
 from orchestration.app.composition.providers import get_chat_pg_repository
 from orchestration.adapter.outbound.pg.chat_pg_repository import ChatPgRepository
+from orchestration.app.agent_history import list_recent_agent_history
+from core.dependencies import get_authenticated_user_id
 from secretary.adapter.outbound.orm.user_model import User
 
 logger = logging.getLogger(__name__)
@@ -28,11 +31,12 @@ chat_session_router = APIRouter(prefix="/platform", tags=["chat-sessions"])
 
 @chat_session_router.get("/chat-sessions", response_model=list[ChatSessionOut])
 async def list_chat_sessions(
-    user_id: int | None = None,
+    auth_user_id: int = Depends(get_authenticated_user_id),
     session: AsyncSession = Depends(get_db),
     chat_repo: ChatPgRepository = Depends(get_chat_pg_repository),
 ) -> list[ChatSessionOut]:
-    """채팅 세션 목록 (메시지 수 포함). user_id 미지정 시 전체."""
+    """채팅 세션 목록 (메시지 수 포함)."""
+    user_id = auth_user_id
     stmt = (
         select(
             ChatSession,
@@ -41,9 +45,8 @@ async def list_chat_sessions(
         .outerjoin(Message, Message.session_id == ChatSession.id)
         .group_by(ChatSession.id)
         .order_by(ChatSession.updated_at.desc())
+        .where(ChatSession.user_id == user_id)
     )
-    if user_id is not None:
-        stmt = stmt.where(ChatSession.user_id == user_id)
 
     rows = (await session.execute(stmt)).all()
     return [
@@ -62,14 +65,16 @@ async def list_chat_sessions(
 @chat_session_router.post("/chat-sessions", response_model=ChatSessionOut)
 async def create_chat_session(
     body: CreateChatSessionBody,
+    auth_user_id: int = Depends(get_authenticated_user_id),
     session: AsyncSession = Depends(get_db),
     chat_repo: ChatPgRepository = Depends(get_chat_pg_repository),
 ) -> ChatSessionOut:
-    user_result = await session.execute(select(User).where(User.id == body.user_id))
+    user_id = auth_user_id
+    user_result = await session.execute(select(User).where(User.id == user_id))
     if not user_result.scalar_one_or_none():
         raise HTTPException(status_code=404, detail="사용자를 찾을 수 없습니다.")
 
-    chat = ChatSession(user_id=body.user_id, title=body.title.strip() or "새 채팅")
+    chat = ChatSession(user_id=user_id, title=body.title.strip() or "새 채팅")
     session.add(chat)
     await session.flush()
     await session.refresh(chat)
@@ -86,10 +91,11 @@ async def create_chat_session(
 @chat_session_router.delete("/chat-sessions/{session_id}")
 async def delete_chat_session(
     session_id: int,
-    user_id: int,
+    auth_user_id: int = Depends(get_authenticated_user_id),
     session: AsyncSession = Depends(get_db),
     chat_repo: ChatPgRepository = Depends(get_chat_pg_repository),
 ) -> dict:
+    user_id = auth_user_id
     chat = await chat_repo.get_owned_session(session_id, user_id)
     await session.delete(chat)
     logger.info("[ChatSessionController] delete id=%s user_id=%s", session_id, user_id)
@@ -99,13 +105,15 @@ async def delete_chat_session(
 @chat_session_router.post("/chat-sessions/bulk-delete")
 async def bulk_delete_chat_sessions(
     body: BulkDeleteChatSessionsBody,
+    auth_user_id: int = Depends(get_authenticated_user_id),
     session: AsyncSession = Depends(get_db),
     chat_repo: ChatPgRepository = Depends(get_chat_pg_repository),
 ) -> dict:
+    user_id = auth_user_id
     ids = list(dict.fromkeys(body.session_ids))
     result = await session.execute(
         select(ChatSession).where(
-            ChatSession.user_id == body.user_id,
+            ChatSession.user_id == user_id,
             ChatSession.id.in_(ids),
         )
     )
@@ -118,7 +126,7 @@ async def bulk_delete_chat_sessions(
     logger.info(
         "[ChatSessionController] bulk delete ids=%s user_id=%s",
         deleted_ids,
-        body.user_id,
+        user_id,
     )
     return {"ok": True, "deleted_ids": deleted_ids}
 
@@ -127,10 +135,11 @@ async def bulk_delete_chat_sessions(
 async def update_chat_session(
     session_id: int,
     body: UpdateChatSessionBody,
+    auth_user_id: int = Depends(get_authenticated_user_id),
     session: AsyncSession = Depends(get_db),
     chat_repo: ChatPgRepository = Depends(get_chat_pg_repository),
 ) -> ChatSessionOut:
-    chat = await chat_repo.get_owned_session(session_id, body.user_id)
+    chat = await chat_repo.get_owned_session(session_id, auth_user_id)
     chat.title = body.title.strip() or "새 채팅"
     chat.updated_at = datetime.now(timezone.utc)
     await session.flush()
@@ -145,4 +154,28 @@ async def update_chat_session(
         created_at=chat.created_at,
         updated_at=chat.updated_at,
         message_count=int(count_result.scalar_one()),
+    )
+
+
+@chat_session_router.get("/agent-history", response_model=AgentHistoryListOut)
+async def list_agent_history(
+    auth_user_id: int = Depends(get_authenticated_user_id),
+    limit: int = Query(20, ge=1, le=100),
+    since: datetime | None = Query(default=None),
+    before: datetime | None = Query(default=None),
+    session: AsyncSession = Depends(get_db),
+) -> AgentHistoryListOut:
+    """로그인한 사용자의 최근 채팅을 에이전트 히스토리로 반환한다."""
+    user_id = auth_user_id
+    payload = await list_recent_agent_history(
+        session,
+        user_id=user_id,
+        limit=limit,
+        since=since,
+        before=before,
+    )
+    return AgentHistoryListOut(
+        items=payload["items"],
+        total=int(payload.get("total") or 0),
+        hasMore=bool(payload.get("hasMore")),
     )

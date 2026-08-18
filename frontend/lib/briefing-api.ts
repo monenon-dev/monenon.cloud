@@ -1,4 +1,5 @@
 import { getApiBaseUrl } from "@/lib/api-base";
+import { apiFetch } from "@/lib/api-client";
 import type { ToolCallResult, ToolNodeStatus } from "@/components/home/tool-stream";
 import { ensureTodayDateInBriefing, todaySeoulISO } from "@/lib/seoul-date";
 
@@ -161,13 +162,13 @@ export async function fetchTodayBriefing(
   }
 ): Promise<TodayBriefing> {
   const base = (options?.apiBaseUrl ?? getApiBaseUrl()).replace(/\/$/, "");
-  const params = new URLSearchParams({ user_id: String(userId) });
+  const params = new URLSearchParams();
   if (options?.speechTone) params.set("speech_tone", options.speechTone);
   if (options?.userType) params.set("user_type", options.userType);
   if (options?.industry) params.set("industry", options.industry);
   if (options?.forceRefresh) params.set("force_refresh", "true");
 
-  const res = await fetch(`${base}/agent/briefing/today?${params.toString()}`, {
+  const res = await apiFetch(`${base}/agent/briefing/today?${params.toString()}`, {
     method: "GET",
     headers: { Accept: "application/json" },
   });
@@ -196,7 +197,7 @@ export async function submitBriefingReview(
   options?: { apiBaseUrl?: string }
 ): Promise<TodayBriefing> {
   const base = (options?.apiBaseUrl ?? getApiBaseUrl()).replace(/\/$/, "");
-  const res = await fetch(`${base}/agent/briefing/${briefingId}/review`, {
+  const res = await apiFetch(`${base}/agent/briefing/${briefingId}/review`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Accept: "application/json" },
     body: JSON.stringify({ user_id: userId, decision }),
@@ -225,7 +226,7 @@ export async function saveTodayBriefingNotes(
   options?: { apiBaseUrl?: string }
 ): Promise<TodayBriefing> {
   const base = (options?.apiBaseUrl ?? getApiBaseUrl()).replace(/\/$/, "");
-  const res = await fetch(`${base}/agent/briefing/today/notes`, {
+  const res = await apiFetch(`${base}/agent/briefing/today/notes`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json", Accept: "application/json" },
     body: JSON.stringify({ user_id: userId, notes }),

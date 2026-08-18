@@ -1,4 +1,5 @@
 import { getApiBaseUrl } from "@/lib/api-base";
+import { apiFetch } from "@/lib/api-client";
 import type { ToolCallResult, ToolNodeStatus } from "@/components/home/tool-stream";
 
 export type WeeklyRisk = {
@@ -97,7 +98,7 @@ export async function fetchWeeklyReport(
   if (options?.userType) body.user_type = options.userType;
   if (options?.industry) body.industry = options.industry;
 
-  const res = await fetch(`${base}/agent/report/weekly`, {
+  const res = await apiFetch(`${base}/agent/report/weekly`, {
     method: "POST",
     headers: { Accept: "application/json", "Content-Type": "application/json" },
     body: JSON.stringify(body),

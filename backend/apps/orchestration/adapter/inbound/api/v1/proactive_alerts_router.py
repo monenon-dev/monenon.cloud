@@ -10,6 +10,7 @@ from fastapi.routing import APIRouter
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.matrix.grid_oracle_database_manager import get_db
+from core.dependencies import get_authenticated_user_id
 from orchestration.adapter.inbound.api.schemas.proactive_alerts_schema import (
     ProactiveAlertListOut,
     ProactiveAlertOut,
@@ -70,11 +71,12 @@ def _alert_summary(row: ProactiveAlert) -> str:
 
 @proactive_alerts_router.get("/alerts/recent", response_model=RecentAlertListOut)
 async def list_recent_alerts(
-    user_id: int = Query(..., ge=1),
+    auth_user_id: int = Depends(get_authenticated_user_id),
     limit: int = Query(8, ge=1, le=20),
     session: AsyncSession = Depends(get_db),
     repo: OrchestrationPgRepository = Depends(get_orchestration_pg_repository),
 ) -> RecentAlertListOut:
+    user_id = auth_user_id
     await repo.verify_user(user_id)
     alert_repo = ProactiveAlertPgRepository(session)
     items = await alert_repo.list_for_user(user_id, unread_only=False, days=30, limit=limit)
@@ -94,11 +96,12 @@ async def list_recent_alerts(
 
 @proactive_alerts_router.get("/alerts", response_model=ProactiveAlertListOut)
 async def list_proactive_alerts(
-    user_id: int = Query(..., ge=1),
+    auth_user_id: int = Depends(get_authenticated_user_id),
     unread_only: bool = Query(False),
     session: AsyncSession = Depends(get_db),
     repo: OrchestrationPgRepository = Depends(get_orchestration_pg_repository),
 ) -> ProactiveAlertListOut:
+    user_id = auth_user_id
     await repo.verify_user(user_id)
     alert_repo = ProactiveAlertPgRepository(session)
     items = await alert_repo.list_for_user(user_id, unread_only=unread_only, days=7)
@@ -116,10 +119,11 @@ async def list_proactive_alerts(
 @proactive_alerts_router.patch("/alerts/{alert_id}/read", response_model=ProactiveAlertOut)
 async def mark_proactive_alert_read(
     alert_id: int,
-    user_id: int = Query(..., ge=1),
+    auth_user_id: int = Depends(get_authenticated_user_id),
     session: AsyncSession = Depends(get_db),
     repo: OrchestrationPgRepository = Depends(get_orchestration_pg_repository),
 ) -> ProactiveAlertOut | JSONResponse:
+    user_id = auth_user_id
     await repo.verify_user(user_id)
     alert_repo = ProactiveAlertPgRepository(session)
     row = await alert_repo.mark_read(alert_id, user_id)

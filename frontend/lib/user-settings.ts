@@ -1,4 +1,5 @@
 import { getApiBaseUrl } from "@/lib/api-base";
+import { apiFetch } from "@/lib/api-client";
 
 const defaultBase = getApiBaseUrl();
 
@@ -46,8 +47,8 @@ export async function fetchUserSettings(
   userId: number,
   apiBaseUrl?: string
 ): Promise<UserSettingResponse> {
-  const res = await fetch(
-    `${base(apiBaseUrl)}/platform/user-settings?user_id=${userId}`
+  const res = await apiFetch(
+    `${base(apiBaseUrl)}/platform/user-settings`
   );
   const data: unknown = await res.json().catch(() => ({}));
   if (!res.ok) {
@@ -70,7 +71,7 @@ export async function patchUserSettings(
   },
   apiBaseUrl?: string
 ): Promise<UserSettingResponse> {
-  const res = await fetch(`${base(apiBaseUrl)}/platform/user-settings`, {
+  const res = await apiFetch(`${base(apiBaseUrl)}/platform/user-settings`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ user_id: userId, ...body }),

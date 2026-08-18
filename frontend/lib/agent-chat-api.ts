@@ -1,4 +1,5 @@
 import { getApiBaseUrl } from "@/lib/api-base";
+import { apiFetch } from "@/lib/api-client";
 import type { ToolCallResult, ToolNodeStatus } from "@/components/home/tool-stream";
 import type { WeeklyAction, WeeklyRisk } from "@/lib/weekly-report-api";
 
@@ -180,14 +181,13 @@ export async function callAgentChatApi(
   const base = (options?.apiBaseUrl ?? getApiBaseUrl()).replace(/\/$/, "");
   const body: Record<string, string | number | boolean> = {
     prompt,
-    user_id: userId,
   };
   if (options?.speechTone) body.speech_tone = options.speechTone;
   if (options?.userType) body.user_type = options.userType;
   if (options?.industry) body.industry = options.industry;
   if (options?.forceRefresh) body.force_refresh = true;
 
-  const res = await fetch(`${base}/agent/chat`, {
+  const res = await apiFetch(`${base}/agent/chat`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),

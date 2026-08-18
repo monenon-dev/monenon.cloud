@@ -10,6 +10,7 @@ from fastapi.routing import APIRouter
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.matrix.grid_oracle_database_manager import get_db
+from core.dependencies import get_authenticated_user_id
 from gemini_caller import GeminiQuotaError
 from orchestration.adapter.inbound.api.schemas.weekly_report_schema import (
     WeeklyReportRequest,
@@ -27,14 +28,16 @@ weekly_report_router = APIRouter(prefix="/orchestration", tags=["orchestration"]
 @weekly_report_router.post("/report/weekly", response_model=WeeklyReportResponse)
 async def create_weekly_report(
     body: WeeklyReportRequest,
+    auth_user_id: int = Depends(get_authenticated_user_id),
     session: AsyncSession = Depends(get_db),
     repo: OrchestrationPgRepository = Depends(get_orchestration_pg_repository),
 ) -> WeeklyReportResponse | JSONResponse:
-    await repo.verify_user(body.user_id)
+    user_id = auth_user_id
+    await repo.verify_user(user_id)
     try:
         result = await run_weekly_report(
             session=session,
-            user_id=body.user_id,
+            user_id=user_id,
             speech_tone=body.speech_tone,
             user_type=body.user_type,
             industry=body.industry,
@@ -46,12 +49,12 @@ async def create_weekly_report(
     except RuntimeError as exc:
         return JSONResponse({"detail": str(exc)}, status_code=503)
     except Exception as exc:
-        logger.exception("[weekly_report] failed user_id=%s: %s", body.user_id, exc)
+        logger.exception("[weekly_report] failed user_id=%s: %s", user_id, exc)
         return JSONResponse({"detail": "주간 리포트 생성에 실패했습니다."}, status_code=502)
 
     logger.info(
         "[weekly_report] ok user_id=%s risks=%s actions=%s tool_logs=%s",
-        body.user_id,
+        user_id,
         len(result.get("risks") or []),
         len(result.get("next_actions") or []),
         len(result.get("tool_logs") or []),

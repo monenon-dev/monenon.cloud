@@ -10,6 +10,7 @@ from fastapi.routing import APIRouter
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.matrix.grid_oracle_database_manager import get_db
+from core.dependencies import get_authenticated_user_id
 from gemini_caller import GeminiQuotaError
 from orchestration.adapter.inbound.api.schemas.briefing_schema import (
     BriefingNotesRequest,
@@ -33,13 +34,14 @@ briefing_router = APIRouter(prefix="/orchestration", tags=["orchestration"])
 @briefing_router.post("/briefing", response_model=BriefingResponse)
 async def create_briefing(
     body: BriefingRequest,
+    auth_user_id: int = Depends(get_authenticated_user_id),
     session: AsyncSession = Depends(get_db),
 ) -> BriefingResponse | JSONResponse:
     try:
         result = await run_briefing(
             query=body.query,
             session=session,
-            user_id=body.user_id,
+            user_id=auth_user_id,
             speech_tone=body.speech_tone,
             user_type=body.user_type,
             industry=body.industry,
@@ -56,7 +58,7 @@ async def create_briefing(
 
     logger.info(
         "[briefing] ok user_id=%s trace_steps=%s tool_logs=%s",
-        body.user_id,
+        auth_user_id,
         len(result.get("trace") or []),
         len(result.get("tool_logs") or []),
     )
@@ -65,7 +67,7 @@ async def create_briefing(
 
 @briefing_router.get("/briefing/today", response_model=TodayBriefingResponse)
 async def orchestration_briefing_today(
-    user_id: int = Query(..., ge=1),
+    auth_user_id: int = Depends(get_authenticated_user_id),
     speech_tone: str | None = Query(default=None),
     user_type: str | None = Query(default=None),
     industry: str | None = Query(default=None),
@@ -73,6 +75,7 @@ async def orchestration_briefing_today(
     session: AsyncSession = Depends(get_db),
     repo: OrchestrationPgRepository = Depends(get_orchestration_pg_repository),
 ) -> TodayBriefingResponse | JSONResponse:
+    user_id = auth_user_id
     await repo.verify_user(user_id)
     try:
         payload = await get_or_create_today_briefing(
@@ -96,20 +99,21 @@ async def orchestration_briefing_today(
 @briefing_router.patch("/briefing/today/notes", response_model=TodayBriefingResponse)
 async def orchestration_briefing_today_notes(
     body: BriefingNotesRequest,
+    auth_user_id: int = Depends(get_authenticated_user_id),
     session: AsyncSession = Depends(get_db),
     repo: OrchestrationPgRepository = Depends(get_orchestration_pg_repository),
 ) -> TodayBriefingResponse | JSONResponse:
-    await repo.verify_user(body.user_id)
+    await repo.verify_user(auth_user_id)
     try:
         payload = await update_today_briefing_notes(
             session,
-            user_id=body.user_id,
+            user_id=auth_user_id,
             notes=body.notes,
         )
     except ValueError as exc:
         return JSONResponse({"detail": str(exc)}, status_code=400)
     except Exception as exc:
-        logger.exception("[briefing_notes] failed user_id=%s: %s", body.user_id, exc)
+        logger.exception("[briefing_notes] failed user_id=%s: %s", auth_user_id, exc)
         return JSONResponse({"detail": "브리핑 메모를 저장하지 못했습니다."}, status_code=502)
     return TodayBriefingResponse(**payload)
 
@@ -121,15 +125,16 @@ async def orchestration_briefing_today_notes(
 async def resolve_briefing_review_endpoint(
     briefing_id: int,
     body: BriefingReviewRequest,
+    auth_user_id: int = Depends(get_authenticated_user_id),
     session: AsyncSession = Depends(get_db),
     repo: OrchestrationPgRepository = Depends(get_orchestration_pg_repository),
 ) -> TodayBriefingResponse | JSONResponse:
-    await repo.verify_user(body.user_id)
+    await repo.verify_user(auth_user_id)
     try:
         payload = await resolve_briefing_review(
             session,
             briefing_id=briefing_id,
-            user_id=body.user_id,
+            user_id=auth_user_id,
             decision=body.decision,
         )
     except ValueError as exc:
@@ -138,7 +143,7 @@ async def resolve_briefing_review_endpoint(
         logger.exception(
             "[briefing_review] failed id=%s user_id=%s: %s",
             briefing_id,
-            body.user_id,
+            auth_user_id,
             exc,
         )
         return JSONResponse({"detail": "브리핑 검토 결과를 저장하지 못했습니다."}, status_code=502)

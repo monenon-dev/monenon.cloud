@@ -40,6 +40,18 @@ async def is_jti_revoked(jti: str) -> bool:
         return False
 
 
+async def get_authenticated_user_id(
+    user: TokenPayload = Depends(get_current_user),
+) -> int:
+    try:
+        return int(user.sub)
+    except (TypeError, ValueError) as exc:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="유효하지 않은 사용자입니다.",
+        ) from exc
+
+
 async def get_current_user(request: Request) -> TokenPayload:
     token = extract_bearer_or_cookie(request)
     if not token:

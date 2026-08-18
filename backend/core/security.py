@@ -12,15 +12,64 @@ import bcrypt
 import jwt
 from jwt.algorithms import RSAAlgorithm
 
-COOKIE_KWARGS = dict(
-    domain=".monenon.cloud",
-    secure=True,
-    httponly=True,
-    samesite="lax",
-)
-
 ACCESS_COOKIE = "monenon_access"
 REFRESH_COOKIE = "monenon_refresh"
+
+
+def cookie_kwargs() -> dict:
+    """환경별 httpOnly 쿠키 옵션 — 로컬(도메인 없음) / 프로덕션(.monenon.cloud)."""
+    domain = os.getenv("AUTH_COOKIE_DOMAIN", "").strip()
+    if not domain and os.getenv("ENV", "").strip().lower() in ("production", "prod"):
+        domain = ".monenon.cloud"
+    secure_raw = os.getenv("AUTH_COOKIE_SECURE", "auto").strip().lower()
+    if secure_raw == "true":
+        secure = True
+    elif secure_raw == "false":
+        secure = False
+    else:
+        secure = bool(domain)
+    same_site = os.getenv("AUTH_COOKIE_SAMESITE", "lax").strip().lower() or "lax"
+    if same_site not in ("lax", "strict", "none"):
+        same_site = "lax"
+    kwargs: dict = {"httponly": True, "secure": secure, "samesite": same_site}
+    if domain:
+        kwargs["domain"] = domain
+    return kwargs
+
+
+# 하위 호환 — auth.router 등 기존 import 유지
+COOKIE_KWARGS = cookie_kwargs()
+
+
+def set_auth_cookies(
+    response,
+    access: str,
+    refresh: str,
+    *,
+    access_ttl_min: int,
+    refresh_ttl_days: int,
+) -> None:
+    response.set_cookie(
+        ACCESS_COOKIE,
+        access,
+        max_age=access_ttl_min * 60,
+        path="/",
+        **cookie_kwargs(),
+    )
+    response.set_cookie(
+        REFRESH_COOKIE,
+        refresh,
+        max_age=refresh_ttl_days * 86400,
+        path="/auth",
+        **cookie_kwargs(),
+    )
+
+
+def clear_auth_cookies(response) -> None:
+    kwargs = cookie_kwargs()
+    domain = kwargs.get("domain")
+    response.delete_cookie(ACCESS_COOKIE, domain=domain, path="/")
+    response.delete_cookie(REFRESH_COOKIE, domain=domain, path="/auth")
 DEFAULT_AUD = "monenon-api"
 DEFAULT_KID = "monenon-auth-1"
 

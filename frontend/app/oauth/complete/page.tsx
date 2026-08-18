@@ -9,6 +9,7 @@ import { resolvePostAuthRedirect } from "@/lib/mypage-preferences";
 import { routes } from "@/lib/routes";
 import { patchUserSettings } from "@/lib/user-settings";
 
+/** @deprecated /oauth/exchange 로 이전 — 기존 북마크·링크 호환 */
 function OAuthCompleteInner() {
   const router = useRouter();
   const searchParams = useSearchParams();

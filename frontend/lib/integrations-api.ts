@@ -1,4 +1,5 @@
 import { getApiBaseUrl } from "@/lib/api-base";
+import { apiFetch } from "@/lib/api-client";
 
 export type IntegrationProvider = "slack" | "gmail";
 
@@ -21,7 +22,7 @@ export async function fetchIntegrations(
   apiBaseUrl?: string
 ): Promise<IntegrationsListResult> {
   const base = (apiBaseUrl ?? getApiBaseUrl()).replace(/\/$/, "");
-  const res = await fetch(`${base}/orchestration/integrations?user_id=${userId}`, {
+  const res = await apiFetch(`${base}/orchestration/integrations`, {
     headers: { Accept: "application/json" },
   });
   const raw: unknown = await res.json().catch(() => ({}));
@@ -55,7 +56,7 @@ export async function patchIntegration(
   apiBaseUrl?: string
 ): Promise<IntegrationStatus> {
   const base = (apiBaseUrl ?? getApiBaseUrl()).replace(/\/$/, "");
-  const res = await fetch(`${base}/orchestration/integrations`, {
+  const res = await apiFetch(`${base}/orchestration/integrations`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json", Accept: "application/json" },
     body: JSON.stringify({ user_id: userId, provider, enabled }),
@@ -80,7 +81,7 @@ export async function patchBriefingNotify(
   apiBaseUrl?: string
 ): Promise<IntegrationsListResult> {
   const base = (apiBaseUrl ?? getApiBaseUrl()).replace(/\/$/, "");
-  const res = await fetch(`${base}/orchestration/integrations/briefing-notify`, {
+  const res = await apiFetch(`${base}/orchestration/integrations/briefing-notify`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json", Accept: "application/json" },
     body: JSON.stringify({ user_id: userId, enabled }),

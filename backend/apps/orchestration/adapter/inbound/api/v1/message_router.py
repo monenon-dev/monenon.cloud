@@ -10,6 +10,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from admin.app.message_moderation import scan_user_message
+from core.dependencies import get_authenticated_user_id
 from orchestration.adapter.inbound.api.schemas.message_schema import AddMessageBody, MessageOut, message_out
 from orchestration.adapter.outbound.orm.chat_orm import Message, MessageRole
 from core.matrix.grid_oracle_database_manager import get_db
@@ -24,11 +25,11 @@ message_router = APIRouter(prefix="/platform", tags=["messages"])
 @message_router.get("/chat-sessions/{session_id}/messages", response_model=list[MessageOut])
 async def list_session_messages(
     session_id: int,
-    user_id: int,
+    auth_user_id: int = Depends(get_authenticated_user_id),
     session: AsyncSession = Depends(get_db),
     chat_repo: ChatPgRepository = Depends(get_chat_pg_repository),
 ) -> list[MessageOut]:
-    await chat_repo.get_owned_session(session_id, user_id)
+    await chat_repo.get_owned_session(session_id, auth_user_id)
     result = await session.execute(
         select(Message)
         .where(Message.session_id == session_id)
@@ -41,10 +42,11 @@ async def list_session_messages(
 async def add_session_message(
     session_id: int,
     body: AddMessageBody,
+    auth_user_id: int = Depends(get_authenticated_user_id),
     session: AsyncSession = Depends(get_db),
     chat_repo: ChatPgRepository = Depends(get_chat_pg_repository),
 ) -> MessageOut:
-    chat = await chat_repo.get_owned_session(session_id, body.user_id)
+    chat = await chat_repo.get_owned_session(session_id, auth_user_id)
     try:
         role = MessageRole(body.role)
     except ValueError as exc:
@@ -55,6 +57,6 @@ async def add_session_message(
     session.add(msg)
     await session.flush()
     if role == MessageRole.USER:
-        await scan_user_message(session, body.user_id, body.content)
+        await scan_user_message(session, auth_user_id, body.content)
     await session.refresh(msg)
     return message_out(msg)

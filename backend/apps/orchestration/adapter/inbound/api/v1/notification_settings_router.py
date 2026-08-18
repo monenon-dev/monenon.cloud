@@ -10,6 +10,7 @@ from fastapi.routing import APIRouter
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.matrix.grid_oracle_database_manager import get_db
+from core.dependencies import get_authenticated_user_id
 from orchestration.adapter.inbound.api.schemas.notification_settings_schema import (
     NotificationSettingsOut,
     PatchNotificationSettingsBody,
@@ -58,10 +59,11 @@ def _to_out(user_id: int, row) -> NotificationSettingsOut:
     response_model=NotificationSettingsOut,
 )
 async def get_notification_settings(
-    user_id: int,
+    auth_user_id: int = Depends(get_authenticated_user_id),
     session: AsyncSession = Depends(get_db),
     repo: OrchestrationPgRepository = Depends(get_orchestration_pg_repository),
 ) -> NotificationSettingsOut:
+    user_id = auth_user_id
     await repo.verify_user(user_id)
     settings_repo = NotificationSettingsPgRepository(session)
     row = await settings_repo.get(user_id)
@@ -74,10 +76,12 @@ async def get_notification_settings(
 )
 async def patch_notification_settings(
     body: PatchNotificationSettingsBody,
+    auth_user_id: int = Depends(get_authenticated_user_id),
     session: AsyncSession = Depends(get_db),
     repo: OrchestrationPgRepository = Depends(get_orchestration_pg_repository),
 ) -> NotificationSettingsOut | JSONResponse:
-    await repo.verify_user(body.user_id)
+    user_id = auth_user_id
+    await repo.verify_user(user_id)
     if (
         body.alert_calendar_density is None
         and body.alert_urgent_messages is None
@@ -92,7 +96,7 @@ async def patch_notification_settings(
 
     settings_repo = NotificationSettingsPgRepository(session)
     row = await settings_repo.update(
-        body.user_id,
+        user_id,
         alert_calendar_density=body.alert_calendar_density,
         alert_urgent_messages=body.alert_urgent_messages,
         briefing_validator_mode=body.briefing_validator_mode,
@@ -106,7 +110,7 @@ async def patch_notification_settings(
     logger.info(
         "[notification_settings] user_id=%s calendar=%s urgent=%s validator_mode=%s "
         "briefing=%02d:%02d density=%s hours=%02d-%02d",
-        body.user_id,
+        user_id,
         row.alert_calendar_density,
         row.alert_urgent_messages,
         row.briefing_validator_mode,
@@ -116,4 +120,4 @@ async def patch_notification_settings(
         row.active_hours_start,
         row.active_hours_end,
     )
-    return _to_out(body.user_id, row)
+    return _to_out(user_id, row)

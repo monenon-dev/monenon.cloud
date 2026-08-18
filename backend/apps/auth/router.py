@@ -12,9 +12,10 @@ from auth import services
 from auth.schemas import LoginRequest, LogoutRequest, RefreshRequest, TokenResponse
 from core.security import (
     ACCESS_COOKIE,
-    COOKIE_KWARGS,
     REFRESH_COOKIE,
+    clear_auth_cookies,
     public_jwk,
+    set_auth_cookies,
     verify_token,
 )
 
@@ -24,28 +25,17 @@ router = APIRouter(tags=["auth-gateway"])
 
 
 def _set_auth_cookies(response: Response, access: str, refresh: str) -> None:
-    max_age_access = services.ACCESS_TTL_MIN * 60
-    max_age_refresh = services.REFRESH_TTL_DAYS * 86400
-    response.set_cookie(
-        ACCESS_COOKIE,
+    set_auth_cookies(
+        response,
         access,
-        max_age=max_age_access,
-        **COOKIE_KWARGS,
-    )
-    response.set_cookie(
-        REFRESH_COOKIE,
         refresh,
-        max_age=max_age_refresh,
-        path="/auth",
-        **{k: v for k, v in COOKIE_KWARGS.items() if k != "path"},
+        access_ttl_min=services.ACCESS_TTL_MIN,
+        refresh_ttl_days=services.REFRESH_TTL_DAYS,
     )
 
 
 def _clear_auth_cookies(response: Response) -> None:
-    response.delete_cookie(ACCESS_COOKIE, domain=COOKIE_KWARGS.get("domain"), path="/")
-    response.delete_cookie(
-        REFRESH_COOKIE, domain=COOKIE_KWARGS.get("domain"), path="/auth"
-    )
+    clear_auth_cookies(response)
 
 
 @router.post("/login", response_model=TokenResponse)
