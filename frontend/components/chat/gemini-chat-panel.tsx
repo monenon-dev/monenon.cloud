@@ -543,7 +543,8 @@ export function GeminiChatPanel({
                   msg.toolLogs &&
                   msg.toolLogs.length > 0 &&
                   isLastAssistant &&
-                  !guestMode ? (
+                  !guestMode &&
+                  messageKind(msg) !== "briefing" ? (
                   <ChatToolStreamPanel
                     toolLogs={msg.toolLogs}
                     className="mt-3"
