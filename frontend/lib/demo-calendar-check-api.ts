@@ -21,10 +21,20 @@ export type DemoCalendarCheckResult = {
 
 const MEETINGS_STORAGE_PREFIX = "moneo.home.meetings.";
 
+const TIME_24H_RE = /^(\d{1,2}):(\d{2})$/;
+
+export function isValidMeetingTime(raw: string): boolean {
+  const m = raw.trim().match(TIME_24H_RE);
+  if (!m) return false;
+  const hour = Number(m[1]);
+  const minute = Number(m[2]);
+  return hour >= 0 && hour <= 23 && minute >= 0 && minute <= 59;
+}
+
 export function normalizeMeetingTime(raw: string): string {
-  const m = raw.trim().match(/^(\d{1,2}):(\d{2})/);
+  const m = raw.trim().match(TIME_24H_RE);
   if (!m) return raw.trim();
-  return `${m[1].padStart(2, "0")}:${m[2]}`;
+  return `${Number(m[1]).toString().padStart(2, "0")}:${m[2]}`;
 }
 
 export function meetingsStorageKey(date = todaySeoulISO()): string {

@@ -6,7 +6,9 @@ import { Loader2, Plus, X } from "lucide-react";
 
 import {
   fetchSavedMeetings,
+  isValidMeetingTime,
   loadSavedMeetings,
+  normalizeMeetingTime,
   persistSavedMeetings,
   postDemoCalendarCheck,
   saveMeetings,
@@ -37,11 +39,25 @@ function slotsFromEvents(events: DemoCalendarEventInput[], startId = 1): { slots
   return { slots, nextId: startId + slots.length };
 }
 
-function filledEvents(slots: Slot[]): DemoCalendarEventInput[] {
-  return slots
-    .map((s) => ({ time: s.time.trim(), title: s.title.trim() }))
-    .filter((s) => s.time && s.title)
-    .slice(0, MAX_SLOTS);
+function eventsFromSlots(slots: Slot[]): { events: DemoCalendarEventInput[]; error: string | null } {
+  const events: DemoCalendarEventInput[] = [];
+  for (const s of slots) {
+    const time = s.time.trim();
+    const title = s.title.trim();
+    if (!time && !title) continue;
+    if (!time || !title) {
+      return { events: [], error: "입력 중인 일정에 시간과 제목을 모두 적어 주세요." };
+    }
+    if (!isValidMeetingTime(time)) {
+      return {
+        events: [],
+        error: "시간은 24시간 형식(HH:MM)으로 입력해 주세요. 예: 09:30, 14:00",
+      };
+    }
+    events.push({ time: normalizeMeetingTime(time), title });
+    if (events.length >= MAX_SLOTS) break;
+  }
+  return { events, error: null };
 }
 
 type CalendarCheckWidgetProps = {
@@ -120,7 +136,12 @@ export function CalendarCheckWidget({
   };
 
   const handleSave = async () => {
-    const filled = filledEvents(ui.slots);
+    const parsed = eventsFromSlots(ui.slots);
+    if (parsed.error) {
+      patchUi({ error: parsed.error, savedFlash: false });
+      return;
+    }
+    const filled = parsed.events;
     persistSavedMeetings(filled);
     const session = isLoggedIn ? getAuthSession() : null;
     patchUi({ saving: true, error: null, savedFlash: false });
@@ -149,7 +170,12 @@ export function CalendarCheckWidget({
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const filled = filledEvents(ui.slots);
+    const parsed = eventsFromSlots(ui.slots);
+    if (parsed.error) {
+      patchUi({ error: parsed.error, result: null });
+      return;
+    }
+    const filled = parsed.events;
     if (filled.length === 0) {
       patchUi({ error: "시간과 제목을 하나 이상 입력해 주세요.", result: null });
       return;
@@ -180,7 +206,8 @@ export function CalendarCheckWidget({
       </h2>
       <p className="mt-1 text-sm font-medium text-indigo-200/85">{todaySeoulLabel()}</p>
       <p className="mt-1.5 text-sm leading-relaxed text-[var(--moneo-muted)]">
-        겹치거나 몰려 있으면, 로그인 없이도 바로 알려드려요. 저장하면 새로고침 후에도 남아 있어요.
+        겹치거나 몰려 있으면, 로그인 없이도 바로 알려드려요. 시간은 24시간 형식(예: 09:30, 14:00)으로
+        입력하고, 저장하면 새로고침 후에도 남아 있어요.
       </p>
 
       <form onSubmit={(e) => void handleSubmit(e)} className="mt-5 space-y-3">
@@ -194,10 +221,20 @@ export function CalendarCheckWidget({
             </label>
             <input
               id={`cal-slot-time-${slot.id}`}
-              type="time"
+              type="text"
+              inputMode="numeric"
+              autoComplete="off"
               value={slot.time}
               onChange={(e) => updateSlot(slot.id, { time: e.target.value })}
-              className="rounded-lg border border-white/10 bg-black/30 px-2.5 py-2 text-sm text-zinc-100 outline-none focus:border-indigo-400/50"
+              onBlur={(e) => {
+                const value = e.target.value.trim();
+                if (value && isValidMeetingTime(value)) {
+                  updateSlot(slot.id, { time: normalizeMeetingTime(value) });
+                }
+              }}
+              placeholder="14:00"
+              maxLength={5}
+              className="rounded-lg border border-white/10 bg-black/30 px-2.5 py-2 text-center text-sm tabular-nums text-zinc-100 outline-none placeholder:text-zinc-500 focus:border-indigo-400/50"
             />
             <label className="sr-only" htmlFor={`cal-slot-title-${slot.id}`}>
               일정 {index + 1} 제목
