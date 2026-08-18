@@ -110,6 +110,8 @@ function ChatsPageContent() {
 
   const isNewFromHome = searchParams.get("new") === "1";
   const loadedSessionRef = useRef<number | null>(null);
+  const loadMessagesSeqRef = useRef(0);
+  const injectBriefingSeqRef = useRef(0);
   /** 카드/태그 자동 질문 중 loadMessages가 응답을 덮어쓰지 않도록 */
   const skipLoadSessionRef = useRef<number | null>(null);
 
@@ -133,25 +135,28 @@ function ChatsPageContent() {
   const loadMessages = useCallback(
     async (sessionId: number, options?: { silent?: boolean }) => {
       if (!userId) return;
+      const seq = ++loadMessagesSeqRef.current;
+      const isLatest = () => seq === loadMessagesSeqRef.current;
       if (!options?.silent) setMessagesLoading(true);
       setPageError(null);
       try {
         const stored = await fetchSessionMessages(sessionId, userId, apiBaseUrl);
+        if (!isLatest()) return;
         setSessionMessages(storedMessagesToGemini(stored));
+        loadedSessionRef.current = sessionId;
       } catch (e) {
+        if (!isLatest()) return;
         if (e instanceof ChatApiError && e.status === 404) {
           loadedSessionRef.current = null;
-          setActiveSessionId(null);
-          setSessionMessages([]);
-          router.replace(routes.lifestyle.chats, { scroll: false });
           setPageError(null);
+          router.replace(routes.lifestyle.chats, { scroll: false });
           return;
         }
         setSessionMessages([]);
         setPageError(e instanceof Error ? e.message : "메시지를 불러오지 못했습니다.");
       } finally {
+        if (!isLatest()) return;
         if (!options?.silent) setMessagesLoading(false);
-        loadedSessionRef.current = sessionId;
         setMessagesEpoch((n) => n + 1);
       }
     },
@@ -161,6 +166,8 @@ function ChatsPageContent() {
   const injectTodayBriefing = useCallback(
     async (sessionId: number, options?: { forceRefresh?: boolean }) => {
       if (!userId) return;
+      const seq = ++injectBriefingSeqRef.current;
+      const isLatest = () => seq === injectBriefingSeqRef.current;
       const forceRefresh = Boolean(options?.forceRefresh) || shouldForceBriefingRefresh();
       const storageKey = briefingInjectStorageKey(userId, sessionId);
       if (forceRefresh) {
@@ -178,6 +185,7 @@ function ChatsPageContent() {
           industry: prefs.industry,
           forceRefresh,
         });
+        if (!isLatest()) return;
         const text = briefing.content.trim();
         if (!text) {
           setPageError("오늘의 브리핑을 생성하지 못했습니다.");
@@ -214,6 +222,8 @@ function ChatsPageContent() {
 
   const selectSession = useCallback(
     (sessionId: number, replaceUrl = true) => {
+      loadMessagesSeqRef.current += 1;
+      injectBriefingSeqRef.current += 1;
       loadedSessionRef.current = null;
       setActiveSessionId(sessionId);
       setStarterPrompt(undefined);
@@ -415,7 +425,7 @@ function ChatsPageContent() {
   }, [userId, isNewFromHome, searchParams, router]);
 
   useEffect(() => {
-    if (!userId || isNewFromHome) return;
+    if (!userId || isNewFromHome || sessionsLoading) return;
 
     const sid = searchParams.get("session");
     if (!sid) return;
@@ -423,15 +433,32 @@ function ChatsPageContent() {
     const id = Number(sid);
     if (!Number.isFinite(id)) return;
 
-    setActiveSessionId(id);
+    if (sessions.length > 0 && !sessions.some((s) => s.id === id)) {
+      loadedSessionRef.current = null;
+      router.replace(chatsSessionUrl(sessions[0].id), { scroll: false });
+      selectSession(sessions[0].id, false);
+      return;
+    }
+
     if (starterPrompt) return;
     if (skipLoadSessionRef.current === id) return;
-
     if (loadedSessionRef.current === id) return;
+
+    setActiveSessionId(id);
     loadedSessionRef.current = id;
     setSessionMessages([]);
     void loadMessages(id);
-  }, [userId, isNewFromHome, searchParams, starterPrompt, loadMessages]);
+  }, [
+    userId,
+    isNewFromHome,
+    sessionsLoading,
+    sessions,
+    searchParams,
+    starterPrompt,
+    loadMessages,
+    router,
+    selectSession,
+  ]);
 
   useEffect(() => {
     if (!userId || isNewFromHome || searchParams.get("session")) return;
