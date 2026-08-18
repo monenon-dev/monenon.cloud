@@ -42,6 +42,7 @@ import { callAgentChatApi } from "@/lib/agent-chat-api";
 import { routes, chatsSessionUrl } from "@/lib/routes";
 import { getApiBaseUrl } from "@/lib/api-base";
 import { fetchTodayBriefing } from "@/lib/briefing-api";
+import { todaySeoulISO } from "@/lib/seoul-date";
 
 const apiBaseUrl = getApiBaseUrl();
 const BRIEFING_INJECTED_KEY = "moneo.today_briefing_injected";
@@ -268,7 +269,7 @@ function ChatsPageContent() {
     if (messagesLoading || starterPrompt) return;
     if (sessionMessages.length > 0) return;
 
-    const dayKey = new Date().toISOString().slice(0, 10);
+    const dayKey = todaySeoulISO();
     const storageKey = `${BRIEFING_INJECTED_KEY}.${userId}.${dayKey}.${activeSessionId}`;
     if (typeof window !== "undefined" && sessionStorage.getItem(storageKey)) {
       return;

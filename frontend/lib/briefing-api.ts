@@ -1,5 +1,6 @@
 import { getApiBaseUrl } from "@/lib/api-base";
 import type { ToolCallResult, ToolNodeStatus } from "@/components/home/tool-stream";
+import { ensureTodayDateInBriefing, todaySeoulISO } from "@/lib/seoul-date";
 
 export type PendingReview = {
   content: string;
@@ -118,17 +119,18 @@ function parseTodayBriefing(
   }
   const logsRaw = Array.isArray(data.tool_logs) ? data.tool_logs : [];
   return {
-    content:
+    content: ensureTodayDateInBriefing(
       stripBriefingTitleHeading(
         stripDocsHallucinationFromChat(data.content) || data.content
-      ) || data.content,
+      ) || data.content
+    ),
     tool_logs: logsRaw
       .map(normalizeToolLog)
       .filter((x): x is ToolCallResult => x !== null),
     briefing_date:
       typeof data.briefing_date === "string"
         ? data.briefing_date
-        : new Date().toISOString().slice(0, 10),
+        : todaySeoulISO(),
     created: Boolean(data.created),
     id: typeof data.id === "number" ? data.id : fallbackId ?? null,
     pending_review: normalizePendingReview(data.pending_review),

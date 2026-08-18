@@ -25,6 +25,7 @@ import {
   preserveEscapedBrackets,
 } from "@/components/chat/markdown-chip-utils";
 import { stripBriefingTitleHeading } from "@/lib/briefing-api";
+import { ensureTodayDateInBriefing } from "@/lib/seoul-date";
 
 export type AgentMessageContentProps = {
   text: string;
@@ -718,7 +719,7 @@ export function AgentMessageContent({
   const displayText = useMemo(
     () =>
       (kindProp ?? inferKind(text)) === "briefing"
-        ? stripBriefingTitleHeading(text)
+        ? ensureTodayDateInBriefing(stripBriefingTitleHeading(text))
         : text,
     [kindProp, text]
   );

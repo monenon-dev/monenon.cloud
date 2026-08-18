@@ -8,6 +8,7 @@ import {
   stripBriefingTitleHeading,
   stripDocsHallucinationFromChat,
 } from "@/lib/briefing-api";
+import { ensureTodayDateInBriefing } from "@/lib/seoul-date";
 
 export type AgentChatResponseType = "briefing" | "report" | "chat" | "needs_data";
 
@@ -108,20 +109,6 @@ function parseAgentChatResponse(raw: unknown): AgentChatResponse {
   }
   const data = raw as Record<string, unknown>;
 
-  const contentRaw =
-    typeof data.content === "string"
-      ? data.content
-      : typeof data.answer === "string"
-        ? data.answer
-        : "";
-  const stripped = stripBriefingTitleHeading(
-    stripDocsHallucinationFromChat(contentRaw) || contentRaw
-  );
-  const content = stripped || contentRaw;
-  if (!content) {
-    throw new Error("응답에 content가 없습니다.");
-  }
-
   const typeRaw = data.type;
   const type: AgentChatResponseType =
     typeRaw === "briefing" ||
@@ -130,6 +117,22 @@ function parseAgentChatResponse(raw: unknown): AgentChatResponse {
     typeRaw === "needs_data"
       ? typeRaw
       : "chat";
+
+  const contentRaw =
+    typeof data.content === "string"
+      ? data.content
+      : typeof data.answer === "string"
+        ? data.answer
+        : "";
+  const strippedHallucination = stripDocsHallucinationFromChat(contentRaw) || contentRaw;
+  const stripped =
+    type === "briefing"
+      ? ensureTodayDateInBriefing(stripBriefingTitleHeading(strippedHallucination))
+      : strippedHallucination;
+  const content = stripped || contentRaw;
+  if (!content) {
+    throw new Error("응답에 content가 없습니다.");
+  }
 
   const logsRaw = Array.isArray(data.tool_logs) ? data.tool_logs : [];
   const risksRaw = Array.isArray(data.risks) ? data.risks : [];

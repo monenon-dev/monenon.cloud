@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import date, datetime
+from datetime import datetime
 from typing import Any
 from zoneinfo import ZoneInfo
 
@@ -14,7 +14,10 @@ from orchestration.adapter.outbound.orm.daily_briefing_orm import DailyBriefing
 from orchestration.adapter.outbound.pg.daily_briefing_pg_repository import (
     DailyBriefingPgRepository,
 )
-from orchestration.app.briefing.format import strip_briefing_title_heading
+from orchestration.app.briefing.format import (
+    ensure_today_date_in_briefing,
+    today_seoul,
+)
 from orchestration.app.briefing.validator_review import normalize_pending_review
 from orchestration.app.use_cases.run_briefing import run_briefing
 from secretary.adapter.outbound.orm.user_model import User, UserRole
@@ -25,14 +28,11 @@ SEOUL = ZoneInfo("Asia/Seoul")
 DEFAULT_BRIEFING_QUERY = "오늘 일정과 최근 대화를 바탕으로 오늘의 업무 브리핑을 작성해 줘"
 
 
-def today_seoul() -> date:
-    return datetime.now(SEOUL).date()
-
-
 def _row_to_payload(row: DailyBriefing, *, created: bool) -> dict[str, Any]:
     logs = row.tool_logs if isinstance(row.tool_logs, list) else []
+    day = row.briefing_date
     return {
-        "content": strip_briefing_title_heading(row.content or ""),
+        "content": ensure_today_date_in_briefing(row.content or "", day),
         "tool_logs": logs,
         "briefing_date": row.briefing_date.isoformat(),
         "created": created,
@@ -93,7 +93,10 @@ async def get_or_create_today_briefing(
         user_type=user_type,
         industry=industry,
     )
-    content = (result.get("answer") or "").strip() or "오늘의 브리핑을 생성하지 못했습니다."
+    content = ensure_today_date_in_briefing(
+        (result.get("answer") or "").strip() or "오늘의 브리핑을 생성하지 못했습니다.",
+        briefing_date,
+    )
     tool_logs = result.get("tool_logs") or []
     if not isinstance(tool_logs, list):
         tool_logs = []

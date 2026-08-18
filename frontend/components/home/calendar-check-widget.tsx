@@ -9,6 +9,7 @@ import {
   type DemoCalendarCheckResult,
 } from "@/lib/demo-calendar-check-api";
 import { routes, mypageSectionUrl } from "@/lib/routes";
+import { todaySeoulLabel } from "@/lib/seoul-date";
 
 type Slot = { id: number; time: string; title: string };
 
@@ -105,6 +106,7 @@ export function CalendarCheckWidget({
       <h2 className="mt-2 text-base font-semibold text-white sm:text-lg">
         오늘 가장 중요한 미팅을 적어보세요
       </h2>
+      <p className="mt-1 text-sm font-medium text-indigo-200/85">{todaySeoulLabel()}</p>
       <p className="mt-1.5 text-sm leading-relaxed text-[var(--moneo-muted)]">
         겹치거나 몰려 있으면, 로그인 없이도 바로 알려드려요.
       </p>

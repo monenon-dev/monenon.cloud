@@ -12,7 +12,7 @@ from gemini_caller import call_gemini
 from orchestration.app.agent_system_prompt import with_agent_system_prompt
 from orchestration.app.briefing.calendar_source import fetch_today_calendar
 from orchestration.app.briefing.docs_source import fetch_recent_docs
-from orchestration.app.briefing.format import strip_briefing_title_heading
+from orchestration.app.briefing.format import format_today_ko, strip_briefing_title_heading
 from orchestration.app.briefing.gmail_source import fetch_gmail_digest
 from orchestration.app.briefing.history_source import fetch_recent_history
 from orchestration.app.briefing.slack_source import fetch_slack_digest
@@ -588,6 +588,7 @@ async def synthesizer_node(state: BriefingState) -> dict:
         )
     user_prompt = (
         f"{(state.get('query') or '오늘의 업무 브리핑을 작성해 줘').strip()}\n\n"
+        f"오늘 날짜는 {format_today_ko()} 입니다. 본문 맨 위 날짜는 반드시 이 날짜로 쓰세요.\n"
         "아래 도구 수집 결과만 근거로 스탠드업 브리핑을 작성하세요.\n"
         "본문은 날짜와 일정·할 일부터 시작하고, "
         "「오늘의 브리핑」「오늘의 업무 브리핑」 같은 제목 헤딩은 넣지 마세요.\n"
