@@ -1,6 +1,14 @@
+"use client";
+
 import Link from "next/link";
 import { ImageIcon } from "lucide-react";
 import type { ReactNode } from "react";
+
+import { BriefingInfographic } from "@/components/home/about-infographics/BriefingInfographic";
+import { DocsOrganizeInfographic } from "@/components/home/about-infographics/DocsOrganizeInfographic";
+import { ReportGenInfographic } from "@/components/home/about-infographics/ReportGenInfographic";
+import { WatcherInfographic } from "@/components/home/about-infographics/WatcherInfographic";
+import { ChatInfographic } from "@/components/home/about-infographics/ChatInfographic";
 
 import { routes } from "@/lib/routes";
 
@@ -16,6 +24,7 @@ type AboutFeature = {
   imageFirst: boolean;
   screenshotLabel: string;
   screenshotSrc?: string;
+  infographic?: ReactNode;
 };
 
 const STATUS_LABEL: Record<FeatureStatus, string> = {
@@ -58,7 +67,7 @@ const ABOUT_FEATURES: AboutFeature[] = [
     ),
     imageFirst: true,
     screenshotLabel: "오늘의 업무 브리핑 화면",
-    screenshotSrc: "/assets/about-infographics/briefing.png",
+    infographic: <BriefingInfographic />,
   },
   {
     id: "docs",
@@ -73,7 +82,7 @@ const ABOUT_FEATURES: AboutFeature[] = [
     ],
     imageFirst: false,
     screenshotLabel: "문서·자료 정리 예시",
-    screenshotSrc: "/assets/about-infographics/docs.png",
+    infographic: <DocsOrganizeInfographic />,
   },
   {
     id: "report",
@@ -100,7 +109,7 @@ const ABOUT_FEATURES: AboutFeature[] = [
     ),
     imageFirst: true,
     screenshotLabel: "주간 업무 리포트 화면",
-    screenshotSrc: "/assets/about-infographics/report.png",
+    infographic: <ReportGenInfographic />,
   },
   {
     id: "alerts",
@@ -127,7 +136,7 @@ const ABOUT_FEATURES: AboutFeature[] = [
     ),
     imageFirst: false,
     screenshotLabel: "상황 감지형 알림 화면",
-    screenshotSrc: "/assets/about-infographics/watcher.png",
+    infographic: <WatcherInfographic />,
   },
   {
     id: "chat",
@@ -153,7 +162,7 @@ const ABOUT_FEATURES: AboutFeature[] = [
     ),
     imageFirst: true,
     screenshotLabel: "에이전트 채팅 화면",
-    screenshotSrc: "/assets/about-infographics/chat.png",
+    infographic: <ChatInfographic />,
   },
 ];
 
@@ -211,10 +220,12 @@ export function AboutFeatureSections() {
           aria-labelledby={`about-feature-${feature.id}`}
         >
           <div className={feature.imageFirst ? "order-1" : "order-1 lg:order-2"}>
-            <FeatureScreenshotPlaceholder
-              label={feature.screenshotLabel}
-              src={feature.screenshotSrc}
-            />
+            {feature.infographic ?? (
+              <FeatureScreenshotPlaceholder
+                label={feature.screenshotLabel}
+                src={feature.screenshotSrc}
+              />
+            )}
           </div>
 
           <div

@@ -6,49 +6,72 @@ import {
   useInfographicReveal,
 } from "@/components/home/about-infographics/use-infographic-reveal";
 
-function CheckboxList({ x, y }: { x: number; y: number }) {
+/** 쌓인 일일 브리핑 카드 스택 */
+function BriefingStack({ x, y }: { x: number; y: number }) {
+  const cards = [
+    { dx: 10, dy: 10, opacity: 0.3 },
+    { dx: 5, dy: 5, opacity: 0.55 },
+    { dx: 0, dy: 0, opacity: 1 },
+  ];
   return (
     <g transform={`translate(${x}, ${y})`}>
-      <rect x={0} y={0} width={64} height={52} rx={8} fill="#1f2937" stroke="#4b5563" strokeWidth={1.2} />
-      {[0, 1, 2].map((i) => (
-        <g key={i} transform={`translate(8, ${10 + i * 14})`}>
-          <rect x={0} y={0} width={10} height={10} rx={2} fill="none" stroke={i === 0 ? "#34d399" : "#6b7280"} strokeWidth={1.2} />
-          {i === 0 ? (
-            <path d="M2 5 L4.5 7.5 L8 3" fill="none" stroke="#34d399" strokeWidth={1.2} />
-          ) : null}
-          <rect x={14} y={2} width={36} height={4} rx={2} fill="#6b7280" />
+      {cards.map((c, i) => (
+        <g key={i} opacity={c.opacity}>
+          <rect x={c.dx} y={c.dy} width={88} height={64} rx={8} fill="#1f2937" stroke="#4b5563" strokeWidth={1.2} />
+          <rect x={c.dx + 8} y={c.dy + 12} width={52} height={5} rx={2.5} fill="#6366f1" opacity={0.7} />
+          <rect x={c.dx + 8} y={c.dy + 23} width={68} height={4} rx={2} fill="#4b5563" />
+          <rect x={c.dx + 8} y={c.dy + 32} width={58} height={4} rx={2} fill="#4b5563" />
+          <rect x={c.dx + 8} y={c.dy + 41} width={44} height={4} rx={2} fill="#4b5563" />
         </g>
       ))}
     </g>
   );
 }
 
-function ProgressBar({ x, y }: { x: number; y: number }) {
-  return (
-    <g transform={`translate(${x}, ${y})`}>
-      <rect x={0} y={0} width={72} height={36} rx={8} fill="#1f2937" stroke="#4b5563" strokeWidth={1.2} />
-      <rect x={8} y={10} width={56} height={6} rx={3} fill="#374151" />
-      <rect x={8} y={10} width={38} height={6} rx={3} fill="#6366f1" />
-      <text x={36} y={28} textAnchor="middle" fill="#9ca3af" fontSize={8}>
-        68%
-      </text>
-    </g>
-  );
-}
+/** 막대 + 곡선 + 경고 아이콘 차트 */
+function ReportChart({ x, y }: { x: number; y: number }) {
+  const bars = [42, 58, 36, 70, 82, 64, 90, 76];
+  const barW = 18;
+  const gap = 6;
+  const chartH = 110;
+  const chartW = bars.length * (barW + gap) - gap;
 
-function WarningBadge({ x, y }: { x: number; y: number }) {
+  // 곡선 포인트
+  const points = bars.map((h, i) => ({
+    px: i * (barW + gap) + barW / 2,
+    py: chartH - h,
+  }));
+  const curvePath = points
+    .map((p, i) =>
+      i === 0 ? `M${p.px},${p.py}` : `S${p.px - 10},${p.py} ${p.px},${p.py}`
+    )
+    .join(" ");
+
   return (
     <g transform={`translate(${x}, ${y})`}>
-      <rect x={0} y={0} width={52} height={52} rx={8} fill="#1f2937" stroke="#4b5563" strokeWidth={1.2} />
-      <path
-        d="M26 12 L38 38 H14 Z"
-        fill="none"
-        stroke="#fbbf24"
-        strokeWidth={1.5}
-        strokeLinejoin="round"
-      />
-      <line x1={26} y1={20} x2={26} y2={30} stroke="#fbbf24" strokeWidth={1.5} />
-      <circle cx={26} cy={34} r={1.5} fill="#fbbf24" />
+      {/* 막대 */}
+      {bars.map((h, i) => (
+        <rect
+          key={i}
+          x={i * (barW + gap)}
+          y={chartH - h}
+          width={barW}
+          height={h}
+          rx={3}
+          fill="#6366f1"
+          opacity={0.6 + i * 0.04}
+        />
+      ))}
+      {/* 추세 곡선 */}
+      <path d={curvePath} fill="none" stroke="#fbbf24" strokeWidth={2} strokeLinecap="round" />
+      {/* 경고 아이콘 (마지막 바 위) */}
+      <g transform={`translate(${chartW - 14}, ${chartH - bars[bars.length - 1] - 38})`}>
+        <circle cx={14} cy={14} r={13} fill="#1f2937" stroke="#fbbf24" strokeWidth={1.5} />
+        <line x1={14} y1={7} x2={14} y2={16} stroke="#fbbf24" strokeWidth={1.8} strokeLinecap="round" />
+        <circle cx={14} cy={20} r={2} fill="#fbbf24" />
+      </g>
+      {/* 라벨 */}
+      <rect x={0} y={chartH + 6} width={chartW} height={1} stroke="#374151" />
     </g>
   );
 }
@@ -57,96 +80,47 @@ export function ReportGenInfographic() {
   const { ref, visible } = useInfographicReveal();
 
   return (
-    <InfographicFrame ref={ref} label="체크리스트·진행률·리스크를 리포트 한 장으로 조립하는 흐름">
-      <svg viewBox="0 0 480 220" className="h-auto w-full" aria-hidden>
+    <InfographicFrame ref={ref} label="일일 브리핑 스택에서 주간 리포트를 생성하는 흐름">
+      <svg viewBox="0 0 480 240" className="h-auto w-full" aria-hidden>
         <defs>
           <marker id="report-arrowhead" markerWidth={8} markerHeight={8} refX={6} refY={3} orient="auto">
             <path d="M0,0 L6,3 L0,6 Z" fill="#6366f1" />
           </marker>
         </defs>
 
-        {/* Step 0 — 흩어진 요소 */}
+        {/* Step 0 — 쌓인 일일 브리핑 카드 */}
         <g style={infographicStepStyle(0, visible)}>
-          <CheckboxList x={16} y={24} />
-          <ProgressBar x={20} y={92} />
-          <WarningBadge x={28} y={148} />
+          <BriefingStack x={16} y={80} />
+          <text x={59} y={172} textAnchor="middle" fill="#9ca3af" fontSize={10}>
+            일일 브리핑 ×5
+          </text>
         </g>
 
-        {/* Step 1 — 조립 화살표 */}
+        {/* Step 1 — 화살표 */}
         <g style={infographicStepStyle(1, visible)}>
           <path
-            d="M88 50 C 140 50, 150 110, 190 110"
-            fill="none"
-            stroke="#6b7280"
-            strokeWidth={1.5}
-            markerEnd="url(#report-arrowhead)"
-          />
-          <path
-            d="M92 110 L 190 110"
+            d="M120 112 L 162 112"
             fill="none"
             stroke="#6366f1"
-            strokeWidth={1.5}
+            strokeWidth={1.8}
             markerEnd="url(#report-arrowhead)"
           />
+          {/* 조립 노드 */}
+          <circle cx={175} cy={112} r={12} fill="#312e81" stroke="#6366f1" strokeWidth={1.5} />
+          <path d="M170 112 L173 115 L180 108" fill="none" stroke="#6366f1" strokeWidth={1.5} strokeLinecap="round" />
           <path
-            d="M88 170 C 140 170, 150 110, 190 110"
-            fill="none"
-            stroke="#6b7280"
-            strokeWidth={1.5}
-            markerEnd="url(#report-arrowhead)"
-          />
-          <g transform="translate(196, 96)">
-            <circle cx={12} cy={14} r={12} fill="#312e81" stroke="#6366f1" strokeWidth={1.5} />
-            <path d="M8 14 L11 17 L16 11" fill="none" stroke="#6366f1" strokeWidth={1.5} strokeLinecap="round" />
-          </g>
-          <path
-            d="M222 110 L 268 110"
+            d="M188 112 L 218 112"
             fill="none"
             stroke="#6366f1"
-            strokeWidth={1.5}
+            strokeWidth={1.8}
             markerEnd="url(#report-arrowhead)"
           />
         </g>
 
-        {/* Step 2 — 리포트 페이지 */}
+        {/* Step 2 — 막대차트 리포트 */}
         <g style={infographicStepStyle(2, visible)}>
-          <rect
-            x={272}
-            y={28}
-            width={168}
-            height={164}
-            rx={10}
-            fill="#111827"
-            stroke="#6366f1"
-            strokeWidth={1.5}
-          />
-          {/* 제목바 */}
-          <rect x={284} y={40} width={96} height={8} rx={4} fill="#6366f1" opacity={0.85} />
-          <rect x={284} y={54} width={64} height={4} rx={2} fill="#4b5563" />
-          {/* 진행률 */}
-          <rect x={284} y={68} width={144} height={6} rx={3} fill="#374151" />
-          <rect x={284} y={68} width={98} height={6} rx={3} fill="#6366f1" />
-          <text x={432} y={74} fill="#9ca3af" fontSize={7} textAnchor="end">
-            68%
-          </text>
-          {/* 체크리스트 */}
-          {[0, 1, 2].map((i) => (
-            <g key={i} transform={`translate(284, ${84 + i * 16})`}>
-              <rect x={0} y={0} width={10} height={10} rx={2} fill="none" stroke="#34d399" strokeWidth={1.2} />
-              <path d="M2 5 L4.5 7.5 L8 3" fill="none" stroke="#34d399" strokeWidth={1.2} />
-              <rect x={14} y={2} width={80} height={4} rx={2} fill="#6b7280" />
-            </g>
-          ))}
-          {/* 리스크 배지 */}
-          <rect x={284} y={136} width={72} height={18} rx={6} fill="#064e3b" stroke="#34d399" strokeWidth={1} />
-          <text x={320} y={148} textAnchor="middle" fill="#34d399" fontSize={8}>
-            리스크 1건
-          </text>
-          <rect x={362} y={136} width={66} height={18} rx={6} fill="#312e81" stroke="#6366f1" strokeWidth={1} />
-          <text x={395} y={148} textAnchor="middle" fill="#a5b4fc" fontSize={8}>
-            Next action
-          </text>
-          <text x={356} y={198} textAnchor="middle" fill="#a5b4fc" fontSize={10} fontWeight={500}>
+          <ReportChart x={224} y={62} />
+          <text x={352} y={222} textAnchor="middle" fill="#a5b4fc" fontSize={11} fontWeight={500}>
             주간 리포트
           </text>
         </g>
