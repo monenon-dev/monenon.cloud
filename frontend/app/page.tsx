@@ -205,79 +205,47 @@ export default function MoneoHomePage() {
               </div>
             </div>
 
-            <div className="mt-8 sm:mt-10">
-              <CalendarCheckWidget isLoggedIn={Boolean(ui.authUser)} />
-            </div>
+            <div className="mt-16 space-y-16 sm:mt-24 sm:space-y-24">
+              <section className="space-y-4 sm:space-y-5" aria-label="오늘의 업무 브리핑">
+                <FeaturePromoCard
+                  card={FEATURE_PROMO_CARDS[0]}
+                  onActivate={() => {
+                    const prompt = FEATURE_PROMO_CARDS[0].prompt;
+                    if (!prompt) return;
+                    if (!ui.authUser) {
+                      const nonce = saveChatStarter(prompt);
+                      const next = encodeURIComponent(buildChatsUrl(prompt, nonce));
+                      router.push(`${routes.oauth.login}?next=${next}`);
+                      return;
+                    }
+                    navigateToChat(prompt);
+                  }}
+                />
+                <CalendarCheckWidget isLoggedIn={Boolean(ui.authUser)} />
+              </section>
 
-            <div
-              className="mt-12 scroll-mt-20 sm:mt-14 grid grid-cols-1 items-start gap-4 md:grid-cols-3 md:gap-5"
-              aria-label="기능 소개"
-            >
-              {FEATURE_PROMO_CARDS.map((card) => {
-                const Icon = card.icon;
-                const className =
-                  "moneo-glass moneo-glow-hover group w-full rounded-2xl p-6 text-left";
-                const inner = (
-                  <>
-                    <div className="mb-4 inline-flex size-10 items-center justify-center rounded-xl border border-indigo-400/25 bg-indigo-500/15 text-indigo-300">
-                      <Icon size={20} aria-hidden />
-                    </div>
-                    <h3 className="text-base font-semibold text-white">{card.title}</h3>
-                    <p className="mt-2 text-sm leading-relaxed text-[var(--moneo-muted)]">
-                      {card.description}
-                    </p>
-                  </>
-                );
-                if (card.href) {
-                  return (
-                    <Link key={card.title} href={card.href} className={className}>
-                      {inner}
-                    </Link>
-                  );
-                }
-                return (
-                  <button
-                    key={card.title}
-                    type="button"
-                    onClick={() => {
-                      if (card.action === "weekly-report") {
-                        openReportPreviewWidget();
-                        return;
-                      }
-                      if (card.action === "doc-summary") {
-                        openDocSummaryWidget();
-                        return;
-                      }
-                      if (!card.prompt) return;
-                      if (!ui.authUser) {
-                        const nonce = saveChatStarter(card.prompt);
-                        const next = encodeURIComponent(buildChatsUrl(card.prompt, nonce));
-                        router.push(`${routes.oauth.login}?next=${next}`);
-                        return;
-                      }
-                      navigateToChat(card.prompt);
-                    }}
-                    className={className}
-                  >
-                    {inner}
-                  </button>
-                );
-              })}
-            </div>
+              <section className="space-y-4 sm:space-y-5" aria-label="문서/자료 정리">
+                <FeaturePromoCard
+                  card={FEATURE_PROMO_CARDS[1]}
+                  onActivate={openDocSummaryWidget}
+                />
+                <DocSummaryWidget
+                  isLoggedIn={Boolean(ui.authUser)}
+                  highlighted={ui.docWidgetHighlight}
+                />
+              </section>
 
-            <div className="mt-8 sm:mt-10">
-              <DocSummaryWidget
-                isLoggedIn={Boolean(ui.authUser)}
-                highlighted={ui.docWidgetHighlight}
-              />
-            </div>
-
-            <div className="mt-8 sm:mt-10">
-              <WeeklyReportPreviewWidget
-                isLoggedIn={Boolean(ui.authUser)}
-                highlighted={ui.reportWidgetHighlight}
-                onOpenFullReport={() => void openWeeklyReport()}
-              />
+              <section className="space-y-4 sm:space-y-5" aria-label="업무 리포트 생성">
+                <FeaturePromoCard
+                  card={FEATURE_PROMO_CARDS[2]}
+                  onActivate={openReportPreviewWidget}
+                />
+                <WeeklyReportPreviewWidget
+                  isLoggedIn={Boolean(ui.authUser)}
+                  highlighted={ui.reportWidgetHighlight}
+                  onOpenFullReport={() => void openWeeklyReport()}
+                />
+              </section>
             </div>
           </div>
         </section>
@@ -300,6 +268,41 @@ export default function MoneoHomePage() {
         }
       />
     </div>
+  );
+}
+
+function FeaturePromoCard({
+  card,
+  onActivate,
+}: {
+  card: (typeof FEATURE_PROMO_CARDS)[number];
+  onActivate: () => void;
+}) {
+  const Icon = card.icon;
+  const className =
+    "moneo-glass moneo-glow-hover group w-full rounded-2xl p-6 text-left";
+  const inner = (
+    <>
+      <div className="mb-4 inline-flex size-10 items-center justify-center rounded-xl border border-indigo-400/25 bg-indigo-500/15 text-indigo-300">
+        <Icon size={20} aria-hidden />
+      </div>
+      <h3 className="text-base font-semibold text-white">{card.title}</h3>
+      <p className="mt-2 text-sm leading-relaxed text-[var(--moneo-muted)]">
+        {card.description}
+      </p>
+    </>
+  );
+  if (card.href) {
+    return (
+      <Link href={card.href} className={className}>
+        {inner}
+      </Link>
+    );
+  }
+  return (
+    <button type="button" onClick={onActivate} className={className}>
+      {inner}
+    </button>
   );
 }
 
