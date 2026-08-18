@@ -8,6 +8,7 @@ export type LandingNavItem = {
 export const LANDING_NAV_ITEMS: LandingNavItem[] = [
   { label: "기능", href: routes.about },
   { label: "데모", href: routes.demo },
+  { label: "FAQ", href: routes.faq },
   { label: "아키텍처", href: routes.architecture },
 ];
 
