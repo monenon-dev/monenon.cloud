@@ -30,7 +30,7 @@ class DemoCalendarEventIn(BaseModel):
 
 
 class DemoCalendarCheckRequest(BaseModel):
-    events: list[DemoCalendarEventIn] = Field(..., min_length=1, max_length=3)
+    events: list[DemoCalendarEventIn] = Field(..., min_length=1, max_length=10)
 
 
 class DemoIssueOut(BaseModel):

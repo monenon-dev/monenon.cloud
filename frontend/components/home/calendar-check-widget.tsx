@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState, type FormEvent } from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2, Plus, X } from "lucide-react";
 
 import {
   postDemoCalendarCheck,
@@ -10,13 +10,13 @@ import {
 } from "@/lib/demo-calendar-check-api";
 import { routes, mypageSectionUrl } from "@/lib/routes";
 
-type Slot = { time: string; title: string };
+type Slot = { id: number; time: string; title: string };
 
-const DEFAULT_SLOTS: Slot[] = [
-  { time: "14:00", title: "스탠드업" },
-  { time: "14:30", title: "디자인 싱크" },
-  { time: "15:00", title: "투자자 미팅 준비" },
-];
+const MAX_SLOTS = 10;
+
+function emptySlot(id: number): Slot {
+  return { id, time: "", title: "" };
+}
 
 type CalendarCheckWidgetProps = {
   className?: string;
@@ -29,7 +29,8 @@ export function CalendarCheckWidget({
   isLoggedIn = false,
 }: CalendarCheckWidgetProps) {
   const [ui, setUi] = useState({
-    slots: DEFAULT_SLOTS,
+    slots: [emptySlot(1)],
+    nextId: 2,
     loading: false,
     error: null as string | null,
     result: null as DemoCalendarCheckResult | null,
@@ -38,12 +39,37 @@ export function CalendarCheckWidget({
   const patchUi = (patch: Partial<typeof ui>) =>
     setUi((prev) => ({ ...prev, ...patch }));
 
-  const updateSlot = (index: number, patch: Partial<Slot>) => {
+  const updateSlot = (id: number, patch: Partial<Slot>) => {
     setUi((prev) => ({
       ...prev,
       error: null,
-      slots: prev.slots.map((slot, i) => (i === index ? { ...slot, ...patch } : slot)),
+      slots: prev.slots.map((slot) => (slot.id === id ? { ...slot, ...patch } : slot)),
     }));
+  };
+
+  const addSlot = () => {
+    setUi((prev) => {
+      if (prev.slots.length >= MAX_SLOTS) return prev;
+      return {
+        ...prev,
+        error: null,
+        nextId: prev.nextId + 1,
+        slots: [...prev.slots, emptySlot(prev.nextId)],
+      };
+    });
+  };
+
+  const removeSlot = (id: number) => {
+    setUi((prev) => {
+      if (prev.slots.length <= 1) {
+        return { ...prev, error: null, slots: [emptySlot(prev.nextId)], nextId: prev.nextId + 1 };
+      }
+      return {
+        ...prev,
+        error: null,
+        slots: prev.slots.filter((slot) => slot.id !== id),
+      };
+    });
   };
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
@@ -57,7 +83,7 @@ export function CalendarCheckWidget({
     }
     patchUi({ loading: true, error: null });
     try {
-      const result = await postDemoCalendarCheck(filled.slice(0, 3));
+      const result = await postDemoCalendarCheck(filled.slice(0, MAX_SLOTS));
       patchUi({ loading: false, result });
     } catch (err) {
       patchUi({
@@ -77,7 +103,7 @@ export function CalendarCheckWidget({
         try now · no login
       </p>
       <h2 className="mt-2 text-base font-semibold text-white sm:text-lg">
-        오늘 일정을 3개까지 입력해보세요
+        오늘 중요한 일정을 적어보세요
       </h2>
       <p className="mt-1.5 text-sm leading-relaxed text-[var(--moneo-muted)]">
         몰려 있거나 겹치면, 로그인 없이도 바로 알려드려요.
@@ -86,42 +112,61 @@ export function CalendarCheckWidget({
       <form onSubmit={(e) => void handleSubmit(e)} className="mt-5 space-y-3">
         {ui.slots.map((slot, index) => (
           <div
-            key={index}
-            className="grid grid-cols-[5.5rem_minmax(0,1fr)] gap-2 sm:grid-cols-[6.5rem_minmax(0,1fr)]"
+            key={slot.id}
+            className="grid grid-cols-[5.5rem_minmax(0,1fr)_auto] gap-2 sm:grid-cols-[6.5rem_minmax(0,1fr)_auto]"
           >
-            <label className="sr-only" htmlFor={`cal-slot-time-${index}`}>
+            <label className="sr-only" htmlFor={`cal-slot-time-${slot.id}`}>
               일정 {index + 1} 시간
             </label>
             <input
-              id={`cal-slot-time-${index}`}
+              id={`cal-slot-time-${slot.id}`}
               type="time"
               value={slot.time}
-              onChange={(e) => updateSlot(index, { time: e.target.value })}
+              onChange={(e) => updateSlot(slot.id, { time: e.target.value })}
               className="rounded-lg border border-white/10 bg-black/30 px-2.5 py-2 text-sm text-zinc-100 outline-none focus:border-indigo-400/50"
             />
-            <label className="sr-only" htmlFor={`cal-slot-title-${index}`}>
+            <label className="sr-only" htmlFor={`cal-slot-title-${slot.id}`}>
               일정 {index + 1} 제목
             </label>
             <input
-              id={`cal-slot-title-${index}`}
+              id={`cal-slot-title-${slot.id}`}
               type="text"
               value={slot.title}
-              onChange={(e) => updateSlot(index, { title: e.target.value })}
-              placeholder={`일정 ${index + 1} 제목`}
+              onChange={(e) => updateSlot(slot.id, { title: e.target.value })}
+              placeholder="중요한 일정"
               maxLength={120}
               className="min-w-0 rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm text-zinc-100 outline-none placeholder:text-zinc-500 focus:border-indigo-400/50"
             />
+            <button
+              type="button"
+              onClick={() => removeSlot(slot.id)}
+              className="inline-flex size-9 shrink-0 items-center justify-center rounded-lg border border-white/10 text-zinc-400 hover:bg-white/5 hover:text-zinc-100"
+              aria-label={`일정 ${index + 1} 삭제`}
+            >
+              <X className="size-4" aria-hidden />
+            </button>
           </div>
         ))}
 
-        <button
-          type="submit"
-          disabled={ui.loading}
-          className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-500 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-indigo-400 disabled:opacity-60 sm:w-auto"
-        >
-          {ui.loading ? <Loader2 className="size-4 animate-spin" aria-hidden /> : null}
-          확인해보기
-        </button>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <button
+            type="button"
+            onClick={addSlot}
+            disabled={ui.slots.length >= MAX_SLOTS}
+            className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-white/15 bg-white/5 px-4 py-2.5 text-sm font-medium text-zinc-100 transition-colors hover:bg-white/10 disabled:opacity-50"
+          >
+            <Plus className="size-4" aria-hidden />
+            일정 추가
+          </button>
+          <button
+            type="submit"
+            disabled={ui.loading}
+            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-500 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-indigo-400 disabled:opacity-60 sm:w-auto"
+          >
+            {ui.loading ? <Loader2 className="size-4 animate-spin" aria-hidden /> : null}
+            확인해보기
+          </button>
+        </div>
       </form>
 
       {ui.error ? (
