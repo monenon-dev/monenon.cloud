@@ -4,6 +4,13 @@ import { useCallback, useEffect, useState } from "react";
 import { CalendarClock, Check, Loader2, Mail, Sunrise } from "lucide-react";
 
 import { mypageCardClass } from "@/components/mypage/mypage-sidebar-layout";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { getApiBaseUrl } from "@/lib/api-base";
 import { getChatUserId } from "@/lib/chat-user";
 import {
@@ -36,11 +43,57 @@ const DENSITY_OPTIONS: { value: 2 | 3 | 4; label: string }[] = [
   { value: 2, label: "예민하게 (2개+)" },
 ];
 
-const selectClass =
-  "scheme-dark rounded-lg border border-white/10 bg-white/[0.06] px-2.5 py-1.5 text-sm tabular-nums text-white outline-none transition-colors focus:border-indigo-500/70 disabled:opacity-40";
-
 function pad2(n: number) {
   return String(n).padStart(2, "0");
+}
+
+function BoundedSelect({
+  id,
+  label,
+  value,
+  options,
+  format,
+  disabled,
+  onChange,
+}: {
+  id: string;
+  label: string;
+  value: number;
+  options: number[];
+  format: (n: number) => string;
+  disabled?: boolean;
+  onChange: (n: number) => void;
+}) {
+  return (
+    <Select
+      value={String(value)}
+      disabled={disabled}
+      onValueChange={(next) => onChange(Number(next))}
+    >
+      <SelectTrigger
+        id={id}
+        size="sm"
+        aria-label={label}
+        className="h-8 min-w-[4.5rem] border-white/10 bg-white/[0.06] px-2.5 text-sm tabular-nums text-white shadow-none focus-visible:border-indigo-500/70 focus-visible:ring-indigo-500/30"
+      >
+        <SelectValue>{format(value)}</SelectValue>
+      </SelectTrigger>
+      <SelectContent
+        position="item-aligned"
+        className="max-h-48 min-w-[4.5rem] overflow-y-auto border-white/15 bg-[#1a1628] text-white"
+      >
+        {options.map((n) => (
+          <SelectItem
+            key={n}
+            value={String(n)}
+            className="tabular-nums focus:bg-indigo-600 focus:text-white data-[state=checked]:bg-indigo-600 data-[state=checked]:text-white"
+          >
+            {format(n)}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
 }
 
 function formatSentAt(iso: string) {
@@ -330,45 +383,27 @@ export function BriefingNotifySection() {
                 label="매일 아침 브리핑 받기"
               />
             </div>
-            <div className="flex flex-wrap items-center gap-2 pl-0 sm:pl-0">
+            <div className="flex flex-wrap items-center gap-2">
               <span className="text-xs text-[var(--moneo-muted)]">받을 시간</span>
-              <label className="sr-only" htmlFor="briefing-hour">
-                시
-              </label>
-              <select
+              <BoundedSelect
                 id="briefing-hour"
-                className={selectClass}
+                label="시"
                 value={ui.briefingHour}
+                options={HOURS}
+                format={pad2}
                 disabled={Boolean(ui.savingKey)}
-                onChange={(e) =>
-                  changeBriefingTime(Number(e.target.value), ui.briefingMinute)
-                }
-              >
-                {HOURS.map((h) => (
-                  <option key={h} value={h}>
-                    {pad2(h)}
-                  </option>
-                ))}
-              </select>
+                onChange={(hour) => changeBriefingTime(hour, ui.briefingMinute)}
+              />
               <span className="text-sm text-white/70">:</span>
-              <label className="sr-only" htmlFor="briefing-minute">
-                분
-              </label>
-              <select
+              <BoundedSelect
                 id="briefing-minute"
-                className={selectClass}
+                label="분"
                 value={ui.briefingMinute}
+                options={MINUTES}
+                format={pad2}
                 disabled={Boolean(ui.savingKey)}
-                onChange={(e) =>
-                  changeBriefingTime(ui.briefingHour, Number(e.target.value))
-                }
-              >
-                {MINUTES.map((m) => (
-                  <option key={m} value={m}>
-                    {pad2(m)}
-                  </option>
-                ))}
-              </select>
+                onChange={(minute) => changeBriefingTime(ui.briefingHour, minute)}
+              />
             </div>
           </div>
 
@@ -434,43 +469,25 @@ export function BriefingNotifySection() {
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-xs text-[var(--moneo-muted)]">알림 받을 시간대</span>
-              <label className="sr-only" htmlFor="active-hours-start">
-                시작 시각
-              </label>
-              <select
+              <BoundedSelect
                 id="active-hours-start"
-                className={selectClass}
+                label="시작 시각"
                 value={ui.activeHoursStart}
+                options={HOURS}
+                format={(h) => `${pad2(h)}:00`}
                 disabled={Boolean(ui.savingKey)}
-                onChange={(e) =>
-                  changeActiveHours(Number(e.target.value), ui.activeHoursEnd)
-                }
-              >
-                {HOURS.map((h) => (
-                  <option key={h} value={h}>
-                    {pad2(h)}:00
-                  </option>
-                ))}
-              </select>
+                onChange={(start) => changeActiveHours(start, ui.activeHoursEnd)}
+              />
               <span className="text-xs text-white/50">~</span>
-              <label className="sr-only" htmlFor="active-hours-end">
-                종료 시각
-              </label>
-              <select
+              <BoundedSelect
                 id="active-hours-end"
-                className={selectClass}
+                label="종료 시각"
                 value={ui.activeHoursEnd}
+                options={END_HOURS}
+                format={(h) => `${pad2(h)}:00`}
                 disabled={Boolean(ui.savingKey)}
-                onChange={(e) =>
-                  changeActiveHours(ui.activeHoursStart, Number(e.target.value))
-                }
-              >
-                {END_HOURS.map((h) => (
-                  <option key={h} value={h}>
-                    {pad2(h)}:00
-                  </option>
-                ))}
-              </select>
+                onChange={(end) => changeActiveHours(ui.activeHoursStart, end)}
+              />
             </div>
           </div>
         </div>
