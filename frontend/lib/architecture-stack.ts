@@ -3,6 +3,7 @@ import {
   Database,
   GitBranch,
   Search,
+  Shield,
   type LucideIcon,
 } from "lucide-react";
 
@@ -41,5 +42,19 @@ export const ARCHITECTURE_STACK: ArchitectureStackItem[] = [
     blurb:
       "로컬은 docker-compose로 API·auth·pgvector·redis·neo4j·ollama 등 9개 서비스를 한 번에 올립니다. 프로덕션은 백엔드를 Railway(Procfile → uvicorn), 프론트엔드를 Vercel(Next.js)에 분리 배포합니다. APScheduler가 API 프로세스 안에서 브리핑·알림 작업을 실행합니다.",
     tags: ["Docker", "Railway", "Vercel", "Uvicorn", "APScheduler"],
+  },
+  {
+    icon: Shield,
+    title: "Authentication & Session",
+    blurb:
+      "카카오·네이버·구글 OAuth 또는 이메일 로그인 후 RS256 JWT Access Token(기본 10분)과 Refresh Token(기본 14일)을 발급합니다. Access Token은 프론트 메모리와 Authorization Bearer로 전달되고, Refresh Token은 httpOnly 쿠키(monenon_refresh, path=/auth)와 Redis에 jti로 저장·rotation됩니다. API는 FastAPI Depends(get_current_user)로 매 요청 검증하며, 401 시 프론트 api-client가 single-flight로 /auth/refresh를 호출해 재발급합니다. refresh 재사용·만료 시 세션 전체 폐기 후 재로그인을 요구합니다.",
+    tags: [
+      "JWT (RS256)",
+      "FastAPI",
+      "Redis",
+      "httpOnly Cookie",
+      "OAuth (Kakao)",
+      "Bearer Token",
+    ],
   },
 ];

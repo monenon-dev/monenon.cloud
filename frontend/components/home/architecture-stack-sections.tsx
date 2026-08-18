@@ -1,3 +1,4 @@
+import { AuthSessionInfographic } from "@/components/home/architecture-infographics/AuthSessionInfographic";
 import { MultiAgentInfographic } from "@/components/home/architecture-infographics/MultiAgentInfographic";
 import { RagPipelineInfographic } from "@/components/home/architecture-infographics/RagPipelineInfographic";
 import { VectorDbInfographic } from "@/components/home/architecture-infographics/VectorDbInfographic";
@@ -19,6 +20,7 @@ const INFOGRAPHICS: ReactNode[] = [
   <RagPipelineInfographic key="rag" />,
   <VectorDbInfographic key="vector-db" />,
   <DeploymentInfographic key="deployment" />,
+  <AuthSessionInfographic key="auth-session" />,
 ];
 
 const ARCHITECTURE_SECTIONS: ArchitectureSection[] = ARCHITECTURE_STACK.map((item, index) => ({
