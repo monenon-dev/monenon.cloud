@@ -11,7 +11,7 @@ import {
   SlidersHorizontal,
 } from "lucide-react";
 
-import Logo from "@/components/brand/Logo";
+import { AgentAvatar } from "@/components/chat/agent-avatar";
 import {
   AgentMessageContent,
   AgentStreamingPlaceholder,
@@ -34,6 +34,7 @@ import { getTitanicApiBaseUrl } from "@/lib/api-base";
 import { formatMessageTime } from "@/lib/chat-sessions";
 import { type PdfBlobUploadResult, uploadPdfToBlob } from "@/lib/pdf-blob-api";
 import type { ToolCallResult } from "@/components/home/tool-stream";
+import type { AgentAvatarState } from "@/lib/agent-avatar";
 
 export interface GeminiChatMessage {
   role: "user" | "assistant";
@@ -202,6 +203,7 @@ export function GeminiChatPanel({
   const [messages, setMessages] = useState<GeminiChatMessage[]>(initialMessages ?? []);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [agentVisual, setAgentVisual] = useState<AgentAvatarState>("idle");
   const [isUploading, setIsUploading] = useState(false);
   const [attachment, setAttachment] = useState<PdfBlobUploadResult | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -209,6 +211,8 @@ export function GeminiChatPanel({
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const sentInitialRef = useRef<{ resetKey: string | number | undefined; prompt: string } | null>(null);
+  const prevLoadingRef = useRef(false);
+  const completeTimerRef = useRef<number | null>(null);
 
   const scrollToBottom = () => {
     const el = messagesContainerRef.current;
@@ -223,7 +227,30 @@ export function GeminiChatPanel({
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages]);
+  }, [messages, isLoading, agentVisual]);
+
+  useEffect(() => {
+    if (isLoading) {
+      if (completeTimerRef.current !== null) {
+        window.clearTimeout(completeTimerRef.current);
+        completeTimerRef.current = null;
+      }
+      setAgentVisual("working");
+    } else if (prevLoadingRef.current) {
+      setAgentVisual("complete");
+      completeTimerRef.current = window.setTimeout(() => {
+        setAgentVisual("idle");
+        completeTimerRef.current = null;
+      }, 600);
+    }
+    prevLoadingRef.current = isLoading;
+    return () => {
+      if (completeTimerRef.current !== null) {
+        window.clearTimeout(completeTimerRef.current);
+        completeTimerRef.current = null;
+      }
+    };
+  }, [isLoading]);
 
   const prevResetKeyRef = useRef(resetKey);
 
@@ -235,6 +262,8 @@ export function GeminiChatPanel({
     setInput("");
     setAttachment(null);
     sentInitialRef.current = null;
+    setAgentVisual("idle");
+    prevLoadingRef.current = false;
   }, [resetKey, initialMessages]);
 
   const prevMessagesEpochRef = useRef(messagesEpoch);
@@ -403,9 +432,7 @@ export function GeminiChatPanel({
       >
           {messages.length === 0 && !isLoading && !errorMessage && (
             <div className="flex flex-col items-center justify-center gap-4 px-2 py-10 text-center">
-              {guestMode ? (
-                <Logo variant="symbol" theme="dark" size={40} className="opacity-90" />
-              ) : null}
+              <AgentAvatar state="idle" size="lg" />
               <div className="space-y-1.5">
                 {emptyTitle ? (
                   <p
@@ -459,8 +486,19 @@ export function GeminiChatPanel({
             return (
             <div
               key={`${msg.role}-${msg.ts}-${idx}`}
-              className={`flex items-end gap-1.5 ${isUser ? "justify-end" : "justify-start"}`}
+              className={`flex items-end gap-2 ${isUser ? "justify-end" : "justify-start"}`}
             >
+              {!isUser ? (
+                <AgentAvatar
+                  state={
+                    isLastAssistant && !isLoading
+                      ? agentVisual
+                      : "idle"
+                  }
+                  size="sm"
+                  className="mb-1"
+                />
+              ) : null}
               {isUser && timeLabel && (
                 <span className="shrink-0 pb-1 text-[11px] tabular-nums text-gray-400 dark:text-gray-500">
                   {timeLabel}
@@ -574,7 +612,8 @@ export function GeminiChatPanel({
             );
           })}
           {isLoading && (
-            <div className="flex justify-start">
+            <div className="flex items-end gap-2 justify-start">
+              <AgentAvatar state="working" size="sm" className="mb-1" />
               <AgentStreamingPlaceholder />
             </div>
           )}

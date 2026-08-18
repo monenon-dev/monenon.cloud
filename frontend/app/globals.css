@@ -181,6 +181,35 @@
   animation: moneo-node-pulse 3.2s ease-in-out infinite;
 }
 
+@keyframes agent-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.03);
+  }
+}
+
+.animate-agent-breathe {
+  animation: agent-breathe 3s ease-in-out infinite;
+  transform-origin: center center;
+}
+
+@keyframes agent-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-agent-spin {
+  animation: agent-spin 2s linear infinite;
+  transform-origin: center center;
+}
+
 /* Agent preview · thin dark scrollbar (internal scroll only) */
 .moneo-thin-scrollbar {
   scrollbar-width: thin;
