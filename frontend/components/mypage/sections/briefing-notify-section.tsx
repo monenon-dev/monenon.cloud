@@ -1,16 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { CalendarClock, Check, Loader2, Mail, Sunrise } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import { CalendarClock, Check, ChevronDown, Loader2, Mail, Sunrise } from "lucide-react";
 
 import { mypageCardClass } from "@/components/mypage/mypage-sidebar-layout";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { getApiBaseUrl } from "@/lib/api-base";
 import { getChatUserId } from "@/lib/chat-user";
 import {
@@ -64,35 +58,114 @@ function BoundedSelect({
   disabled?: boolean;
   onChange: (n: number) => void;
 }) {
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const listRef = useRef<HTMLUListElement>(null);
+  const [menu, setMenu] = useState({
+    open: false,
+    top: 0,
+    left: 0,
+    width: 72,
+  });
+
+  const closeMenu = () => setMenu((prev) => ({ ...prev, open: false }));
+
+  const openMenu = () => {
+    if (disabled) return;
+    const rect = btnRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const maxH = 192;
+    const spaceBelow = window.innerHeight - rect.bottom - 8;
+    const openUp = spaceBelow < 140 && rect.top > spaceBelow;
+    const top = openUp ? Math.max(8, rect.top - maxH - 4) : rect.bottom + 4;
+    setMenu({
+      open: true,
+      top,
+      left: rect.left,
+      width: Math.max(rect.width, 72),
+    });
+  };
+
+  useEffect(() => {
+    if (!menu.open) return;
+    const onPointer = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (btnRef.current?.contains(target) || listRef.current?.contains(target)) {
+        return;
+      }
+      closeMenu();
+    };
+    const onViewport = () => closeMenu();
+    document.addEventListener("mousedown", onPointer);
+    window.addEventListener("scroll", onViewport, true);
+    window.addEventListener("resize", onViewport);
+    return () => {
+      document.removeEventListener("mousedown", onPointer);
+      window.removeEventListener("scroll", onViewport, true);
+      window.removeEventListener("resize", onViewport);
+    };
+  }, [menu.open]);
+
+  useEffect(() => {
+    if (!menu.open) return;
+    listRef.current
+      ?.querySelector("[data-selected=true]")
+      ?.scrollIntoView({ block: "nearest" });
+  }, [menu.open, value]);
+
   return (
-    <Select
-      value={String(value)}
-      disabled={disabled}
-      onValueChange={(next) => onChange(Number(next))}
-    >
-      <SelectTrigger
+    <>
+      <button
+        ref={btnRef}
         id={id}
-        size="sm"
+        type="button"
+        aria-haspopup="listbox"
+        aria-expanded={menu.open}
         aria-label={label}
-        className="h-8 min-w-[4.5rem] border-white/10 bg-white/[0.06] px-2.5 text-sm tabular-nums text-white shadow-none focus-visible:border-indigo-500/70 focus-visible:ring-indigo-500/30"
+        disabled={disabled}
+        onClick={() => (menu.open ? closeMenu() : openMenu())}
+        className="inline-flex h-8 min-w-[4.5rem] items-center justify-between gap-1 rounded-lg border border-white/25 bg-white/[0.08] px-2.5 text-sm tabular-nums text-white outline-none transition-colors hover:border-indigo-400/50 focus-visible:border-indigo-500 disabled:opacity-40"
       >
-        <SelectValue>{format(value)}</SelectValue>
-      </SelectTrigger>
-      <SelectContent
-        position="item-aligned"
-        className="dark !max-h-48 min-w-[4.5rem] overflow-y-auto border-[var(--moneo-border)] !bg-[var(--moneo-bg-elevated)] !text-[var(--moneo-text)]"
-      >
-        {options.map((n) => (
-          <SelectItem
-            key={n}
-            value={String(n)}
-            className="tabular-nums !text-[var(--moneo-text)] focus:!bg-indigo-600 focus:!text-white data-[highlighted]:!bg-indigo-600 data-[highlighted]:!text-white data-[state=checked]:!bg-indigo-600 data-[state=checked]:!text-white"
-          >
-            {format(n)}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+        {format(value)}
+        <ChevronDown className="size-3.5 shrink-0 text-white/70" aria-hidden />
+      </button>
+      {menu.open
+        ? createPortal(
+            <ul
+              ref={listRef}
+              role="listbox"
+              aria-label={label}
+              style={{ top: menu.top, left: menu.left, minWidth: menu.width }}
+              className="fixed z-[80] max-h-48 overflow-y-auto rounded-lg border border-white/20 bg-[#16121f] py-1 shadow-xl"
+            >
+              {options.map((n) => {
+                const selected = n === value;
+                return (
+                  <li key={n}>
+                    <button
+                      type="button"
+                      role="option"
+                      aria-selected={selected}
+                      data-selected={selected || undefined}
+                      className={`flex w-full px-3 py-1.5 text-left text-sm tabular-nums ${
+                        selected
+                          ? "bg-indigo-600 text-white"
+                          : "text-[#e8e8ef] hover:bg-indigo-600/80 hover:text-white"
+                      }`}
+                      onClick={() => {
+                        onChange(n);
+                        closeMenu();
+                      }}
+                    >
+                      {format(n)}
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>,
+            document.body
+          )
+        : null}
+    </>
   );
 }
 
