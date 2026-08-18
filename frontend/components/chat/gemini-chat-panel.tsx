@@ -107,6 +107,11 @@ const defaultBase = getTitanicApiBaseUrl();
 /** React Strict Mode remount 시 starter 자동 전송 중복 방지 */
 const sentStarterKeys = new Set<string>();
 
+/** working 아바타가 너무 짧게 깜빡이지 않도록 최소 유지 시간(ms) */
+const MIN_AGENT_WORKING_MS = 1000;
+/** complete → idle 복귀 전 유지 시간(ms) */
+const AGENT_COMPLETE_MS = 600;
+
 function isAgentChatPath(path: string) {
   return path.replace(/\/$/, "").endsWith("/agent/chat");
 }
@@ -241,7 +246,7 @@ export function GeminiChatPanel({
       completeTimerRef.current = window.setTimeout(() => {
         setAgentVisual("idle");
         completeTimerRef.current = null;
-      }, 600);
+      }, AGENT_COMPLETE_MS);
     }
     prevLoadingRef.current = isLoading;
     return () => {
@@ -326,6 +331,7 @@ export function GeminiChatPanel({
       });
     }
     setInput("");
+    const workingStartedAt = Date.now();
     setIsLoading(true);
     setErrorMessage(null);
 
@@ -368,6 +374,11 @@ export function GeminiChatPanel({
     } catch (err) {
       setErrorMessage(err instanceof Error ? err.message : "응답에 실패했습니다.");
     } finally {
+      const elapsed = Date.now() - workingStartedAt;
+      const remaining = Math.max(0, MIN_AGENT_WORKING_MS - elapsed);
+      if (remaining > 0) {
+        await new Promise((resolve) => setTimeout(resolve, remaining));
+      }
       setIsLoading(false);
     }
   }, [apiBaseUrl, chatPath, messages, onSendMessage]);
@@ -491,8 +502,10 @@ export function GeminiChatPanel({
               {!isUser ? (
                 <AgentAvatar
                   state={
-                    isLastAssistant && !isLoading
-                      ? agentVisual
+                    isLastAssistant
+                      ? isLoading
+                        ? "working"
+                        : agentVisual
                       : "idle"
                   }
                   size="sm"
@@ -613,7 +626,7 @@ export function GeminiChatPanel({
             </div>
             );
           })}
-          {isLoading && (
+          {isLoading && messages[messages.length - 1]?.role === "user" && (
             <div className="flex items-end gap-2 justify-start">
               <AgentAvatar state="working" size="sm" className="mb-1" />
               <AgentStreamingPlaceholder />

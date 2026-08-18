@@ -9,8 +9,14 @@ import {
 type AgentAvatarSize = "sm" | "lg";
 
 const SIZE_PX: Record<AgentAvatarSize, number> = {
-  sm: 36,
+  sm: 44,
   lg: 140,
+};
+
+const GLOW_CLASS: Record<AgentAvatarState, string> = {
+  idle: "drop-shadow-[0_0_8px_rgba(129,140,248,0.5)]",
+  working: "drop-shadow-[0_0_12px_rgba(99,102,241,0.75)]",
+  complete: "drop-shadow-[0_0_14px_rgba(52,211,153,0.65)]",
 };
 
 type AgentAvatarProps = {
@@ -28,7 +34,7 @@ export function AgentAvatar({
   const animationClass =
     size === "lg" && state === "idle"
       ? "animate-agent-breathe"
-      : size === "sm" && state === "working"
+      : state === "working"
         ? "animate-agent-spin"
         : "";
 
@@ -40,7 +46,7 @@ export function AgentAvatar({
       width={px}
       height={px}
       draggable={false}
-      className={`shrink-0 select-none object-contain ${animationClass} ${className}`}
+      className={`shrink-0 select-none object-contain ${GLOW_CLASS[state]} ${animationClass} ${className}`}
     />
   );
 }
