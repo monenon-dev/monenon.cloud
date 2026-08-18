@@ -80,13 +80,13 @@ function BoundedSelect({
       </SelectTrigger>
       <SelectContent
         position="item-aligned"
-        className="max-h-48 min-w-[4.5rem] overflow-y-auto border-white/15 bg-[#1a1628] text-white"
+        className="dark !max-h-48 min-w-[4.5rem] overflow-y-auto border-[var(--moneo-border)] !bg-[var(--moneo-bg-elevated)] !text-[var(--moneo-text)]"
       >
         {options.map((n) => (
           <SelectItem
             key={n}
             value={String(n)}
-            className="tabular-nums focus:bg-indigo-600 focus:text-white data-[state=checked]:bg-indigo-600 data-[state=checked]:text-white"
+            className="tabular-nums !text-[var(--moneo-text)] focus:!bg-indigo-600 focus:!text-white data-[highlighted]:!bg-indigo-600 data-[highlighted]:!text-white data-[state=checked]:!bg-indigo-600 data-[state=checked]:!text-white"
           >
             {format(n)}
           </SelectItem>
