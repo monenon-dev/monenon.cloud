@@ -9,10 +9,14 @@ from typing import Literal
 from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.matrix.grid_oracle_database_manager import get_db
+from gemini_caller import GeminiQuotaError
+from orchestration.app.demo.doc_summary import run_demo_doc_summary
+from orchestration.app.demo.report_preview import run_demo_report_custom, run_demo_report_sample
 from orchestration.app.briefing.calendar_source import (
     detect_calendar_conflicts,
     detect_calendar_density,
@@ -68,6 +72,28 @@ class DemoMeetingsSaveRequest(BaseModel):
 
 class DemoMeetingsResponse(BaseModel):
     events: list[DemoCalendarEventIn]
+
+
+class DemoDocSummaryRequest(BaseModel):
+    text: str = Field(..., min_length=1, max_length=10000)
+
+
+class DemoDocSummaryResponse(BaseModel):
+    summary_lines: list[str] = Field(..., max_length=3)
+    next_action: str | None = None
+    truncated: bool = False
+    notice: str | None = None
+
+
+class DemoReportPreviewRequest(BaseModel):
+    completed_work: str = Field(default="", max_length=1500)
+    meetings: str = Field(default="", max_length=1500)
+    pending_items: str = Field(default="", max_length=1500)
+
+
+class DemoReportPreviewResponse(BaseModel):
+    narrative: str
+    sample: bool = False
 
 
 def _parse_today_event(index: int, item: DemoCalendarEventIn) -> dict:
@@ -148,6 +174,72 @@ def demo_calendar_check(body: DemoCalendarCheckRequest) -> DemoCalendarCheckResp
         headline=headline,
         issues=issues,
         event_count=len(events),
+    )
+
+
+@demo_router.post("/doc-summary", response_model=DemoDocSummaryResponse)
+def demo_doc_summary(body: DemoDocSummaryRequest) -> DemoDocSummaryResponse | JSONResponse:
+    """붙여넣은 텍스트를 3줄 요약 + 할 일 1개로 정리한다. DB 저장 없음."""
+    try:
+        result = run_demo_doc_summary(body.text)
+    except ValueError as exc:
+        return JSONResponse({"detail": str(exc)}, status_code=400)
+    except GeminiQuotaError as exc:
+        return JSONResponse({"detail": str(exc)}, status_code=429)
+    except RuntimeError as exc:
+        return JSONResponse({"detail": str(exc)}, status_code=503)
+
+    summary_lines = result["summary_lines"]
+    if not isinstance(summary_lines, list):
+        return JSONResponse({"detail": "요약 결과 형식이 올바르지 않습니다."}, status_code=503)
+
+    next_action = result.get("next_action")
+    return DemoDocSummaryResponse(
+        summary_lines=[str(line) for line in summary_lines[:3]],
+        next_action=str(next_action) if isinstance(next_action, str) else None,
+        truncated=bool(result.get("truncated")),
+        notice=str(result["notice"]) if result.get("notice") else None,
+    )
+
+
+@demo_router.get("/report-preview/sample", response_model=DemoReportPreviewResponse)
+def demo_report_preview_sample() -> DemoReportPreviewResponse | JSONResponse:
+    """샘플 주간 활동 로그 기반 구어체 리포트. DB 저장 없음."""
+    try:
+        result = run_demo_report_sample()
+    except GeminiQuotaError as exc:
+        return JSONResponse({"detail": str(exc)}, status_code=429)
+    except RuntimeError as exc:
+        return JSONResponse({"detail": str(exc)}, status_code=503)
+
+    narrative = result.get("narrative")
+    if not isinstance(narrative, str) or not narrative.strip():
+        return JSONResponse({"detail": "리포트 결과가 비어 있습니다."}, status_code=503)
+    return DemoReportPreviewResponse(narrative=narrative.strip(), sample=True)
+
+
+@demo_router.post("/report-preview", response_model=DemoReportPreviewResponse)
+def demo_report_preview(body: DemoReportPreviewRequest) -> DemoReportPreviewResponse | JSONResponse:
+    """사용자 입력 기반 주간 흐름 리포트. DB 저장 없음."""
+    try:
+        result = run_demo_report_custom(
+            completed_work=body.completed_work,
+            meetings=body.meetings,
+            pending_items=body.pending_items,
+        )
+    except ValueError as exc:
+        return JSONResponse({"detail": str(exc)}, status_code=400)
+    except GeminiQuotaError as exc:
+        return JSONResponse({"detail": str(exc)}, status_code=429)
+    except RuntimeError as exc:
+        return JSONResponse({"detail": str(exc)}, status_code=503)
+
+    narrative = result.get("narrative")
+    if not isinstance(narrative, str) or not narrative.strip():
+        return JSONResponse({"detail": "리포트 결과가 비어 있습니다."}, status_code=503)
+    return DemoReportPreviewResponse(
+        narrative=narrative.strip(),
+        sample=bool(result.get("sample")),
     )
 
 

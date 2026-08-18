@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Bot } from "lucide-react";
 import {
   ToolStream,
   type ToolCallResult,
@@ -12,6 +11,7 @@ import { fetchTodayBriefing } from "@/lib/briefing-api";
 import { HOME_MEETINGS_SAVED_EVENT } from "@/lib/home-meetings-events";
 import { loadMyPagePreferences } from "@/lib/mypage-preferences";
 import { BriefingNotesField } from "@/components/chat/briefing-notes-field";
+import { PreviewBubble } from "@/components/home/preview-bubble";
 
 const CHAT_LINES = [
   { role: "user" as const, text: "오늘 오전 스탠드업 브리핑 요약해 줘." },
@@ -278,7 +278,7 @@ export function AgentPreview({
           ) : (
             <>
               {lines.slice(0, chat.line).map((msg, i) => (
-                <PreviewBubble key={`${msg.role}-${i}`} role={msg.role} text={msg.text} done />
+                <PreviewBubble key={`${msg.role}-${i}`} role={msg.role} text={msg.text} />
               ))}
               <PreviewBubble
                 role={line.role}
@@ -500,41 +500,6 @@ function ToolStreamPanel({ liveLogs }: { liveLogs: ToolCallResult[] | null }) {
                 }
           }
         />
-      </div>
-    </div>
-  );
-}
-
-function PreviewBubble({
-  role,
-  text,
-  done,
-  typing,
-}: {
-  role: "user" | "agent";
-  text: string;
-  done?: boolean;
-  typing?: boolean;
-}) {
-  const isUser = role === "user";
-  return (
-    <div className={`flex gap-2 ${isUser ? "justify-end" : "justify-start"}`}>
-      {!isUser && (
-        <div className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-lg border border-indigo-400/30 bg-indigo-500/15 text-indigo-300">
-          <Bot size={14} />
-        </div>
-      )}
-      <div
-        className={`max-w-[92%] rounded-xl px-3 py-2 text-sm leading-relaxed whitespace-pre-wrap ${
-          isUser
-            ? "bg-indigo-500/25 text-indigo-50 border border-indigo-400/20"
-            : "bg-white/[0.04] text-zinc-200 border border-white/10"
-        }`}
-      >
-        {text}
-        {typing && !done ? (
-          <span className="ml-0.5 inline-block h-3.5 w-1.5 animate-pulse bg-indigo-300/80 align-middle" />
-        ) : null}
       </div>
     </div>
   );

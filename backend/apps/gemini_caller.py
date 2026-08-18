@@ -47,6 +47,7 @@ def call_gemini(
     *,
     model: str | None = None,
     keymaker: Keymaker | None = None,
+    temperature: float = 0.9,
 ) -> str:
     """
     사용자 프롬프트 한 번에 대한 Gemini 텍스트 응답.
@@ -68,7 +69,7 @@ def call_gemini(
     last_exc: BaseException | None = None
     for model_name in models_to_try:
         try:
-            return _generate_once(model_name, text)
+            return _generate_once(model_name, text, temperature=temperature)
         except Exception as e:
             last_exc = e
             if _is_quota_error(e) and model_name != models_to_try[-1]:

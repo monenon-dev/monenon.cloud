@@ -14,6 +14,8 @@ import {
 
 import { AgentPreview } from "@/components/home/agent-preview";
 import { CalendarCheckWidget } from "@/components/home/calendar-check-widget";
+import { DocSummaryWidget } from "@/components/home/doc-summary-widget";
+import { WeeklyReportPreviewWidget } from "@/components/home/weekly-report-preview-widget";
 import { WeeklyReportPanel } from "@/components/home/weekly-report-panel";
 import { HomeCtaSection } from "@/components/home/home-cta-section";
 import { HomeFooter } from "@/components/home/home-footer";
@@ -41,7 +43,7 @@ const FEATURE_PROMO_CARDS: {
   description: string;
   href?: string;
   prompt?: string;
-  action?: "weekly-report";
+  action?: "weekly-report" | "doc-summary";
 }[] = [
   {
     icon: BriefcaseBusiness,
@@ -55,7 +57,7 @@ const FEATURE_PROMO_CARDS: {
     title: "문서/자료 정리",
     description:
       "폴더를 뒤지지 않아도, 지금 필요한 자료만 골라서 다음 할 일이 보여요.",
-    prompt: "흩어진 문서와 자료를 주제별로 정리해 줘",
+    action: "doc-summary",
   },
   {
     icon: FileBarChart,
@@ -75,6 +77,8 @@ export default function MoneoHomePage() {
     weeklyReportLoading: false,
     weeklyReportError: null as string | null,
     weeklyReport: null as WeeklyReport | null,
+    docWidgetHighlight: false,
+    reportWidgetHighlight: false,
   });
 
   const patchUi = (patch: Partial<typeof ui>) =>
@@ -112,6 +116,24 @@ export default function MoneoHomePage() {
           err instanceof Error ? err.message : "주간 리포트를 생성하지 못했습니다.",
       });
     }
+  };
+
+  const openReportPreviewWidget = () => {
+    patchUi({ reportWidgetHighlight: true });
+    document.getElementById("weekly-report-preview-widget")?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+    window.setTimeout(() => patchUi({ reportWidgetHighlight: false }), 2200);
+  };
+
+  const openDocSummaryWidget = () => {
+    patchUi({ docWidgetHighlight: true });
+    document.getElementById("doc-summary-widget")?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+    window.setTimeout(() => patchUi({ docWidgetHighlight: false }), 2200);
   };
 
   useEffect(() => {
@@ -220,11 +242,11 @@ export default function MoneoHomePage() {
                     type="button"
                     onClick={() => {
                       if (card.action === "weekly-report") {
-                        if (!ui.authUser) {
-                          router.push(routes.oauth.login);
-                          return;
-                        }
-                        void openWeeklyReport();
+                        openReportPreviewWidget();
+                        return;
+                      }
+                      if (card.action === "doc-summary") {
+                        openDocSummaryWidget();
                         return;
                       }
                       if (!card.prompt) return;
@@ -242,6 +264,21 @@ export default function MoneoHomePage() {
                   </button>
                 );
               })}
+            </div>
+
+            <div className="mt-8 sm:mt-10">
+              <DocSummaryWidget
+                isLoggedIn={Boolean(ui.authUser)}
+                highlighted={ui.docWidgetHighlight}
+              />
+            </div>
+
+            <div className="mt-8 sm:mt-10">
+              <WeeklyReportPreviewWidget
+                isLoggedIn={Boolean(ui.authUser)}
+                highlighted={ui.reportWidgetHighlight}
+                onOpenFullReport={() => void openWeeklyReport()}
+              />
             </div>
           </div>
         </section>
