@@ -114,8 +114,8 @@ export function DemoPage({ initialScenarioId }: DemoPageProps) {
             LangGraph 멀티에이전트 재생
           </h2>
           <p className="mt-2 max-w-2xl text-sm leading-relaxed text-zinc-400">
-            채팅을 입력하지 않아도, 시나리오가 자동으로 재생되며 Router → 전문
-            에이전트 → Synthesizer 흐름과 Tool Stream을 관찰할 수 있습니다.
+            채팅을 입력하지 않아도, 시나리오가 자동으로 재생되며 Router →
+            Calendar / Docs → Synthesizer 흐름과 Tool Stream을 관찰할 수 있습니다.
           </p>
         </div>
 

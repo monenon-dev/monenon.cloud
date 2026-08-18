@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type {
   TraceEdge,
   TraceNodeDef,
@@ -17,21 +17,55 @@ export type AgentTraceGraphProps = {
 
 type LayoutNode = TraceNodeDef & { x: number; y: number };
 
-const COL_X = [48, 200, 352];
-const ROW_Y = [36, 110, 184, 258];
+const DESKTOP_COL_X = [24, 170, 316];
+const DESKTOP_ROW_Y = [36, 110, 184, 258];
 const NODE_W = 108;
 const NODE_H = 40;
 
-function layoutNodes(nodes: TraceNodeDef[]): LayoutNode[] {
+function layoutNodes(nodes: TraceNodeDef[], compact: boolean): LayoutNode[] {
+  if (compact) {
+    const x = 58;
+    const startY = 26;
+    const gapY = 22;
+    return nodes.map((n, index) => ({
+      ...n,
+      x,
+      y: startY + index * (NODE_H + gapY),
+    }));
+  }
+
   return nodes.map((n) => ({
     ...n,
-    x: COL_X[n.column] ?? 200,
-    y: ROW_Y[n.row] ?? 110,
+    x: DESKTOP_COL_X[n.column] ?? 170,
+    y: DESKTOP_ROW_Y[n.row] ?? 110,
   }));
 }
 
 function nodeCenter(n: LayoutNode) {
   return { cx: n.x + NODE_W / 2, cy: n.y + NODE_H / 2 };
+}
+
+function edgePoints(a: LayoutNode, b: LayoutNode) {
+  const ac = nodeCenter(a);
+  const bc = nodeCenter(b);
+  const dx = bc.cx - ac.cx;
+  const dy = bc.cy - ac.cy;
+
+  if (Math.abs(dx) >= Math.abs(dy)) {
+    return {
+      x1: dx >= 0 ? a.x + NODE_W - 8 : a.x + 8,
+      y1: ac.cy,
+      x2: dx >= 0 ? b.x + 8 : b.x + NODE_W - 8,
+      y2: bc.cy,
+    };
+  }
+
+  return {
+    x1: ac.cx,
+    y1: dy >= 0 ? a.y + NODE_H - 6 : a.y + 6,
+    x2: bc.cx,
+    y2: dy >= 0 ? b.y + 6 : b.y + NODE_H - 6,
+  };
 }
 
 /**
@@ -45,14 +79,24 @@ export function AgentTraceGraph({
   className = "",
 }: AgentTraceGraphProps) {
   const [ui, setUi] = useState({ hoverId: null as TraceNodeId | null });
+  const [compact, setCompact] = useState(false);
   const tipId = "moneo-trace";
-  const laid = useMemo(() => layoutNodes(nodes), [nodes]);
+  const laid = useMemo(() => layoutNodes(nodes, compact), [nodes, compact]);
   const byId = useMemo(() => {
     const m = new Map<TraceNodeId, LayoutNode>();
     for (const n of laid) m.set(n.id, n);
     return m;
   }, [laid]);
 
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 480px)");
+    const apply = () => setCompact(mq.matches);
+    apply();
+    mq.addEventListener("change", apply);
+    return () => mq.removeEventListener("change", apply);
+  }, []);
+
+  const width = compact ? 220 : 448;
   const height = Math.max(160, ...laid.map((n) => n.y + NODE_H + 28));
   const hover = ui.hoverId ? byId.get(ui.hoverId) : null;
 
@@ -66,12 +110,12 @@ export function AgentTraceGraph({
           agent trace · langgraph
         </p>
         <p className="hidden text-[10px] text-zinc-500 sm:block">
-          Router → specialists → Synthesizer
+          Router → Calendar / Docs → Synthesizer
         </p>
       </div>
 
       <svg
-        viewBox={`0 0 420 ${height}`}
+        viewBox={`0 0 ${width} ${height}`}
         className="h-auto w-full"
         role="img"
         aria-label="멀티에이전트 오케스트레이션 그래프"
@@ -100,8 +144,7 @@ export function AgentTraceGraph({
           const a = byId.get(e.from);
           const b = byId.get(e.to);
           if (!a || !b) return null;
-          const ac = nodeCenter(a);
-          const bc = nodeCenter(b);
+          const pts = edgePoints(a, b);
           const fromDone =
             statusById[e.from] === "active" || statusById[e.from] === "done";
           const toLit =
@@ -110,10 +153,10 @@ export function AgentTraceGraph({
           return (
             <line
               key={`${e.from}-${e.to}`}
-              x1={ac.cx + NODE_W / 2 - 10}
-              y1={ac.cy}
-              x2={bc.cx - NODE_W / 2 + 10}
-              y2={bc.cy}
+              x1={pts.x1}
+              y1={pts.y1}
+              x2={pts.x2}
+              y2={pts.y2}
               stroke={
                 activeEdge
                   ? "rgba(129,140,248,0.55)"

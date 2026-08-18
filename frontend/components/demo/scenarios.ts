@@ -137,10 +137,8 @@ const DEFAULT_NODES: TraceNodeDef[] = [
 const BRIEFING_EDGES: TraceEdge[] = [
   { from: "router", to: "calendar" },
   { from: "router", to: "docs" },
-  { from: "router", to: "slack" },
   { from: "calendar", to: "synthesizer" },
   { from: "docs", to: "synthesizer" },
-  { from: "slack", to: "synthesizer" },
 ];
 
 const DOCS_EDGES: TraceEdge[] = [
@@ -164,9 +162,9 @@ export const DEMO_SCENARIOS: DemoScenario[] = [
     category: "briefing",
     tabLabel: "업무 브리핑",
     title: "오전 스탠드업 브리핑",
-    description: "캘린더 · Slack · 문서를 모아 액션 아이템을 정리합니다.",
+    description: "캘린더와 문서를 모아 액션 아이템을 정리합니다.",
     userPrompt: "오늘 오전 스탠드업 브리핑 요약해 줘",
-    nodes: DEFAULT_NODES.filter((n) => n.id !== "report"),
+    nodes: DEFAULT_NODES.filter((n) => !["report", "slack"].includes(n.id)),
     edges: BRIEFING_EDGES,
     events: [
       { atMs: 0, type: "user_message", text: "오늘 오전 스탠드업 브리핑 요약해 줘" },
