@@ -3,6 +3,10 @@ import type { ToolCallResult, ToolNodeStatus } from "@/components/home/tool-stre
 import type { WeeklyAction, WeeklyRisk } from "@/lib/weekly-report-api";
 
 import type { PendingReview } from "@/lib/briefing-api";
+import {
+  isDocsHallucinationText,
+  stripDocsHallucinationFromChat,
+} from "@/lib/briefing-api";
 
 export type AgentChatResponseType = "briefing" | "report" | "chat" | "needs_data";
 
@@ -85,13 +89,15 @@ function normalizePendingReview(value: unknown): PendingReview | null {
   if (typeof value !== "object" || value === null) return null;
   const row = value as Record<string, unknown>;
   if (typeof row.content !== "string" || !row.content.trim()) return null;
-  return {
-    content: row.content.trim(),
-    reason:
-      typeof row.reason === "string" && row.reason.trim()
-        ? row.reason.trim()
-        : "검증 실패",
-  };
+  const content = row.content.trim();
+  const reason =
+    typeof row.reason === "string" && row.reason.trim()
+      ? row.reason.trim()
+      : "검증 실패";
+  if (isDocsHallucinationText(content) || isDocsHallucinationText(reason)) {
+    return null;
+  }
+  return { content, reason };
 }
 
 function parseAgentChatResponse(raw: unknown): AgentChatResponse {
@@ -100,12 +106,14 @@ function parseAgentChatResponse(raw: unknown): AgentChatResponse {
   }
   const data = raw as Record<string, unknown>;
 
-  const content =
+  const contentRaw =
     typeof data.content === "string"
       ? data.content
       : typeof data.answer === "string"
         ? data.answer
         : "";
+  const stripped = stripDocsHallucinationFromChat(contentRaw);
+  const content = stripped || contentRaw;
   if (!content) {
     throw new Error("응답에 content가 없습니다.");
   }

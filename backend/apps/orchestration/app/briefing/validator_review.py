@@ -80,9 +80,8 @@ def build_pending_review_payload(
         "content": flagged_text,
         "reason": reason,
     }
-    if not clean:
-        clean = answer.strip()
-    return clean, pending
+    # 환각만 남은 경우 원문을 되살리지 않는다 (채팅에 재노출 방지)
+    return clean.strip(), pending
 
 
 def normalize_pending_review(value: Any) -> dict[str, str] | None:

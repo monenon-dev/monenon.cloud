@@ -692,6 +692,7 @@ async def validator_node(state: BriefingState) -> dict:
     synthesizer와 역할을 분리해 생성 측이 스스로 완료를 과대 보고하지 않게 한다.
     auto 모드: 실패 시 synthesizer 재호출(최대 2회). review 모드: 재시도 없이
     ``pending_review`` 로 보류하고 검증된 본문만 ``answer`` 에 남긴다.
+    문서 환각(q3-roadmap 등)은 채팅/검토 UI에 넣지 않고 tool stream에만 기록한 뒤 본문에서 제거한다.
     """
     answer = (state.get("answer") or "").strip()
     evidence = _evidence_blobs(state)
@@ -812,22 +813,75 @@ async def validator_node(state: BriefingState) -> dict:
                 f"도구 결과와 겹치는 근거가 부족함 (ratio={ratio:.2f})"
             )
 
+    # 문서 환각은 채팅·검토 카드에 노출하지 않고 tool stream에만 남긴 뒤 본문에서 제거한다.
+    docs_strip_logs: list[dict[str, Any]] = []
+    docs_notes = ""
+    if any("문서 인용 근거 없음" in r for r in failure_reasons):
+        clean_answer, docs_pending = build_pending_review_payload(
+            answer,
+            [r for r in failure_reasons if "문서 인용 근거 없음" in r],
+        )
+        flagged = (docs_pending.get("content") or "").strip()
+        docs_notes = next(
+            (r for r in failure_reasons if "문서 인용 근거 없음" in r),
+            "문서 인용 근거 없음",
+        )
+        if not clean_answer.strip():
+            clean_answer = _fallback_briefing_from_sources(state)
+        answer = clean_answer
+        docs_strip_logs.append(
+            make_node_event(
+                "validator",
+                status="failed",
+                detail="문서 환각 문장 제거 — 채팅 제외, tool stream에만 기록",
+                attempt=pass_n,
+                params={
+                    "pass": pass_n,
+                    "ratio": round(ratio, 3),
+                    "stripped_docs_hallucination": 1,
+                },
+                error={
+                    "code": "DOCS_HALLUCINATION",
+                    "message": docs_notes,
+                },
+                result={
+                    "type": "list",
+                    "items": [
+                        {
+                            "title": "제외된 문서 인용 (근거 없음)",
+                            "preview": flagged[:280]
+                            + ("…" if len(flagged) > 280 else ""),
+                            "meta": "chat_hidden",
+                        }
+                    ],
+                },
+                seq=51 + pass_n * 10,
+            )
+        )
+        failure_reasons = [
+            r for r in failure_reasons if "문서 인용 근거 없음" not in r
+        ]
+
     ok = len(failure_reasons) == 0
     notes = ""
     if not ok:
         notes = " · ".join(failure_reasons)
         notes += " — 캘린더·문서·대화·Slack·Gmail JSON에 없는 고유명사/사실은 제거하세요."
+    elif docs_notes:
+        notes = docs_notes
 
     if ok:
         detail = f"{pass_n}차 검증 통과 (근거 일치)"
         if pass_n > 1:
             detail = f"{pass_n}차 검증 통과 — 자동 재검증됨"
-        return {
-            "validation_ok": True,
-            "validation_review_pending": False,
-            "validation_notes": "",
-            "tool_logs": [
-                running,
+        if docs_strip_logs:
+            detail = (
+                f"{pass_n}차 검증 — 문서 환각 문장 제거 후 통과 "
+                "(본문은 채팅, 제외 문장은 tool stream)"
+            )
+        success_logs: list[dict[str, Any]] = [running, *docs_strip_logs]
+        if not docs_strip_logs:
+            success_logs.append(
                 make_node_event(
                     "validator",
                     status="success",
@@ -845,17 +899,53 @@ async def validator_node(state: BriefingState) -> dict:
                         ],
                     },
                     seq=51 + pass_n * 10,
-                ),
-            ],
+                )
+            )
+        else:
+            success_logs.append(
+                make_node_event(
+                    "validator",
+                    status="success",
+                    detail=detail,
+                    attempt=pass_n,
+                    params={
+                        "pass": pass_n,
+                        "ratio": round(ratio, 3),
+                        "stripped_docs_hallucination": 1,
+                    },
+                    result={
+                        "type": "list",
+                        "items": [
+                            {
+                                "title": "검증 통과 (문서 환각 제외)",
+                                "meta": f"{pass_n}차",
+                                "preview": detail,
+                            }
+                        ],
+                    },
+                    seq=52 + pass_n * 10,
+                )
+            )
+        return {
+            "validation_ok": True,
+            "validation_review_pending": False,
+            "validation_notes": notes if docs_strip_logs else "",
+            "pending_review": None,
+            "answer": answer,
+            "tool_logs": success_logs,
             "trace": [
-                _trace("validator", ok=True, ratio=round(ratio, 3), retries=retries)
+                _trace(
+                    "validator",
+                    ok=True,
+                    ratio=round(ratio, 3),
+                    retries=retries,
+                    stripped_docs=bool(docs_strip_logs),
+                )
             ],
         }
 
     validator_mode = (state.get("validator_mode") or "auto").strip().lower()
-    # 문서 환각(의도적 데모 포함)은 auto여도 검토 UI로 넘겨 단계적으로 보여 준다.
-    docs_hallucination = any("문서 인용 근거 없음" in r for r in failure_reasons)
-    if validator_mode == "review" or docs_hallucination:
+    if validator_mode == "review":
         clean_answer, pending = build_pending_review_payload(answer, failure_reasons)
         review_detail = (
             f"검증 이슈 — 사용자 검토 대기 ({failure_reasons[0]})"
@@ -868,6 +958,7 @@ async def validator_node(state: BriefingState) -> dict:
             "answer": clean_answer,
             "tool_logs": [
                 running,
+                *docs_strip_logs,
                 make_node_event(
                     "validator",
                     status="success",
@@ -917,6 +1008,7 @@ async def validator_node(state: BriefingState) -> dict:
             "answer": answer,
             "tool_logs": [
                 running,
+                *docs_strip_logs,
                 make_node_event(
                     "validator",
                     status="success",
@@ -952,8 +1044,10 @@ async def validator_node(state: BriefingState) -> dict:
     return {
         "validation_ok": False,
         "validation_notes": notes,
+        "answer": answer,
         "tool_logs": [
             running,
+            *docs_strip_logs,
             make_node_event(
                 "validator",
                 status="failed",

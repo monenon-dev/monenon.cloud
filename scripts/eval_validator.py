@@ -34,10 +34,21 @@ DEFAULT_REPORT = ROOT / "docs" / "validator_eval_results.md"
 
 
 def _verdict_from_result(result: dict[str, Any]) -> str:
-    """auto 모드·retries=0 기준: validation_ok False → fail, True → pass."""
+    """auto 모드·retries=0 기준: validation_ok False → fail, True → pass.
+
+    문서 환각을 감지해 본문에서 제거(tool stream만 남김)한 경우도 fail로 친다.
+    """
+    for ev in result.get("tool_logs") or []:
+        if not isinstance(ev, dict):
+            continue
+        params = ev.get("params")
+        if isinstance(params, dict) and params.get("stripped_docs_hallucination") == 1:
+            return "fail"
+    notes = (result.get("validation_notes") or "").strip()
+    if "문서 인용 근거 없음" in notes:
+        return "fail"
     if result.get("validation_ok") is True and not result.get("validation_review_pending"):
         # forced 승인(재시도 한도)은 eval에서 retries=0이라 거의 안 오지만, 표시용
-        notes = (result.get("validation_notes") or "").strip()
         if notes and any(
             ev.get("params", {}).get("forced") == 1
             for ev in (result.get("tool_logs") or [])

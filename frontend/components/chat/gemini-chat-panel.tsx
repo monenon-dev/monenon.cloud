@@ -21,6 +21,10 @@ import { BriefingPendingReviewCard } from "@/components/chat/briefing-pending-re
 import type { AgentChatResponseType } from "@/lib/agent-chat-api";
 import type { PendingReview } from "@/lib/briefing-api";
 import {
+  isDocsHallucinationText,
+  stripDocsHallucinationFromChat,
+} from "@/lib/briefing-api";
+import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
@@ -468,7 +472,7 @@ export function GeminiChatPanel({
                   <p className="text-sm whitespace-pre-wrap">{msg.text}</p>
                 ) : (
                   <AgentMessageContent
-                    text={msg.text}
+                    text={stripDocsHallucinationFromChat(msg.text)}
                     kind={messageKind(msg)}
                     onRegenerate={isLastAssistant ? regenerate : undefined}
                   />
@@ -504,6 +508,8 @@ export function GeminiChatPanel({
                 {msg.role === "assistant" &&
                   isLastAssistant &&
                   msg.pendingReview &&
+                  !isDocsHallucinationText(msg.pendingReview.content) &&
+                  !isDocsHallucinationText(msg.pendingReview.reason) &&
                   msg.briefingId &&
                   chatUserId ? (
                   <BriefingPendingReviewCard

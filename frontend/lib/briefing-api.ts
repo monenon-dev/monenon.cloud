@@ -55,13 +55,45 @@ function normalizePendingReview(value: unknown): PendingReview | null {
   if (typeof value !== "object" || value === null) return null;
   const row = value as Record<string, unknown>;
   if (typeof row.content !== "string" || !row.content.trim()) return null;
-  return {
-    content: row.content.trim(),
-    reason:
-      typeof row.reason === "string" && row.reason.trim()
-        ? row.reason.trim()
-        : "검증 실패",
-  };
+  const content = row.content.trim();
+  const reason =
+    typeof row.reason === "string" && row.reason.trim()
+      ? row.reason.trim()
+      : "검증 실패";
+  // 문서 환각은 채팅 검토 카드에 올리지 않음 (tool stream 전용)
+  if (isDocsHallucinationText(content) || isDocsHallucinationText(reason)) {
+    return null;
+  }
+  return { content, reason };
+}
+
+const DOCS_HALLUCINATION_MARKERS = [
+  "문서 저장소",
+  "q3-roadmap",
+  "Q3 로드맵",
+  "North-star KPI",
+  "브리핑 목표 시간 45초",
+] as const;
+
+export function isDocsHallucinationText(text: string): boolean {
+  const lower = text.toLowerCase();
+  return DOCS_HALLUCINATION_MARKERS.some((m) => lower.includes(m.toLowerCase()));
+}
+
+/** 채팅 본문에서 문서 환각 문장·단락을 제거한다. */
+export function stripDocsHallucinationFromChat(text: string): string {
+  if (!text.trim() || !isDocsHallucinationText(text)) return text;
+  const parts = text.split(/\n{2,}/);
+  const kept = parts.filter((p) => !isDocsHallucinationText(p));
+  let cleaned = kept.join("\n\n").trim();
+  if (!cleaned) {
+    cleaned = text
+      .split("\n")
+      .filter((line) => !isDocsHallucinationText(line))
+      .join("\n")
+      .trim();
+  }
+  return cleaned.replace(/\n{3,}/g, "\n\n").trim();
 }
 
 export async function fetchTodayBriefing(
@@ -106,7 +138,7 @@ export async function fetchTodayBriefing(
     .map(normalizeToolLog)
     .filter((x): x is ToolCallResult => x !== null);
   return {
-    content: data.content,
+    content: stripDocsHallucinationFromChat(data.content) || data.content,
     tool_logs,
     briefing_date:
       typeof data.briefing_date === "string"
@@ -150,7 +182,7 @@ export async function submitBriefingReview(
   }
   const logsRaw = Array.isArray(data.tool_logs) ? data.tool_logs : [];
   return {
-    content: data.content,
+    content: stripDocsHallucinationFromChat(data.content) || data.content,
     tool_logs: logsRaw
       .map(normalizeToolLog)
       .filter((x): x is ToolCallResult => x !== null),
