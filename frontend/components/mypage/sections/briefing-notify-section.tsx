@@ -94,22 +94,31 @@ function BoundedSelect({
       }
       closeMenu();
     };
-    const onViewport = () => closeMenu();
-    document.addEventListener("mousedown", onPointer);
-    window.addEventListener("scroll", onViewport, true);
-    window.addEventListener("resize", onViewport);
+    const onWindowScroll = (event: Event) => {
+      if (listRef.current?.contains(event.target as Node)) return;
+      closeMenu();
+    };
+    const pointerTimer = window.setTimeout(() => {
+      document.addEventListener("mousedown", onPointer);
+    }, 0);
+    window.addEventListener("scroll", onWindowScroll, true);
+    window.addEventListener("resize", closeMenu);
     return () => {
+      window.clearTimeout(pointerTimer);
       document.removeEventListener("mousedown", onPointer);
-      window.removeEventListener("scroll", onViewport, true);
-      window.removeEventListener("resize", onViewport);
+      window.removeEventListener("scroll", onWindowScroll, true);
+      window.removeEventListener("resize", closeMenu);
     };
   }, [menu.open]);
 
   useEffect(() => {
     if (!menu.open) return;
-    listRef.current
-      ?.querySelector("[data-selected=true]")
-      ?.scrollIntoView({ block: "nearest" });
+    const list = listRef.current;
+    const selected = list?.querySelector("[data-selected=true]");
+    if (!list || !(selected instanceof HTMLElement)) return;
+    const offset =
+      selected.offsetTop - list.clientHeight / 2 + selected.clientHeight / 2;
+    list.scrollTop = Math.max(0, offset);
   }, [menu.open, value]);
 
   return (
