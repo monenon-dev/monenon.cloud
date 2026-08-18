@@ -62,6 +62,16 @@ export async function createChatSession(
   return data;
 }
 
+export class ChatApiError extends Error {
+  status: number;
+
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = "ChatApiError";
+    this.status = status;
+  }
+}
+
 export async function fetchSessionMessages(
   sessionId: number,
   userId: number,
@@ -71,7 +81,10 @@ export async function fetchSessionMessages(
     `${base(apiBaseUrl)}/platform/chat-sessions/${sessionId}/messages?user_id=${userId}`
   );
   if (!res.ok) {
-    throw new Error("메시지를 불러오지 못했습니다.");
+    const data = await res.json().catch(() => ({}));
+    const detail =
+      typeof data.detail === "string" ? data.detail : "메시지를 불러오지 못했습니다.";
+    throw new ChatApiError(detail, res.status);
   }
   return res.json();
 }

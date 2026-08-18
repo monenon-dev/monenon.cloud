@@ -25,6 +25,7 @@ import {
 import {
   createChatSession,
   deleteChatSession,
+  ChatApiError,
   fetchChatSessions,
   fetchSessionMessages,
   saveSessionMessage,
@@ -42,10 +43,15 @@ import { callAgentChatApi } from "@/lib/agent-chat-api";
 import { routes, chatsSessionUrl } from "@/lib/routes";
 import { getApiBaseUrl } from "@/lib/api-base";
 import { fetchTodayBriefing } from "@/lib/briefing-api";
-import { todaySeoulISO } from "@/lib/seoul-date";
+import {
+  briefingInjectStorageKey,
+  clearBriefingInjectedForUser,
+  clearHomeMeetingsBriefingRefreshFlag,
+  HOME_MEETINGS_SAVED_EVENT,
+  shouldForceBriefingRefresh,
+} from "@/lib/home-meetings-events";
 
 const apiBaseUrl = getApiBaseUrl();
-const BRIEFING_INJECTED_KEY = "moneo.today_briefing_injected";
 
 const GUEST_SUGGESTIONS = [
   "오늘 일정 정리해줘",
@@ -133,12 +139,74 @@ function ChatsPageContent() {
         const stored = await fetchSessionMessages(sessionId, userId, apiBaseUrl);
         setSessionMessages(storedMessagesToGemini(stored));
       } catch (e) {
+        if (e instanceof ChatApiError && e.status === 404) {
+          loadedSessionRef.current = null;
+          setActiveSessionId(null);
+          setSessionMessages([]);
+          router.replace(routes.lifestyle.chats, { scroll: false });
+          setPageError(null);
+          return;
+        }
         setSessionMessages([]);
         setPageError(e instanceof Error ? e.message : "메시지를 불러오지 못했습니다.");
       } finally {
         if (!options?.silent) setMessagesLoading(false);
         loadedSessionRef.current = sessionId;
         setMessagesEpoch((n) => n + 1);
+      }
+    },
+    [userId, router]
+  );
+
+  const injectTodayBriefing = useCallback(
+    async (sessionId: number, options?: { forceRefresh?: boolean }) => {
+      if (!userId) return;
+      const forceRefresh = Boolean(options?.forceRefresh) || shouldForceBriefingRefresh();
+      const storageKey = briefingInjectStorageKey(userId, sessionId);
+      if (forceRefresh) {
+        clearBriefingInjectedForUser(userId);
+      } else if (typeof window !== "undefined" && sessionStorage.getItem(storageKey)) {
+        return;
+      }
+
+      const prefs = loadMyPagePreferences(userId);
+      try {
+        const briefing = await fetchTodayBriefing(userId, {
+          apiBaseUrl,
+          speechTone: prefs.speechTone,
+          userType: prefs.userType,
+          industry: prefs.industry,
+          forceRefresh,
+        });
+        const text = briefing.content.trim();
+        if (!text) {
+          setPageError("오늘의 브리핑을 생성하지 못했습니다.");
+          return;
+        }
+        const assistantMsg: GeminiChatMessage = {
+          role: "assistant",
+          text,
+          ts: new Date().toISOString(),
+          responseType: "briefing",
+          toolLogs: briefing.tool_logs,
+          pendingReview: briefing.pending_review ?? null,
+          briefingId: briefing.id ?? null,
+          userNotes: briefing.user_notes ?? "",
+        };
+        setSessionMessages([assistantMsg]);
+        setMessagesEpoch((n) => n + 1);
+        setPageError(null);
+        try {
+          await saveSessionMessage(sessionId, userId, "assistant", text, apiBaseUrl);
+          sessionStorage.setItem(storageKey, "1");
+          clearHomeMeetingsBriefingRefreshFlag();
+        } catch {
+          /* 화면은 유지 — 다음 진입 시 다시 주입 */
+        }
+      } catch (e) {
+        setPageError(
+          e instanceof Error ? e.message : "오늘의 브리핑을 불러오지 못했습니다."
+        );
       }
     },
     [userId]
@@ -263,63 +331,12 @@ function ChatsPageContent() {
     void loadSessions();
   }, [mounted, loadSessions]);
 
-  /** 로그인 후 빈 세션에 오늘의 브리핑을 자동 표시 (하루 1회 주입). */
+  /** 로그인 후 빈 세션에 오늘의 브리핑을 자동 표시. */
   useEffect(() => {
     if (!mounted || !userId || !activeSessionId) return;
     if (messagesLoading || starterPrompt) return;
     if (sessionMessages.length > 0) return;
-
-    const dayKey = todaySeoulISO();
-    const storageKey = `${BRIEFING_INJECTED_KEY}.${userId}.${dayKey}.${activeSessionId}`;
-    if (typeof window !== "undefined" && sessionStorage.getItem(storageKey)) {
-      return;
-    }
-
-    let cancelled = false;
-    const prefs = loadMyPagePreferences(userId);
-
-    void (async () => {
-      try {
-        const briefing = await fetchTodayBriefing(userId, {
-          apiBaseUrl,
-          speechTone: prefs.speechTone,
-          userType: prefs.userType,
-          industry: prefs.industry,
-        });
-        if (cancelled) return;
-        const text = briefing.content.trim();
-        const assistantMsg: GeminiChatMessage = {
-          role: "assistant",
-          text,
-          ts: new Date().toISOString(),
-          responseType: "briefing",
-          toolLogs: briefing.tool_logs,
-          pendingReview: briefing.pending_review ?? null,
-          briefingId: briefing.id ?? null,
-          userNotes: briefing.user_notes ?? "",
-        };
-        setSessionMessages([assistantMsg]);
-        setMessagesEpoch((n) => n + 1);
-        sessionStorage.setItem(storageKey, "1");
-        try {
-          await saveSessionMessage(
-            activeSessionId,
-            userId,
-            "assistant",
-            text,
-            apiBaseUrl
-          );
-        } catch {
-          /* 표시는 유지 — 저장 실패는 무시 */
-        }
-      } catch {
-        /* 브리핑 실패 시 빈 채팅 유지 */
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
+    void injectTodayBriefing(activeSessionId);
   }, [
     mounted,
     userId,
@@ -327,7 +344,20 @@ function ChatsPageContent() {
     messagesLoading,
     starterPrompt,
     sessionMessages.length,
+    injectTodayBriefing,
   ]);
+
+  useEffect(() => {
+    if (!userId || !activeSessionId) return;
+    const onMeetingsSaved = () => {
+      clearBriefingInjectedForUser(userId);
+      if (sessionMessages.length === 0) {
+        void injectTodayBriefing(activeSessionId, { forceRefresh: true });
+      }
+    };
+    window.addEventListener(HOME_MEETINGS_SAVED_EVENT, onMeetingsSaved);
+    return () => window.removeEventListener(HOME_MEETINGS_SAVED_EVENT, onMeetingsSaved);
+  }, [userId, activeSessionId, sessionMessages.length, injectTodayBriefing]);
 
   useEffect(() => {
     if (!userId || !isNewFromHome) return;
@@ -402,6 +432,21 @@ function ChatsPageContent() {
     setSessionMessages([]);
     void loadMessages(id);
   }, [userId, isNewFromHome, searchParams, starterPrompt, loadMessages]);
+
+  useEffect(() => {
+    if (!userId || isNewFromHome || searchParams.get("session")) return;
+    if (activeSessionId || sessionsLoading || creatingNewRef.current) return;
+    if (sessions.length > 0) return;
+    void handleNewChat();
+  }, [
+    userId,
+    isNewFromHome,
+    searchParams,
+    activeSessionId,
+    sessionsLoading,
+    sessions.length,
+    handleNewChat,
+  ]);
 
   useEffect(() => {
     if (!userId || isNewFromHome || searchParams.get("session")) return;
