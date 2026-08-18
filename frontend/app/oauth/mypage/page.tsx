@@ -12,7 +12,7 @@ import {
   MyPageSidebarLayout,
   type MyPageSection,
 } from "@/components/mypage/mypage-sidebar-layout";
-import { clearAuthSession } from "@/lib/auth-api";
+import { getAuthSession, logoutAuthSession } from "@/lib/auth-api";
 import { routes } from "@/lib/routes";
 import { formatApiError } from "@/lib/format-api-error";
 import {
@@ -137,13 +137,12 @@ function MyPageContent() {
   }, [searchParams]);
 
   useEffect(() => {
-    const token = sessionStorage.getItem("access_token");
-    const userId = sessionStorage.getItem("user_id");
-    if (!token || !userId) {
+    const session = getAuthSession();
+    if (!session) {
       router.replace(routes.oauth.login);
       return;
     }
-    void loadProfile(userId);
+    void loadProfile(String(session.user_id));
   }, [router]);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -198,8 +197,7 @@ function MyPageContent() {
   };
 
   const handleLogout = () => {
-    clearAuthSession();
-    router.push(routes.oauth.login);
+    logoutAuthSession(routes.oauth.login);
   };
 
   const imageSrc = profile ? avatarUrl(profile.profile_image_url, ui.avatarKey) : null;

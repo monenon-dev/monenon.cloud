@@ -14,25 +14,35 @@ function OAuthCompleteInner() {
   const searchParams = useSearchParams();
 
   useEffect(() => {
-    const accessToken = searchParams.get("access_token");
     const userIdRaw = searchParams.get("user_id");
     const nickname = searchParams.get("nickname");
     const role = searchParams.get("role");
+    const providerRaw = searchParams.get("provider");
+    const provider =
+      providerRaw === "kakao" ||
+      providerRaw === "naver" ||
+      providerRaw === "google" ||
+      providerRaw === "credentials"
+        ? providerRaw
+        : "kakao";
+    const expiresAtRaw = searchParams.get("expires_at");
+    const expiresAt = expiresAtRaw ? Number(expiresAtRaw) : NaN;
     const nextRaw = searchParams.get("next") || "/";
     const next = nextRaw.startsWith("/") ? nextRaw : "/";
     const userId = userIdRaw ? Number(userIdRaw) : NaN;
     const enableKakaoCalendar = searchParams.get("kakao_calendar_sync") === "1";
 
-    if (!accessToken || !nickname || !role || !Number.isFinite(userId)) {
+    if (!nickname || !role || !Number.isFinite(userId)) {
       router.replace(`${routes.oauth.login}?error=oauth-invalid-response`);
       return;
     }
 
     saveAuthSession({
-      access_token: accessToken,
       user_id: userId,
       nickname,
       role,
+      provider,
+      expires_at: Number.isFinite(expiresAt) ? expiresAt : undefined,
     });
 
     void (async () => {

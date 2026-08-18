@@ -14,7 +14,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { clearAuthSession, getAuthSession } from "@/lib/auth-api";
+import { getAuthSession, logoutAuthSession } from "@/lib/auth-api";
 import { routes } from "@/lib/routes";
 
 function LessonMenuSidebar({ active }: { active: LessonMenuNavActive }) {
@@ -37,7 +37,7 @@ export function LessonTitanicShell({ children }: { children: ReactNode }) {
   }, []);
 
   const handleLogout = () => {
-    clearAuthSession();
+    logoutAuthSession(routes.oauth.login);
     setAuthUser(null);
   };
 

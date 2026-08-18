@@ -7,6 +7,19 @@ import { routes } from "@/lib/routes";
 
 type OAuthProvider = "naver" | "kakao";
 
+const ACCESS_TOKEN_MAX_AGE_SECONDS = 60 * 60;
+
+function authCookieOptions(origin: string) {
+  const secure = origin.startsWith("https://");
+  return {
+    httpOnly: true,
+    secure,
+    sameSite: "strict" as const,
+    path: "/",
+    maxAge: ACCESS_TOKEN_MAX_AGE_SECONDS,
+  };
+}
+
 export async function handleOAuthCallback(request: Request, provider: OAuthProvider) {
   const url = new URL(request.url);
   const code = url.searchParams.get("code");
@@ -67,10 +80,14 @@ export async function handleOAuthCallback(request: Request, provider: OAuthProvi
   }
 
   const complete = new URL("/oauth/complete", request.url);
-  complete.searchParams.set("access_token", accessToken);
   complete.searchParams.set("user_id", String(userId));
   complete.searchParams.set("nickname", nickname);
   complete.searchParams.set("role", role);
+  complete.searchParams.set("provider", provider);
+  complete.searchParams.set(
+    "expires_at",
+    String(Date.now() + ACCESS_TOKEN_MAX_AGE_SECONDS * 1000)
+  );
   complete.searchParams.set("next", next);
   const intent = cookieStore.get("moneo_oauth_intent")?.value;
   if (provider === "kakao" && intent === "kakao_calendar_sync") {
@@ -78,6 +95,7 @@ export async function handleOAuthCallback(request: Request, provider: OAuthProvi
   }
 
   const response = NextResponse.redirect(complete);
+  response.cookies.set("moneo_auth_token", accessToken, authCookieOptions(url.origin));
   response.cookies.delete("moneo_oauth_state");
   response.cookies.delete("moneo_oauth_next");
   response.cookies.delete("moneo_oauth_intent");

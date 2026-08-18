@@ -49,6 +49,7 @@ export function handleOAuthStart(request: Request, provider: OAuthProvider) {
   authorize.searchParams.set("state", state);
   if (provider === "kakao") {
     authorize.searchParams.set("lang", "ko");
+    authorize.searchParams.set("prompt", "login");
     if (scopeParam) {
       authorize.searchParams.set("scope", scopeParam);
     }

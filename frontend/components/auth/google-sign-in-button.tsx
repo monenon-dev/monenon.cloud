@@ -71,8 +71,9 @@ export function GoogleSignInButton({
   const handleCredential = useCallback(async (credential: string) => {
     try {
       const session = await loginWithGoogle(credential);
-      saveAuthSession(session);
-      onSuccessRef.current(session);
+      const saved = { ...session, provider: "google" as const };
+      saveAuthSession(saved);
+      onSuccessRef.current(saved);
     } catch (err) {
       onErrorRef.current?.(
         err instanceof Error ? err.message : "Google 로그인에 실패했습니다."

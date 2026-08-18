@@ -26,7 +26,7 @@ import {
 } from "@/components/home/landing-site-header";
 import { HomeSidebar } from "@/components/layout/home-sidebar";
 import Logo from "@/components/brand/Logo";
-import { clearAuthSession, getAuthSession } from "@/lib/auth-api";
+import { getAuthSession, logoutAuthSession } from "@/lib/auth-api";
 import { buildChatsUrl, saveChatStarter } from "@/lib/chat-starter";
 import {
   loadMyPagePreferences,
@@ -148,7 +148,7 @@ export default function MoneoHomePage() {
   }, [router]);
 
   const handleLogout = () => {
-    clearAuthSession();
+    logoutAuthSession(routes.oauth.login);
     patchUi({ authUser: null });
   };
 

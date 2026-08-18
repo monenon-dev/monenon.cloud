@@ -13,7 +13,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { clearAuthSession, getAuthSession } from "@/lib/auth-api";
+import { getAuthSession, logoutAuthSession } from "@/lib/auth-api";
 import { routes } from "@/lib/routes";
 
 type LessonNavKey = "hub" | "titanic" | "samsung" | "moneyball" | "crawling";
@@ -27,7 +27,7 @@ export function LessonHeader({ active = "hub" }: { active?: LessonNavKey }) {
   }, []);
 
   const handleLogout = () => {
-    clearAuthSession();
+    logoutAuthSession(routes.oauth.login);
     setAuthUser(null);
   };
 

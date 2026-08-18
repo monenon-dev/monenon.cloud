@@ -1,3 +1,5 @@
+import { getAuthSession } from "@/lib/auth-api";
+
 export const ADMIN_TOKEN_KEY = "admin_access_token";
 export const ADMIN_EMAIL_KEY = "admin_email";
 export const ADMIN_NICKNAME_KEY = "admin_nickname";
@@ -5,21 +7,15 @@ export const ADMIN_DISPLAY_NICKNAME = "관리자";
 export const ADMIN_DISPLAY_EMAIL = "admin@gmail.com";
 
 export function getSessionUserId(): number | null {
-  if (typeof window === "undefined") return null;
-  const raw = sessionStorage.getItem("user_id");
-  if (!raw) return null;
-  const id = Number(raw);
-  return Number.isFinite(id) ? id : null;
+  return getAuthSession()?.user_id ?? null;
 }
 
 export function getSessionNickname(): string | null {
-  if (typeof window === "undefined") return null;
-  return sessionStorage.getItem("user_nickname");
+  return getAuthSession()?.nickname ?? null;
 }
 
 export function getSessionUserRole(): string | null {
-  if (typeof window === "undefined") return null;
-  return sessionStorage.getItem("user_role");
+  return getAuthSession()?.role ?? null;
 }
 
 export function saveAdminSession(accessToken: string, email: string, nickname: string): void {
@@ -50,6 +46,5 @@ export function isSessionAdmin(): boolean {
 }
 
 export function hasSessionAuth(): boolean {
-  if (typeof window === "undefined") return false;
-  return Boolean(sessionStorage.getItem("access_token"));
+  return Boolean(getAuthSession());
 }

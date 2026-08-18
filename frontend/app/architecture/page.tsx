@@ -12,7 +12,7 @@ import {
   LandingSiteHeader,
 } from "@/components/home/landing-site-header";
 import { HomeSidebar } from "@/components/layout/home-sidebar";
-import { clearAuthSession, getAuthSession } from "@/lib/auth-api";
+import { getAuthSession, logoutAuthSession } from "@/lib/auth-api";
 import {
   loadMyPagePreferences,
   needsProfileOnboarding,
@@ -43,7 +43,7 @@ export default function ArchitecturePage() {
   }, [router]);
 
   const handleLogout = () => {
-    clearAuthSession();
+    logoutAuthSession(routes.oauth.login);
     patchUi({ authUser: null });
   };
 

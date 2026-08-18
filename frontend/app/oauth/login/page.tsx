@@ -63,7 +63,7 @@ function LoginForm() {
     patchUi({ loading: true, error: null });
     try {
       const session = await loginWithCredentials(email, password);
-      saveAuthSession(session);
+      saveAuthSession({ ...session, provider: "credentials" });
       const intended = searchParams.get("next") || "/";
       router.push(resolvePostAuthRedirect(session.user_id, intended));
       router.refresh();
