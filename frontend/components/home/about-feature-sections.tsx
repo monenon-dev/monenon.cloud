@@ -15,6 +15,7 @@ type AboutFeature = {
   footnote?: ReactNode;
   imageFirst: boolean;
   screenshotLabel: string;
+  screenshotSrc?: string;
 };
 
 const STATUS_LABEL: Record<FeatureStatus, string> = {
@@ -57,6 +58,7 @@ const ABOUT_FEATURES: AboutFeature[] = [
     ),
     imageFirst: true,
     screenshotLabel: "오늘의 업무 브리핑 화면",
+    screenshotSrc: "/assets/about-infographics/briefing.png",
   },
   {
     id: "docs",
@@ -71,6 +73,7 @@ const ABOUT_FEATURES: AboutFeature[] = [
     ],
     imageFirst: false,
     screenshotLabel: "문서·자료 정리 예시",
+    screenshotSrc: "/assets/about-infographics/docs.png",
   },
   {
     id: "report",
@@ -97,6 +100,7 @@ const ABOUT_FEATURES: AboutFeature[] = [
     ),
     imageFirst: true,
     screenshotLabel: "주간 업무 리포트 화면",
+    screenshotSrc: "/assets/about-infographics/report.png",
   },
   {
     id: "alerts",
@@ -123,6 +127,7 @@ const ABOUT_FEATURES: AboutFeature[] = [
     ),
     imageFirst: false,
     screenshotLabel: "상황 감지형 알림 화면",
+    screenshotSrc: "/assets/about-infographics/watcher.png",
   },
   {
     id: "chat",
@@ -148,24 +153,43 @@ const ABOUT_FEATURES: AboutFeature[] = [
     ),
     imageFirst: true,
     screenshotLabel: "에이전트 채팅 화면",
+    screenshotSrc: "/assets/about-infographics/chat.png",
   },
 ];
 
-function FeatureScreenshotPlaceholder({ label }: { label: string }) {
+function FeatureScreenshotPlaceholder({
+  label,
+  src,
+}: {
+  label: string;
+  src?: string;
+}) {
   return (
     <div
       className="moneo-glass flex aspect-[4/3] w-full flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-white/20 bg-white/[0.02] p-6 sm:aspect-video"
       role="img"
-      aria-label={`${label} 스크린샷 자리`}
+      aria-label={`${label} 스크린샷`}
     >
-      <div className="flex size-12 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-indigo-300/70">
-        <ImageIcon className="size-6" aria-hidden />
-      </div>
-      <p className="text-center text-xs leading-relaxed text-gray-500 sm:text-sm">
-        {label}
-        <br />
-        <span className="text-gray-600">스크린샷을 여기에 추가할 예정</span>
-      </p>
+      {src ? (
+        // public 경로로 고정된 마케팅 스크린샷(나중에 교체해도 레이아웃은 유지)
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={src}
+          alt={`${label} 스크린샷`}
+          className="h-full w-full rounded-xl object-contain"
+        />
+      ) : (
+        <>
+          <div className="flex size-12 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-indigo-300/70">
+            <ImageIcon className="size-6" aria-hidden />
+          </div>
+          <p className="text-center text-xs leading-relaxed text-gray-500 sm:text-sm">
+            {label}
+            <br />
+            <span className="text-gray-600">스크린샷을 여기에 추가할 예정</span>
+          </p>
+        </>
+      )}
     </div>
   );
 }
@@ -187,7 +211,10 @@ export function AboutFeatureSections() {
           aria-labelledby={`about-feature-${feature.id}`}
         >
           <div className={feature.imageFirst ? "order-1" : "order-1 lg:order-2"}>
-            <FeatureScreenshotPlaceholder label={feature.screenshotLabel} />
+            <FeatureScreenshotPlaceholder
+              label={feature.screenshotLabel}
+              src={feature.screenshotSrc}
+            />
           </div>
 
           <div
