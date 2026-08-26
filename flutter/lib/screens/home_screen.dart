@@ -106,7 +106,8 @@ class _HomeScreenState extends State<HomeScreen> {
           padding: const EdgeInsets.all(16),
           children: [
             Text(
-              'API: ${ApiConfig.baseUrl}',
+              'API: ${ApiConfig.baseUrl}'
+              '${ApiConfig.useProduction ? ' (production)' : ' (local)'}',
               style: Theme.of(context).textTheme.labelSmall,
             ),
             const SizedBox(height: 12),

@@ -52,6 +52,8 @@ async def _login_response(
     return LoginSuccessResponse(
         access_token=pair["access_token"],
         token_type=pair["token_type"],
+        refresh_token=pair["refresh_token"],
+        expires_in=pair.get("expires_in"),
         user_id=user.id,
         nickname=user.nickname,
         role=str(role),
