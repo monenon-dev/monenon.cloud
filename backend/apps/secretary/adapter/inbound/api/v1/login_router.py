@@ -15,6 +15,7 @@ from core.security import set_auth_cookies
 from secretary.adapter.inbound.api.schemas.auth_request import (
     AuthCredentials,
     GoogleLoginBody,
+    KakaoLoginBody,
     OAuthCodeBody,
 )
 from secretary.adapter.inbound.api.schemas.auth_response import LoginSuccessResponse
@@ -134,12 +135,25 @@ async def auth_login_naver(
 
 @login_router.post("/kakao", response_model=LoginSuccessResponse)
 async def auth_login_kakao(
-    body: OAuthCodeBody,
+    body: KakaoLoginBody,
     response: Response,
     use_case: UserUseCasePort = Depends(get_user_use_case),
 ) -> LoginSuccessResponse:
     try:
-        user = await use_case.authenticate_with_kakao(body.code, body.redirect_uri)
+        if body.has_token_flow():
+            user = await use_case.authenticate_with_kakao_access_token(
+                body.access_token.strip()  # type: ignore[union-attr]
+            )
+        elif body.has_code_flow():
+            user = await use_case.authenticate_with_kakao(
+                body.code,  # type: ignore[arg-type]
+                body.redirect_uri,  # type: ignore[arg-type]
+            )
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail="code+redirect_uri 또는 access_token이 필요합니다.",
+            )
     except ValueError as e:
         logger.warning("[LoginRouter] login_kakao 실패 — %s", e)
         status = 403 if "일시정지" in str(e) else 401

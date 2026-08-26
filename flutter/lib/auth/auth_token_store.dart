@@ -23,16 +23,23 @@ class AuthTokenStore extends ChangeNotifier {
 
   String? _accessToken;
   String? _refreshToken;
+  int? _userId;
+  String? _nickname;
+  String? _role;
 
   String? get accessToken => _accessToken;
   String? get refreshToken => _refreshToken;
+  int? get userId => _userId;
+  String? get nickname => _nickname;
+  String? get role => _role;
+
   bool get hasAccessToken =>
       _accessToken != null && _accessToken!.trim().isNotEmpty;
   bool get hasRefreshToken =>
       _refreshToken != null && _refreshToken!.trim().isNotEmpty;
-  bool get isAuthenticated => hasAccessToken || hasRefreshToken;
+  bool get isAuthenticated => hasAccessToken;
 
-  /// 앱 시작 시 refresh 쿠키/토큰만 secure storage에서 복원.
+  /// 앱 시작 시 refresh 토큰만 secure storage에서 복원.
   Future<void> loadRefreshToken() async {
     _refreshToken = await _storage.read(key: _refreshKey);
     notifyListeners();
@@ -41,6 +48,17 @@ class AuthTokenStore extends ChangeNotifier {
   void setAccessToken(String? token) {
     final next = token?.trim();
     _accessToken = (next == null || next.isEmpty) ? null : next;
+    notifyListeners();
+  }
+
+  void setProfile({
+    int? userId,
+    String? nickname,
+    String? role,
+  }) {
+    if (userId != null) _userId = userId;
+    if (nickname != null) _nickname = nickname;
+    if (role != null) _role = role;
     notifyListeners();
   }
 
@@ -67,6 +85,9 @@ class AuthTokenStore extends ChangeNotifier {
   Future<void> clear() async {
     _accessToken = null;
     _refreshToken = null;
+    _userId = null;
+    _nickname = null;
+    _role = null;
     await _storage.delete(key: _refreshKey);
     notifyListeners();
   }

@@ -14,7 +14,10 @@ from secretary.adapter.outbound.pg.user_query_pg_repository import UserQueryPgRe
 from secretary.app.ports.input.user_use_case import UserUseCasePort
 from secretary.app.use_cases.google_auth import verify_google_id_token
 from secretary.app.use_cases.kakao_account_store import upsert_kakao_account
-from secretary.app.use_cases.kakao_oauth import exchange_kakao_code
+from secretary.app.use_cases.kakao_oauth import (
+    exchange_kakao_code,
+    fetch_kakao_profile_with_access_token,
+)
 from secretary.app.use_cases.naver_oauth import fetch_naver_profile
 from secretary.app.use_cases.password import hash_password, verify_password
 from secretary.app.use_cases.suspension import is_user_suspended, suspension_detail_message
@@ -120,6 +123,13 @@ class UserUseCase(UserUseCasePort):
 
     async def authenticate_with_kakao(self, code: str, redirect_uri: str) -> User:
         full = await exchange_kakao_code(code, redirect_uri)
+        return await self._complete_kakao_login(full)
+
+    async def authenticate_with_kakao_access_token(self, access_token: str) -> User:
+        full = await fetch_kakao_profile_with_access_token(access_token)
+        return await self._complete_kakao_login(full)
+
+    async def _complete_kakao_login(self, full: dict) -> User:
         email = full["email"]
         if not isinstance(email, str):
             raise ValueError("카카오 계정 이메일을 확인할 수 없습니다.")

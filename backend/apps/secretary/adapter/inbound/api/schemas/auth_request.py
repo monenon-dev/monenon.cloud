@@ -34,6 +34,24 @@ class OAuthCodeBody(BaseModel):
     redirect_uri: str = Field(..., min_length=10)
 
 
+class KakaoLoginBody(BaseModel):
+    """카카오 로그인 — 웹(code) 또는 네이티브 SDK(access_token)."""
+
+    code: str | None = Field(default=None, min_length=4)
+    redirect_uri: str | None = Field(default=None, min_length=10)
+    access_token: str | None = Field(
+        default=None,
+        min_length=10,
+        description="Flutter kakao_flutter_sdk 등으로 받은 카카오 access token",
+    )
+
+    def has_code_flow(self) -> bool:
+        return bool(self.code and self.redirect_uri)
+
+    def has_token_flow(self) -> bool:
+        return bool(self.access_token and self.access_token.strip())
+
+
 class RegisterBody(BaseModel):
     """회원가입 본문."""
 

@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 
+import '../auth/auth_token_store.dart';
 import '../config/api_config.dart';
 import '../models/weather.dart';
 import '../screens/chat_screen.dart';
+import '../services/auth_service.dart';
+import '../services/kakao_auth_gateway.dart';
 import '../services/weather_service.dart';
 import '../utils/secretary_persona.dart';
 
@@ -98,6 +101,14 @@ class _HomeScreenState extends State<HomeScreen> {
             icon: const Icon(Icons.refresh),
             tooltip: '날씨 새로고침',
           ),
+          IconButton(
+            onPressed: () async {
+              await AuthService().logout();
+              await KakaoAuthGateway().logoutKakaoSdk();
+            },
+            icon: const Icon(Icons.logout),
+            tooltip: '로그아웃',
+          ),
         ],
       ),
       body: RefreshIndicator(
@@ -107,7 +118,8 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             Text(
               'API: ${ApiConfig.baseUrl}'
-              '${ApiConfig.useProduction ? ' (production)' : ' (local)'}',
+              '${ApiConfig.useProduction ? ' (production)' : ' (local)'}'
+              '${AuthTokenStore.instance.nickname != null ? ' · ${AuthTokenStore.instance.nickname}' : ''}',
               style: Theme.of(context).textTheme.labelSmall,
             ),
             const SizedBox(height: 12),

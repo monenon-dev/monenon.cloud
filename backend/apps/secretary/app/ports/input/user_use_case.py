@@ -28,6 +28,10 @@ class UserUseCasePort(ABC):
         ...
 
     @abstractmethod
+    async def authenticate_with_kakao_access_token(self, access_token: str) -> User:
+        ...
+
+    @abstractmethod
     async def get_profile(self, user_id: int) -> UserProfileResponse | None:
         ...
 

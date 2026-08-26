@@ -29,6 +29,16 @@ class AuthService {
   final ApiClient _client;
   final AuthTokenStore _tokens;
 
+  /// 카카오 SDK access token → 백엔드 Moneo JWT.
+  Future<AuthSession> loginWithKakaoAccessToken(String kakaoAccessToken) async {
+    final res = await _client.post(
+      '/auth/kakao',
+      body: {'access_token': kakaoAccessToken},
+      skipAuthRetry: true,
+    );
+    return _parseAndStore(res.body, res.statusCode, '카카오 로그인에 실패했습니다.');
+  }
+
   /// 이메일/비밀번호 로그인 → JWT 쌍 저장.
   Future<AuthSession> loginWithCredentials({
     required String email,
