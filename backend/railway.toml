@@ -1,0 +1,12 @@
+# Railway backend service — Root Directory must be `backend` in dashboard.
+# Avoids Railpack/Nixpacks vs Dockerfile conflict on monenon.cloud monorepo.
+
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
+watchPatterns = ["**"]
+
+[deploy]
+healthcheckPath = "/"
+healthcheckTimeout = 300
+restartPolicyType = "ON_FAILURE"
