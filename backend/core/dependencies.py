@@ -51,28 +51,16 @@ async def get_authenticated_user_id(
             detail="유효하지 않은 사용자입니다.",
         ) from exc
 
-
-async def get_current_user(request: Request) -> TokenPayload:
-    token = extract_bearer_or_cookie(request)
-    if not token:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="인증이 필요합니다.",
-        )
+async def get_authenticated_user_id(
+    user: TokenPayload = Depends(get_current_user),
+) -> int:
     try:
-        payload = verify_token(token, aud=_service_aud())
-    except jwt.PyJWTError:
+        return int(user.sub)
+    except (TypeError, ValueError) as exc:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="유효하지 않거나 만료된 토큰입니다.",
-        ) from None
-    if await is_jti_revoked(payload.jti):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="폐기된 토큰입니다.",
-        )
-    return payload
-
+            detail="유효하지 않은 사용자입니다.",
+        ) from exc
 
 class RoleChecker:
     """허용 role 문자열 (예: \"user\", \"admin\"). auth.rbac.Role 값과 동일."""
