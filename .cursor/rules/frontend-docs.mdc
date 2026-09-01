@@ -1,0 +1,24 @@
+---
+description: 프론트 구현 전 REACT_RULES · frontend/.cursorrules 참조 (.cursorrules §5)
+globs: frontend/**/*
+alwaysApply: false
+---
+
+# Frontend `_docs/` (필수 — 구현 전)
+
+출처: 저장소 루트 `.cursorrules` §5·문서 표.
+
+프론트(Next.js·React) 작업 시에는 **`frontend/_docs/REACT_RULES.md`** 를 따른다.  
+백엔드 규칙으로 프론트를 대체하지 않는다.
+
+## 읽는 순서
+
+1. **`frontend/_docs/REACT_RULES.md`** — React·Next.js 코딩 규칙 (필수)
+2. **`frontend/.cursorrules`** — 프론트 실행·라우트·API 경계
+3. 백엔드 API·도메인이 필요하면 `backend/CLAUDE.md` · 해당 앱 `_docs`
+
+## Cursor 멘션 (권장)
+
+```text
+@.cursorrules @frontend/.cursorrules @frontend/_docs/REACT_RULES.md
+```

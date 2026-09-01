@@ -1,0 +1,10 @@
+---
+description: API 설계·응답 형식 표준 (내용 채우기용 스텁 — watson .claude에서 이식)
+globs: "{backend,frontend}/**/*.{py,ts,tsx}"
+alwaysApply: false
+---
+
+# API Standards
+
+> watson `.claude/rules/api-standards.md`에서 이식한 자리. Monenon FastAPI / Next route 규칙에 맞게 채운다.
+> 당장 따를 본문은 `backend/_docs/BACKEND_RULES.md`와 `.cursorrules`를 우선한다.

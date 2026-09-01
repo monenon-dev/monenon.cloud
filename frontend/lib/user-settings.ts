@@ -1,4 +1,5 @@
 import { getApiBaseUrl } from "@/lib/api-base";
+import { apiFetch } from "@/lib/api-client";
 
 const defaultBase = getApiBaseUrl();
 
@@ -37,6 +38,7 @@ export interface UserSettingResponse {
   language: string;
   preferred_model: string;
   lifestyle: LifestyleProfile;
+  kakao_calendar_sync?: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -45,8 +47,8 @@ export async function fetchUserSettings(
   userId: number,
   apiBaseUrl?: string
 ): Promise<UserSettingResponse> {
-  const res = await fetch(
-    `${base(apiBaseUrl)}/platform/user-settings?user_id=${userId}`
+  const res = await apiFetch(
+    `${base(apiBaseUrl)}/platform/user-settings`
   );
   const data: unknown = await res.json().catch(() => ({}));
   if (!res.ok) {
@@ -65,10 +67,11 @@ export async function patchUserSettings(
     language?: string;
     preferred_model?: string;
     lifestyle?: LifestyleProfile;
+    kakao_calendar_sync?: boolean;
   },
   apiBaseUrl?: string
 ): Promise<UserSettingResponse> {
-  const res = await fetch(`${base(apiBaseUrl)}/platform/user-settings`, {
+  const res = await apiFetch(`${base(apiBaseUrl)}/platform/user-settings`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ user_id: userId, ...body }),

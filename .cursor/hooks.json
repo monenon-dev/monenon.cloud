@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "hooks": {
+    "preToolUse": [
+      {
+        "command": "python3 .cursor/hooks/protect-files.py",
+        "matcher": "Write|Delete|StrReplace|EditNotebook",
+        "failClosed": true
+      }
+    ]
+  }
+}

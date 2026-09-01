@@ -7,10 +7,10 @@
 
 | 문서 | 내용 |
 |------|------|
-| [../../../../CLAUDE.md](../../../../CLAUDE.md) | 공통 행동 원칙 |
+| [../../../../.cursorrules](../../../../.cursorrules) | 공통 행동 원칙·제품 방향 |
 | [../../../CLAUDE.md](../../../CLAUDE.md) | 백엔드·시블링 앱 구조 |
-| [../../../../docs/DevOps/backend/BACKEND_RULES.md](../../../../docs/DevOps/backend/BACKEND_RULES.md) | FastAPI 규칙 |
-| [../../../../frontend/CLAUDE.md](../../../../frontend/CLAUDE.md) | Titanic 프론트 경로·`getTitanicApiBaseUrl` |
+| [../../../../_docs/BACKEND_RULES.md](../../../../_docs/BACKEND_RULES.md) | FastAPI 규칙 |
+| [../../../../frontend/.cursorrules](../../../../frontend/.cursorrules) | Titanic 프론트 경로·`getTitanicApiBaseUrl` |
 
 ---
 
@@ -175,7 +175,7 @@ CSV 업로드: `crew_james_director_pg_repository`
 
 ## Titanic 작업 체크리스트
 
-1. [BACKEND_RULES.md](../../../../docs/DevOps/backend/BACKEND_RULES.md) + 기존 `crew_*` / `passenger_*` 파일 패턴 읽기
+1. [BACKEND_RULES.md](../../../../_docs/BACKEND_RULES.md) + 기존 `crew_*` / `passenger_*` 파일 패턴 읽기
 2. 라우터는 얇게, 로직은 `use_cases` · `pg`
 3. API 경로는 **`/api/titanic/...`** 기준으로 Swagger·프론트와 맞출 것
 4. Docker 반영: `docker compose up --build -d backend`
@@ -185,5 +185,5 @@ CSV 업로드: `crew_james_director_pg_repository`
 ### Cursor 멘션 (권장)
 
 ```text
-@CLAUDE.md @backend/CLAUDE.md @backend/apps/titanic/_docs/CLAUDE.md @docs/DevOps/backend/BACKEND_RULES.md
+@.cursorrules @backend/CLAUDE.md @backend/apps/titanic/_docs/CLAUDE.md @backend/_docs/BACKEND_RULES.md
 ```

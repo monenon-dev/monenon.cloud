@@ -1,7 +1,15 @@
 /** App Router paths — `app/` 폴더 구조와 동기화 */
 export const routes = {
   home: "/",
+  about: "/about",
+  faq: "/faq",
+  architecture: "/architecture",
+  demo: "/demo",
+  showcase: "/showcase",
   addressbook: "/addressbook",
+  agent: {
+    history: "/agent/history",
+  },
   lifestyle: {
     closet: "/lifestyle/closet",
     refrigerator: "/lifestyle/refrigerator",
@@ -14,7 +22,16 @@ export const routes = {
   oauth: {
     login: "/oauth/login",
     signup: "/oauth/signup",
+    signupNaver: "/oauth/signup/naver",
+    signupKakao: "/oauth/signup/kakao",
+    naver: "/oauth/naver",
+    kakao: "/oauth/kakao",
+    onboarding: "/oauth/onboarding",
     mypage: "/oauth/mypage",
+    /** `/mypage/preferences` 리다이렉트 대상 — 취향 설정 탭 */
+    mypagePreferences: "/oauth/mypage?section=preferences",
+    /** 브리핑·능동 알림 설정 */
+    mypageNotifications: "/oauth/mypage?section=notifications",
     admin: {
       root: "/oauth/admin",
       login: "/oauth/admin/login",
@@ -30,20 +47,29 @@ export const routes = {
   lesson: {
     hub: "/lesson",
     titanicHome: "/lesson/titanic-home",
+    moneyball: "/lesson/moneyball",
+    moneyballChat: "/lesson/moneyball/chat",
     titanicSmith: "/lesson/titanic-home/smith",
     titanicPassengers: "/lesson/titanic-home/passengers",
-    vision: "/lesson/vision",
+    vision: "/star-craft/zerg/vision",
     siliconValleyAdmin: "/lesson/silicon-valley/admin",
+    samsung: "/lesson/samsung",
+    samsungUpload: "/lesson/samsung/upload",
     crawlingNews: "/lesson/crawling/news",
     crawlingBoard: "/lesson/crawling/board",
     crawlingWrite: "/lesson/crawling/write",
-    samsung: "/lesson/samsung",
-    samsungUpload: "/lesson/samsung/upload",
+    crawlingScraper: "/lesson/crawling/scraper",
   },
 } as const;
 
 export function lifestyleDashboardSection(section: string): string {
   return `${routes.lifestyle.dashboard}?section=${section}`;
+}
+
+export type MyPageSectionId = "dashboard" | "preferences" | "notifications" | "account";
+
+export function mypageSectionUrl(section: MyPageSectionId): string {
+  return `${routes.oauth.mypage}?section=${section}`;
 }
 
 export function chatsSessionUrl(sessionId: number): string {

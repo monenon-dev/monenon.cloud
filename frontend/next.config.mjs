@@ -19,7 +19,10 @@ const nextConfig = {
       { source: "/music", destination: "/lifestyle/music", permanent: true },
       { source: "/dashboard", destination: "/lifestyle/dashboard", permanent: true },
       { source: "/schedule", destination: "/lifestyle/schedule", permanent: true },
-      { source: "/settings", destination: "/lifestyle/settings", permanent: true },
+      { source: "/settings", destination: "/oauth/mypage?section=notifications", permanent: false },
+      { source: "/lifestyle/settings", destination: "/oauth/mypage?section=notifications", permanent: false },
+      { source: "/agent-settings", destination: "/oauth/mypage?section=notifications", permanent: false },
+      { source: "/mypage/preferences", destination: "/oauth/mypage?section=preferences", permanent: false },
       // oauth
       { source: "/login", destination: "/oauth/login", permanent: true },
       { source: "/signup", destination: "/oauth/signup", permanent: true },

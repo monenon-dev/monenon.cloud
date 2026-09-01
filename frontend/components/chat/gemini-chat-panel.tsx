@@ -4,15 +4,37 @@ import { useState, useRef, useEffect, useCallback, ChangeEvent, KeyboardEvent, F
 import {
   ChevronDown,
   Loader2,
+  Lock,
   Mic,
   Plus,
   Send,
   SlidersHorizontal,
 } from "lucide-react";
 
+import { AgentAvatar } from "@/components/chat/agent-avatar";
+import {
+  AgentMessageContent,
+  AgentStreamingPlaceholder,
+} from "@/components/chat/agent-message-content";
+import { ChatToolStreamPanel } from "@/components/chat/chat-tool-stream-panel";
+import { BriefingPendingReviewCard } from "@/components/chat/briefing-pending-review";
+import { BriefingNotesField } from "@/components/chat/briefing-notes-field";
+import type { AgentChatResponseType } from "@/lib/agent-chat-api";
+import type { PendingReview } from "@/lib/briefing-api";
+import {
+  isDocsHallucinationText,
+  stripDocsHallucinationFromChat,
+} from "@/lib/briefing-api";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { getTitanicApiBaseUrl } from "@/lib/api-base";
 import { formatMessageTime } from "@/lib/chat-sessions";
 import { type PdfBlobUploadResult, uploadPdfToBlob } from "@/lib/pdf-blob-api";
+import type { ToolCallResult } from "@/components/home/tool-stream";
+import type { AgentAvatarState } from "@/lib/agent-avatar";
 
 export interface GeminiChatMessage {
   role: "user" | "assistant";
@@ -21,6 +43,13 @@ export interface GeminiChatMessage {
   model?: string;
   confidence?: number;
   sources?: string[];
+  responseType?: AgentChatResponseType;
+  toolLogs?: ToolCallResult[];
+  pendingReview?: PendingReview | null;
+  briefingId?: number | null;
+  userNotes?: string;
+  /** needs_data 등 — 클릭 시 해당 문구로 전송 */
+  quickReplies?: string[];
 }
 
 interface ChatApiResponse {
@@ -30,8 +59,11 @@ interface ChatApiResponse {
 
 interface AgentChatResponse {
   answer: string;
+  content?: string;
+  type?: AgentChatResponseType;
   confidence: number;
   sources: string[];
+  tool_logs?: ToolCallResult[];
 }
 
 export interface GeminiChatPanelProps {
@@ -46,7 +78,10 @@ export interface GeminiChatPanelProps {
   /** 외부에서 대화 기록을 주입할 때 (채팅방 선택 등) */
   initialMessages?: GeminiChatMessage[];
   /** 지정 시 기본 fetch 대신 이 핸들러로 전송·응답 처리 */
-  onSendMessage?: (text: string) => Promise<GeminiChatMessage>;
+  onSendMessage?: (
+    text: string,
+    options?: { regenerate?: boolean }
+  ) => Promise<GeminiChatMessage>;
   /** initialMessages / session 변경 시 패널 리셋용 */
   resetKey?: string | number;
   /** 입력창에 미리 채울 문구 (추천 태그 등) */
@@ -59,12 +94,23 @@ export interface GeminiChatPanelProps {
   starterDedupeKey?: string;
   /** 부모가 DB에서 메시지 로드 완료 시 증가 — resetKey와 별도로 initialMessages 반영 */
   messagesEpoch?: number;
+  /** 게스트 모드: PDF·도구·음성 등 Moneo 전용 입력 숨김 */
+  guestMode?: boolean;
+  /** 브리핑 검토 API용 로그인 사용자 id */
+  chatUserId?: number | null;
+  /** 빈 화면 예시 프롬프트 (클릭 시 입력창만 채움, 전송 안 함) */
+  emptySuggestions?: string[];
 }
 
 const defaultBase = getTitanicApiBaseUrl();
 
 /** React Strict Mode remount 시 starter 자동 전송 중복 방지 */
 const sentStarterKeys = new Set<string>();
+
+/** working 아바타가 너무 짧게 깜빡이지 않도록 최소 유지 시간(ms) */
+const MIN_AGENT_WORKING_MS = 1000;
+/** complete → idle 복귀 전 유지 시간(ms) */
+const AGENT_COMPLETE_MS = 600;
 
 function isAgentChatPath(path: string) {
   return path.replace(/\/$/, "").endsWith("/agent/chat");
@@ -96,19 +142,38 @@ function buildRequestBody(
 function parseAssistantReply(
   path: string,
   raw: unknown
-): Pick<GeminiChatMessage, "text" | "confidence" | "sources"> & { model?: string } {
+): Pick<
+  GeminiChatMessage,
+  "text" | "confidence" | "sources" | "responseType" | "toolLogs"
+> & { model?: string } {
   if (typeof raw !== "object" || raw === null) {
     throw new Error("응답 형식이 올바르지 않습니다.");
   }
   if (isAgentChatPath(path)) {
     const data = raw as AgentChatResponse;
-    if (typeof data.answer !== "string") {
-      throw new Error("응답에 answer가 없습니다.");
+    const text =
+      typeof data.content === "string"
+        ? data.content
+        : typeof data.answer === "string"
+          ? data.answer
+          : "";
+    if (!text) {
+      throw new Error("응답에 content가 없습니다.");
     }
+    const responseType =
+      data.type === "briefing" ||
+      data.type === "report" ||
+      data.type === "chat" ||
+      data.type === "needs_data"
+        ? data.type
+        : "chat";
+    const toolLogs = Array.isArray(data.tool_logs) ? data.tool_logs : [];
     return {
-      text: data.answer,
+      text,
       confidence: data.confidence,
       sources: data.sources,
+      responseType,
+      toolLogs,
     };
   }
   const data = raw as ChatApiResponse;
@@ -124,9 +189,9 @@ function parseAssistantReply(
 export function GeminiChatPanel({
   apiBaseUrl = defaultBase,
   chatPath = "/titanic/smith/chat",
-  placeholder = "타이타닉에 대해 질문하세요 (예: 생존자는 몇 명인가요?)",
-  emptyTitle: _emptyTitle = "스미스 선장과 대화를 시작하세요",
-  emptySubtitle: _emptySubtitle = "백엔드 POST /api/titanic/smith/chat 이 연결되어 있으면 응답이 표시됩니다.",
+  placeholder = "업무에 대해 물어보세요 (예: 이번 주 리포트 요약해 줘)",
+  emptyTitle = "Moneo와 대화를 시작하세요",
+  emptySubtitle = "일정·문서·리포트 등 업무를 물어보면 에이전트가 답합니다.",
   className = "",
   initialMessages,
   onSendMessage,
@@ -136,17 +201,22 @@ export function GeminiChatPanel({
   onInitialInputHandled,
   starterDedupeKey,
   messagesEpoch = 0,
+  guestMode = false,
+  chatUserId = null,
+  emptySuggestions,
 }: GeminiChatPanelProps) {
   const [messages, setMessages] = useState<GeminiChatMessage[]>(initialMessages ?? []);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [agentVisual, setAgentVisual] = useState<AgentAvatarState>("idle");
   const [isUploading, setIsUploading] = useState(false);
   const [attachment, setAttachment] = useState<PdfBlobUploadResult | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [mounted, setMounted] = useState(false);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const sentInitialRef = useRef<{ resetKey: string | number | undefined; prompt: string } | null>(null);
+  const prevLoadingRef = useRef(false);
+  const completeTimerRef = useRef<number | null>(null);
 
   const scrollToBottom = () => {
     const el = messagesContainerRef.current;
@@ -156,12 +226,31 @@ export function GeminiChatPanel({
   };
 
   useEffect(() => {
-    setMounted(true);
-  }, []);
+    scrollToBottom();
+  }, [messages, isLoading, agentVisual]);
 
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+    if (isLoading) {
+      if (completeTimerRef.current !== null) {
+        window.clearTimeout(completeTimerRef.current);
+        completeTimerRef.current = null;
+      }
+      setAgentVisual("working");
+    } else if (prevLoadingRef.current) {
+      setAgentVisual("complete");
+      completeTimerRef.current = window.setTimeout(() => {
+        setAgentVisual("idle");
+        completeTimerRef.current = null;
+      }, AGENT_COMPLETE_MS);
+    }
+    prevLoadingRef.current = isLoading;
+    return () => {
+      if (completeTimerRef.current !== null) {
+        window.clearTimeout(completeTimerRef.current);
+        completeTimerRef.current = null;
+      }
+    };
+  }, [isLoading]);
 
   const prevResetKeyRef = useRef(resetKey);
 
@@ -173,6 +262,8 @@ export function GeminiChatPanel({
     setInput("");
     setAttachment(null);
     sentInitialRef.current = null;
+    setAgentVisual("idle");
+    prevLoadingRef.current = false;
   }, [resetKey, initialMessages]);
 
   const prevMessagesEpochRef = useRef(messagesEpoch);
@@ -205,18 +296,37 @@ export function GeminiChatPanel({
     }
   };
 
-  const sendQuestion = useCallback(async (question: string) => {
+  const sendQuestion = useCallback(async (
+    question: string,
+    options?: { regenerate?: boolean }
+  ) => {
     const trimmed = question.trim();
     if (!trimmed) return;
 
-    const userMessage: GeminiChatMessage = {
-      role: "user",
-      text: trimmed,
-      ts: new Date().toISOString(),
-    };
+    const isRegenerate = Boolean(options?.regenerate);
 
-    setMessages((prev) => [...prev, userMessage]);
+    if (!isRegenerate) {
+      const userMessage: GeminiChatMessage = {
+        role: "user",
+        text: trimmed,
+        ts: new Date().toISOString(),
+      };
+      setMessages((prev) => [...prev, userMessage]);
+    } else {
+      // 마지막 assistant 응답만 교체 — 사용자 말풍선 중복 방지
+      setMessages((prev) => {
+        const next = [...prev];
+        for (let i = next.length - 1; i >= 0; i -= 1) {
+          if (next[i]?.role === "assistant") {
+            next.splice(i, 1);
+            break;
+          }
+        }
+        return next;
+      });
+    }
     setInput("");
+    const workingStartedAt = Date.now();
     setIsLoading(true);
     setErrorMessage(null);
 
@@ -224,7 +334,7 @@ export function GeminiChatPanel({
       let assistantMessage: GeminiChatMessage;
 
       if (onSendMessage) {
-        assistantMessage = await onSendMessage(trimmed);
+        assistantMessage = await onSendMessage(trimmed, { regenerate: isRegenerate });
       } else {
         const res = await fetch(`${apiBaseUrl.replace(/\/$/, "")}${chatPath}`, {
           method: "POST",
@@ -250,6 +360,8 @@ export function GeminiChatPanel({
           model: parsed.model,
           confidence: parsed.confidence,
           sources: parsed.sources,
+          responseType: parsed.responseType,
+          toolLogs: parsed.toolLogs,
         };
       }
 
@@ -257,6 +369,11 @@ export function GeminiChatPanel({
     } catch (err) {
       setErrorMessage(err instanceof Error ? err.message : "응답에 실패했습니다.");
     } finally {
+      const elapsed = Date.now() - workingStartedAt;
+      const remaining = Math.max(0, MIN_AGENT_WORKING_MS - elapsed);
+      if (remaining > 0) {
+        await new Promise((resolve) => setTimeout(resolve, remaining));
+      }
       setIsLoading(false);
     }
   }, [apiBaseUrl, chatPath, messages, onSendMessage]);
@@ -300,37 +417,192 @@ export function GeminiChatPanel({
     (c: number | undefined) =>
       `${(typeof c === "number" && c <= 1 ? c * 100 : Number(c ?? 0)).toFixed(1)}%`;
 
+  const messageKind = (msg: GeminiChatMessage): "briefing" | "report" | undefined => {
+    if (msg.responseType === "briefing") return "briefing";
+    if (msg.responseType === "report") return "report";
+    if (msg.role === "assistant" && /오늘의 브리핑|업무 브리핑/.test(msg.text)) {
+      return "briefing";
+    }
+    return undefined;
+  };
+
   return (
-    <div className={`flex h-full min-h-0 flex-col overflow-hidden gap-3 ${className}`}>
+    <div className={`flex h-full min-h-0 min-w-0 w-full flex-col overflow-hidden gap-3 ${className}`}>
       <div
         ref={messagesContainerRef}
-        className="flex-1 min-h-0 overflow-y-auto overscroll-contain space-y-4 rounded-2xl border border-gray-200 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/30 px-4 sm:px-6 py-4"
+        className={`flex-1 min-h-0 min-w-0 w-full overflow-y-auto scroll-auto overscroll-contain space-y-4 rounded-2xl border px-4 sm:px-6 py-4 [scrollbar-gutter:stable] ${
+          guestMode
+            ? "border-white/10 bg-white/[0.02]"
+            : "border-gray-200 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/30"
+        }`}
       >
           {messages.length === 0 && !isLoading && !errorMessage && (
-            <p className="text-center text-sm text-gray-400 py-8">메시지를 입력해 대화를 시작하세요.</p>
+            <div className="flex flex-col items-center justify-center gap-4 px-2 py-10 text-center">
+              <AgentAvatar state="idle" size="lg" />
+              <div className="space-y-1.5">
+                {emptyTitle ? (
+                  <p
+                    className={`text-sm font-medium ${
+                      guestMode ? "text-indigo-100/90" : "text-gray-600 dark:text-gray-300"
+                    }`}
+                  >
+                    {emptyTitle}
+                  </p>
+                ) : null}
+                <p
+                  className={`text-sm leading-relaxed ${
+                    guestMode ? "text-indigo-200/55" : "text-gray-400"
+                  }`}
+                >
+                  {emptySubtitle || "메시지를 입력해 대화를 시작하세요."}
+                </p>
+              </div>
+              {emptySuggestions && emptySuggestions.length > 0 ? (
+                <div className="mt-1 flex max-w-md flex-wrap justify-center gap-2">
+                  {emptySuggestions.map((hint) => (
+                    <button
+                      key={hint}
+                      type="button"
+                      onClick={() => setInput(hint)}
+                      className="rounded-full border border-indigo-400/30 bg-indigo-500/10 px-3 py-1.5 text-left text-xs text-indigo-100/85 transition-colors hover:border-indigo-400/50 hover:bg-indigo-500/20"
+                    >
+                      {hint}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+            </div>
           )}
           {messages.map((msg, idx) => {
             const isUser = msg.role === "user";
-            const timeLabel = mounted && msg.ts ? formatMessageTime(msg.ts) : null;
+            const timeLabel = msg.ts ? formatMessageTime(msg.ts) : null;
+            const isLastAssistant =
+              msg.role === "assistant" &&
+              messages.slice(idx + 1).every((m) => m.role !== "assistant");
+
+            const regenerate = () => {
+              for (let i = idx - 1; i >= 0; i -= 1) {
+                if (messages[i]?.role === "user") {
+                  void sendQuestion(messages[i]!.text, { regenerate: true });
+                  return;
+                }
+              }
+            };
 
             return (
             <div
               key={`${msg.role}-${msg.ts}-${idx}`}
-              className={`flex items-end gap-1.5 ${isUser ? "justify-end" : "justify-start"}`}
+              className={`flex w-full min-w-0 items-end gap-2 ${isUser ? "justify-end" : "justify-start"}`}
             >
-              {isUser && timeLabel && (
+              {!isUser ? (
+                <AgentAvatar
+                  state={
+                    isLastAssistant
+                      ? isLoading
+                        ? "working"
+                        : agentVisual
+                      : "idle"
+                  }
+                  size="sm"
+                  className="mb-1"
+                />
+              ) : null}
+              <div
+                className={`flex min-w-0 items-end gap-2 ${
+                  isUser ? "max-w-[min(100%,42rem)] justify-end" : "min-w-0 flex-1 max-w-[42rem]"
+                }`}
+              >
+              {isUser && timeLabel ? (
                 <span className="shrink-0 pb-1 text-[11px] tabular-nums text-gray-400 dark:text-gray-500">
                   {timeLabel}
                 </span>
-              )}
+              ) : null}
               <div
-                className={`max-w-[min(100%,42rem)] sm:max-w-[85%] rounded-2xl px-4 py-3 ${
+                className={`min-w-0 w-fit max-w-full rounded-2xl px-4 py-3 ${
                   isUser
                     ? "bg-indigo-600 text-white"
                     : "bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700"
                 }`}
               >
-                <p className="text-sm whitespace-pre-wrap">{msg.text}</p>
+                {isUser ? (
+                  <p className="text-sm whitespace-pre-wrap [overflow-wrap:anywhere]">{msg.text}</p>
+                ) : (
+                  <AgentMessageContent
+                    text={stripDocsHallucinationFromChat(msg.text)}
+                    kind={messageKind(msg)}
+                    onRegenerate={isLastAssistant ? regenerate : undefined}
+                  />
+                )}
+                {msg.role === "assistant" &&
+                  isLastAssistant &&
+                  !isLoading &&
+                  msg.quickReplies &&
+                  msg.quickReplies.length > 0 ? (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {msg.quickReplies.map((reply) => (
+                      <button
+                        key={reply}
+                        type="button"
+                        disabled={isLoading}
+                        onClick={() => void sendQuestion(reply)}
+                        className="rounded-lg border border-indigo-300/80 bg-indigo-50 px-3 py-1.5 text-xs font-medium text-indigo-800 hover:bg-indigo-100 disabled:opacity-50 dark:border-indigo-700 dark:bg-indigo-950/50 dark:text-indigo-200 dark:hover:bg-indigo-900/60"
+                      >
+                        {reply}
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+                {msg.role === "assistant" &&
+                  msg.toolLogs &&
+                  msg.toolLogs.length > 0 &&
+                  isLastAssistant &&
+                  !guestMode &&
+                  messageKind(msg) !== "briefing" ? (
+                  <ChatToolStreamPanel
+                    toolLogs={msg.toolLogs}
+                    className="mt-3"
+                  />
+                ) : null}
+                {msg.role === "assistant" &&
+                  isLastAssistant &&
+                  messageKind(msg) === "briefing" &&
+                  chatUserId ? (
+                  <BriefingNotesField
+                    userId={chatUserId}
+                    initialNotes={msg.userNotes ?? ""}
+                    className="mt-3"
+                  />
+                ) : null}
+                {msg.role === "assistant" &&
+                  isLastAssistant &&
+                  msg.pendingReview &&
+                  !isDocsHallucinationText(msg.pendingReview.content) &&
+                  !isDocsHallucinationText(msg.pendingReview.reason) &&
+                  msg.briefingId &&
+                  chatUserId ? (
+                  <BriefingPendingReviewCard
+                    briefingId={msg.briefingId}
+                    userId={chatUserId}
+                    pendingReview={msg.pendingReview}
+                    apiBaseUrl={apiBaseUrl}
+                    onResolved={(updated) => {
+                      setMessages((prev) =>
+                        prev.map((row, rowIdx) =>
+                          rowIdx === idx
+                            ? {
+                                ...row,
+                                text: updated.content,
+                                toolLogs: updated.tool_logs,
+                                pendingReview: updated.pending_review ?? null,
+                                briefingId: updated.id ?? msg.briefingId,
+                              }
+                            : row
+                        )
+                      );
+                    }}
+                    className="mt-3"
+                  />
+                ) : null}
                 {msg.role === "assistant" &&
                   (msg.model ||
                     (msg.confidence !== undefined && msg.confidence > 0) ||
@@ -346,15 +618,23 @@ export function GeminiChatPanel({
                   </div>
                 )}
               </div>
-              {!isUser && timeLabel && (
+              {!isUser && timeLabel ? (
                 <span className="shrink-0 pb-1 text-[11px] tabular-nums text-gray-400 dark:text-gray-500">
                   {timeLabel}
                 </span>
-              )}
+              ) : null}
+              </div>
             </div>
             );
           })}
-          {isLoading && <Loader2 className="animate-spin text-indigo-500 mx-auto" aria-label="응답 대기 중" />}
+          {isLoading && messages[messages.length - 1]?.role === "user" && (
+            <div className="flex w-full min-w-0 items-end gap-2 justify-start">
+              <AgentAvatar state="working" size="sm" className="mb-1" />
+              <div className="min-w-0 flex-1 max-w-[42rem]">
+                <AgentStreamingPlaceholder />
+              </div>
+            </div>
+          )}
           {errorMessage && (
             <p className="text-center text-sm text-red-600 dark:text-red-400 px-2" role="alert">
               {errorMessage}
@@ -363,6 +643,7 @@ export function GeminiChatPanel({
       </div>
 
       <form onSubmit={handleSubmit} className="w-full shrink-0 pr-1">
+        {!guestMode ? (
         <input
           ref={fileInputRef}
           type="file"
@@ -372,8 +653,15 @@ export function GeminiChatPanel({
             void handleFileChange(e);
           }}
         />
-        <div className="rounded-[1.75rem] border border-gray-200/95 bg-[#f4f6f8] shadow-[0_1px_2px_rgba(0,0,0,0.04)] dark:border-gray-700 dark:bg-gray-900/95 dark:shadow-none overflow-hidden">
-          {attachment && (
+        ) : null}
+        <div
+          className={`rounded-[1.75rem] border overflow-hidden ${
+            guestMode
+              ? "border-white/10 bg-white/[0.04] shadow-none"
+              : "border-gray-200/95 bg-[#f4f6f8] shadow-[0_1px_2px_rgba(0,0,0,0.04)] dark:border-gray-700 dark:bg-gray-900/95 dark:shadow-none"
+          }`}
+        >
+          {!guestMode && attachment && (
             <div className="flex flex-wrap items-center gap-2 border-b border-gray-200/90 px-4 py-2 text-xs dark:border-gray-700/90">
               <a
                 href={attachment.url}
@@ -405,11 +693,22 @@ export function GeminiChatPanel({
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={placeholder}
-            className="w-full min-h-[5.5rem] resize-none border-0 bg-transparent px-4 sm:px-5 pt-4 pb-2 text-[15px] leading-relaxed text-gray-900 placeholder:text-gray-500/80 focus:outline-none focus:ring-0 dark:text-gray-100 dark:placeholder:text-gray-500"
+            className={`w-full min-h-[5.5rem] resize-none border-0 bg-transparent px-4 sm:px-5 pt-4 pb-2 text-[15px] leading-relaxed focus:outline-none focus:ring-0 ${
+              guestMode
+                ? "text-indigo-50 placeholder:text-indigo-200/40"
+                : "text-gray-900 placeholder:text-gray-500/80 dark:text-gray-100 dark:placeholder:text-gray-500"
+            }`}
             rows={3}
             aria-label="메시지 입력"
           />
-          <div className="flex items-center justify-between gap-2 border-t border-gray-200/90 px-2 py-2 sm:px-3 dark:border-gray-700/90">
+          <div
+            className={`flex items-center justify-between gap-2 px-2 py-2 sm:px-3 ${
+              guestMode
+                ? "border-t border-white/10"
+                : "border-t border-gray-200/90 dark:border-gray-700/90"
+            }`}
+          >
+            {!guestMode ? (
             <div className="flex items-center gap-0.5 text-gray-600 dark:text-gray-400">
               <button
                 type="button"
@@ -435,7 +734,24 @@ export function GeminiChatPanel({
                 <span className="hidden sm:inline">도구</span>
               </button>
             </div>
-            <div className="flex items-center gap-1 sm:gap-2 text-gray-600 dark:text-gray-400">
+            ) : (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <p className="inline-flex items-center gap-1.5 px-2 text-xs text-indigo-200/55">
+                    <Lock className="size-3 opacity-80" aria-hidden />
+                    기본 채팅
+                  </p>
+                </TooltipTrigger>
+                <TooltipContent
+                  side="top"
+                  className="border border-white/10 bg-[#12121c] text-indigo-100"
+                >
+                  로그인하면 모델을 선택할 수 있어요
+                </TooltipContent>
+              </Tooltip>
+            )}
+            <div className="flex items-center gap-1 sm:gap-2 text-gray-600 dark:text-gray-400 ml-auto">
+              {!guestMode ? (
               <button
                 type="button"
                 className="inline-flex items-center gap-1 rounded-full py-2 pl-3 pr-2 text-sm hover:bg-gray-200/70 dark:hover:bg-gray-800 transition-colors"
@@ -446,6 +762,7 @@ export function GeminiChatPanel({
                 <span className="max-w-[5.5rem] truncate sm:max-w-none">빠른 모델</span>
                 <ChevronDown className="h-4 w-4 shrink-0 opacity-70" />
               </button>
+              ) : null}
               <button
                 type="submit"
                 disabled={isLoading || !input.trim()}
@@ -458,6 +775,7 @@ export function GeminiChatPanel({
                   <Send className="h-4 w-4 translate-x-px translate-y-px" strokeWidth={2} />
                 )}
               </button>
+              {!guestMode ? (
               <button
                 type="button"
                 className="rounded-full p-2.5 hover:bg-gray-200/70 dark:hover:bg-gray-800 transition-colors"
@@ -466,6 +784,7 @@ export function GeminiChatPanel({
               >
                 <Mic className="h-5 w-5" strokeWidth={1.75} />
               </button>
+              ) : null}
             </div>
           </div>
         </div>

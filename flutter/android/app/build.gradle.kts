@@ -23,6 +23,13 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+
+        // 카카오 네이티브 앱 키 — local.properties 또는 환경변수 KAKAO_NATIVE_APP_KEY
+        val kakaoKey =
+            (project.findProperty("KAKAO_NATIVE_APP_KEY") as String?)
+                ?: System.getenv("KAKAO_NATIVE_APP_KEY")
+                ?: ""
+        manifestPlaceholders["KAKAO_NATIVE_APP_KEY"] = kakaoKey
     }
 
     buildTypes {

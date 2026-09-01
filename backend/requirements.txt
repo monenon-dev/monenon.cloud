@@ -13,13 +13,24 @@ google-auth==2.38.0
 kiwipiepy==0.23.2
 ollama==0.6.2
 neo4j==5.28.1
+neo4j-graphrag==1.18.0
 pgvector==0.3.6
 httpx==0.28.1
 langchain==0.3.25
 langchain-community==0.3.24
 langsmith==0.2.6
 langgraph==0.2.70
+apscheduler==3.10.4
+slack-sdk==3.34.0
+google-api-python-client==2.160.0
 transformers>=4.40.0
 torch>=2.2.0
 ultralytics>=8.3.0
 email-validator>=2.2.0
+redis>=5.0.0
+PyJWT[crypto]>=2.8.0
+cryptography>=42.0.0
+boto3>=1.35.0
+# PEFT/QLoRA/bitsandbytes 는 FastAPI 런타임에 넣지 않음.
+# 학습 전용: scripts/gateway/requirements-train.txt
+# 추론: Ollama GGUF (exaone3.5:7.8b) — AWQ 서빙과 학습 경로 분리.

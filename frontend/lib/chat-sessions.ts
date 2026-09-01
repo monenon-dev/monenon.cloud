@@ -1,4 +1,6 @@
 import { getApiBaseUrl } from "@/lib/api-base";
+import { apiFetch } from "@/lib/api-client";
+import { dispatchAgentActivityUpdated } from "@/lib/agent-history/activity-events";
 
 const defaultBase = getApiBaseUrl();
 
@@ -27,7 +29,12 @@ export async function fetchChatSessions(
   userId: number,
   apiBaseUrl?: string
 ): Promise<ChatSessionItem[]> {
-  const res = await fetch(`${base(apiBaseUrl)}/platform/chat-sessions?user_id=${userId}`);
+  let res: Response;
+  try {
+    res = await apiFetch(`${base(apiBaseUrl)}/platform/chat-sessions`);
+  } catch {
+    throw new Error("채팅 서버에 연결하지 못했습니다. 잠시 후 다시 시도해 주세요.");
+  }
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));
     throw new Error(
@@ -38,7 +45,7 @@ export async function fetchChatSessions(
 }
 
 export async function fetchAllChatSessions(apiBaseUrl?: string): Promise<ChatSessionItem[]> {
-  const res = await fetch(`${base(apiBaseUrl)}/platform/chat-sessions`);
+  const res = await apiFetch(`${base(apiBaseUrl)}/platform/chat-sessions`);
   if (!res.ok) {
     throw new Error("채팅방 목록을 불러오지 못했습니다.");
   }
@@ -50,7 +57,7 @@ export async function createChatSession(
   title = "새 대화",
   apiBaseUrl?: string
 ): Promise<ChatSessionItem> {
-  const res = await fetch(`${base(apiBaseUrl)}/platform/chat-sessions`, {
+  const res = await apiFetch(`${base(apiBaseUrl)}/platform/chat-sessions`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ user_id: userId, title }),
@@ -62,16 +69,29 @@ export async function createChatSession(
   return data;
 }
 
+export class ChatApiError extends Error {
+  status: number;
+
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = "ChatApiError";
+    this.status = status;
+  }
+}
+
 export async function fetchSessionMessages(
   sessionId: number,
   userId: number,
   apiBaseUrl?: string
 ): Promise<StoredMessage[]> {
-  const res = await fetch(
-    `${base(apiBaseUrl)}/platform/chat-sessions/${sessionId}/messages?user_id=${userId}`
+  const res = await apiFetch(
+    `${base(apiBaseUrl)}/platform/chat-sessions/${sessionId}/messages`
   );
   if (!res.ok) {
-    throw new Error("메시지를 불러오지 못했습니다.");
+    const data = await res.json().catch(() => ({}));
+    const detail =
+      typeof data.detail === "string" ? data.detail : "메시지를 불러오지 못했습니다.";
+    throw new ChatApiError(detail, res.status);
   }
   return res.json();
 }
@@ -81,8 +101,8 @@ export async function deleteChatSession(
   userId: number,
   apiBaseUrl?: string
 ): Promise<void> {
-  const res = await fetch(
-    `${base(apiBaseUrl)}/platform/chat-sessions/${sessionId}?user_id=${userId}`,
+  const res = await apiFetch(
+    `${base(apiBaseUrl)}/platform/chat-sessions/${sessionId}`,
     { method: "DELETE" }
   );
   const data = await res.json().catch(() => ({}));
@@ -96,7 +116,7 @@ export async function deleteChatSessions(
   userId: number,
   apiBaseUrl?: string
 ): Promise<number[]> {
-  const res = await fetch(`${base(apiBaseUrl)}/platform/chat-sessions/bulk-delete`, {
+  const res = await apiFetch(`${base(apiBaseUrl)}/platform/chat-sessions/bulk-delete`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ user_id: userId, session_ids: sessionIds }),
@@ -114,7 +134,7 @@ export async function updateChatSessionTitle(
   title: string,
   apiBaseUrl?: string
 ): Promise<ChatSessionItem> {
-  const res = await fetch(`${base(apiBaseUrl)}/platform/chat-sessions/${sessionId}`, {
+  const res = await apiFetch(`${base(apiBaseUrl)}/platform/chat-sessions/${sessionId}`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ user_id: userId, title }),
@@ -141,6 +161,9 @@ export async function saveSessionMessage(
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
     throw new Error(typeof data.detail === "string" ? data.detail : "메시지 저장 실패");
+  }
+  if (role === "user" || role === "assistant") {
+    dispatchAgentActivityUpdated();
   }
   return data;
 }

@@ -1,31 +1,37 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
 
 import { AccountSection } from "@/components/mypage/sections/account-section";
+import { BriefingNotifySection } from "@/components/mypage/sections/briefing-notify-section";
 import { DashboardSection } from "@/components/mypage/sections/dashboard-section";
 import { PreferencesSection } from "@/components/mypage/sections/preferences-section";
-import { ThemeSection } from "@/components/mypage/sections/theme-section";
 import {
   MyPageSidebarLayout,
   type MyPageSection,
 } from "@/components/mypage/mypage-sidebar-layout";
-import { clearAuthSession } from "@/lib/auth-api";
+import { getAuthSession, logoutAuthSession } from "@/lib/auth-api";
 import { routes } from "@/lib/routes";
-import { getApiBaseUrl } from "@/lib/api-base";
 import { formatApiError } from "@/lib/format-api-error";
 import {
-  applyThemeMode,
+  isWorkSituationComplete,
   loadMyPagePreferences,
-  loadThemeMode,
   saveMyPagePreferences,
   type MyPagePreferences,
-  type ThemeMode,
 } from "@/lib/mypage-preferences";
+import { getApiBaseUrl } from "@/lib/api-base";
+import type { MyPageSectionId } from "@/lib/routes";
 
 const apiBaseUrl = getApiBaseUrl();
+
+const VALID_MYPAGE_SECTIONS = new Set<MyPageSectionId>([
+  "dashboard",
+  "preferences",
+  "notifications",
+  "account",
+]);
 
 interface UserProfile {
   id: number;
@@ -66,7 +72,23 @@ function initials(nickname: string): string {
 }
 
 export default function MyPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="relative flex min-h-screen items-center justify-center moneo-grid-bg text-[var(--moneo-text)]">
+          <div className="moneo-noise pointer-events-none absolute inset-0 -z-10" aria-hidden />
+          <Loader2 className="animate-spin text-indigo-400" size={36} />
+        </main>
+      }
+    >
+      <MyPageContent />
+    </Suspense>
+  );
+}
+
+function MyPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [ui, setUi] = useState({
     activeSection: "dashboard" as MyPageSection,
     loading: true,
@@ -76,13 +98,14 @@ export default function MyPage() {
     prefsSaving: false,
     prefsSavedMessage: null as string | null,
     prefsError: null as string | null,
-    themeMode: "system" as ThemeMode,
   });
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [prefs, setPrefs] = useState<MyPagePreferences>({
-    speechTone: "friendly",
-    agentName: "모네난",
+    speechTone: "formal",
+    agentName: "Moneo",
     interests: [],
+    userType: null,
+    industry: null,
   });
 
   const patchUi = (patch: Partial<typeof ui>) => setUi((prev) => ({ ...prev, ...patch }));
@@ -107,16 +130,19 @@ export default function MyPage() {
   };
 
   useEffect(() => {
-    const token = sessionStorage.getItem("access_token");
-    const userId = sessionStorage.getItem("user_id");
-    if (!token || !userId) {
+    const section = searchParams.get("section");
+    if (section && VALID_MYPAGE_SECTIONS.has(section as MyPageSectionId)) {
+      patchUi({ activeSection: section as MyPageSection });
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    const session = getAuthSession();
+    if (!session) {
       router.replace(routes.oauth.login);
       return;
     }
-    const theme = loadThemeMode();
-    applyThemeMode(theme);
-    patchUi({ themeMode: theme });
-    void loadProfile(userId);
+    void loadProfile(String(session.user_id));
   }, [router]);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -149,6 +175,16 @@ export default function MyPage() {
 
   const handleSavePreferences = () => {
     if (!profile) return;
+    if (!isWorkSituationComplete(prefs.userType, prefs.industry)) {
+      patchUi({
+        prefsError:
+          prefs.userType === "직장인"
+            ? "직장인을 선택한 경우 업종을 골라 주세요."
+            : "업무 상황을 선택해 주세요.",
+        prefsSavedMessage: null,
+      });
+      return;
+    }
     patchUi({ prefsSaving: true, prefsSavedMessage: null, prefsError: null });
     try {
       saveMyPagePreferences(profile.id, prefs);
@@ -161,24 +197,25 @@ export default function MyPage() {
   };
 
   const handleLogout = () => {
-    clearAuthSession();
-    router.push(routes.oauth.login);
+    logoutAuthSession(routes.oauth.login);
   };
 
   const imageSrc = profile ? avatarUrl(profile.profile_image_url, ui.avatarKey) : null;
 
   if (ui.loading) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-gray-50 dark:bg-gray-950">
-        <Loader2 className="animate-spin text-indigo-600" size={36} />
+      <main className="relative flex min-h-screen items-center justify-center moneo-grid-bg text-[var(--moneo-text)]">
+        <div className="moneo-noise pointer-events-none absolute inset-0 -z-10" aria-hidden />
+        <Loader2 className="animate-spin text-indigo-400" size={36} />
       </main>
     );
   }
 
   if (!profile) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-gray-50 dark:bg-gray-950 px-4">
-        <p className="text-sm text-red-600 dark:text-red-400">
+      <main className="relative flex min-h-screen items-center justify-center moneo-grid-bg px-4 text-[var(--moneo-text)]">
+        <div className="moneo-noise pointer-events-none absolute inset-0 -z-10" aria-hidden />
+        <p className="text-sm text-red-300">
           {ui.error ?? "프로필을 불러오지 못했습니다."}
         </p>
       </main>
@@ -200,7 +237,7 @@ export default function MyPage() {
       }}
     >
       {ui.error && ui.activeSection === "account" && (
-        <p className="mb-6 rounded-2xl border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/40 px-4 py-3 text-sm text-red-600 dark:text-red-400">
+        <p className="mb-6 rounded-2xl border border-red-500/40 bg-red-950/40 px-4 py-3 text-sm text-red-300">
           {ui.error}
         </p>
       )}
@@ -208,10 +245,7 @@ export default function MyPage() {
       {ui.activeSection === "dashboard" && (
         <DashboardSection
           nickname={profile.nickname}
-          roleLabel={role}
-          joinDate={joinDate}
           agentName={prefs.agentName}
-          interestCount={prefs.interests.length}
         />
       )}
 
@@ -226,12 +260,7 @@ export default function MyPage() {
         />
       )}
 
-      {ui.activeSection === "theme" && (
-        <ThemeSection
-          themeMode={ui.themeMode}
-          onThemeChange={(mode) => patchUi({ themeMode: mode })}
-        />
-      )}
+      {ui.activeSection === "notifications" && <BriefingNotifySection />}
 
       {ui.activeSection === "account" && (
         <AccountSection

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, Loader2 } from "lucide-react";
 
+import Logo from "@/components/brand/Logo";
 import { ChatFridgeBanner } from "@/components/chat/chat-fridge-banner";
 import { ChatSessionsSidebar } from "@/components/chat/chat-sessions-sidebar";
 import {
@@ -17,8 +18,14 @@ import {
   readChatStarter,
 } from "@/lib/chat-starter";
 import {
+  claimSessionIdForNonce,
+  readClaimedSessionIdForNonce,
+  shareNewChatByNonce,
+} from "@/lib/chat-starter-lock";
+import {
   createChatSession,
   deleteChatSession,
+  ChatApiError,
   fetchChatSessions,
   fetchSessionMessages,
   saveSessionMessage,
@@ -26,41 +33,60 @@ import {
   type ChatSessionItem,
 } from "@/lib/chat-sessions";
 import { getChatUserId } from "@/lib/chat-user";
-import { loadMyPagePreferences, wrapPromptWithSpeechTone } from "@/lib/mypage-preferences";
+import {
+  callGuestChat,
+  getGuestRemaining,
+  GUEST_DAILY_LIMIT,
+} from "@/lib/guest-chat";
+import { loadMyPagePreferences } from "@/lib/mypage-preferences";
+import { callAgentChatApi } from "@/lib/agent-chat-api";
 import { routes, chatsSessionUrl } from "@/lib/routes";
 import { getApiBaseUrl } from "@/lib/api-base";
+import { fetchTodayBriefing } from "@/lib/briefing-api";
+import {
+  briefingInjectStorageKey,
+  clearBriefingInjectedForUser,
+  clearHomeMeetingsBriefingRefreshFlag,
+  HOME_MEETINGS_SAVED_EVENT,
+  shouldForceBriefingRefresh,
+} from "@/lib/home-meetings-events";
 
 const apiBaseUrl = getApiBaseUrl();
 
-async function callAgentChat(text: string, userId: number): Promise<GeminiChatMessage> {
-  const { speechTone } = loadMyPagePreferences(userId);
-  const prompt = wrapPromptWithSpeechTone(text, speechTone);
-  const res = await fetch(`${apiBaseUrl.replace(/\/$/, "")}/agent/chat`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ prompt, user_id: userId }),
+const GUEST_SUGGESTIONS = [
+  "오늘 일정 정리해줘",
+  "최근 대화 요약해줘",
+  "이 문서 핵심만 정리해줘",
+];
+
+async function callAgentChat(
+  text: string,
+  userId: number,
+  options?: { regenerate?: boolean }
+): Promise<GeminiChatMessage> {
+  const prefs = loadMyPagePreferences(userId);
+  const data = await callAgentChatApi(text, userId, {
+    apiBaseUrl,
+    speechTone: prefs.speechTone,
+    userType: prefs.userType,
+    industry: prefs.industry,
+    forceRefresh: Boolean(options?.regenerate),
   });
-  const raw: unknown = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    const detail =
-      typeof raw === "object" &&
-      raw !== null &&
-      "detail" in raw &&
-      typeof (raw as { detail: unknown }).detail === "string"
-        ? (raw as { detail: string }).detail
-        : `요청 실패 (${res.status})`;
-    throw new Error(detail);
-  }
-  if (typeof raw !== "object" || raw === null || typeof (raw as { answer?: unknown }).answer !== "string") {
-    throw new Error("응답에 answer가 없습니다.");
-  }
-  const data = raw as { answer: string; confidence?: number; sources?: string[] };
   return {
     role: "assistant",
-    text: data.answer,
+    text: data.content,
     ts: new Date().toISOString(),
     confidence: data.confidence,
     sources: data.sources,
+    responseType: data.type,
+    toolLogs: data.tool_logs,
+    pendingReview: data.pending_review ?? null,
+    briefingId: data.briefing_id ?? null,
+    userNotes: data.user_notes ?? "",
+    quickReplies:
+      data.type === "needs_data" && data.next_actions && data.next_actions.length > 0
+        ? data.next_actions.map((a) => a.title)
+        : undefined,
   };
 }
 
@@ -80,9 +106,12 @@ function ChatsPageContent() {
 
   const [starterPrompt, setStarterPrompt] = useState<string | undefined>(undefined);
   const [starterNonce, setStarterNonce] = useState<string | undefined>(undefined);
+  const [guestRemaining, setGuestRemaining] = useState(GUEST_DAILY_LIMIT);
 
   const isNewFromHome = searchParams.get("new") === "1";
   const loadedSessionRef = useRef<number | null>(null);
+  const loadMessagesSeqRef = useRef(0);
+  const injectBriefingSeqRef = useRef(0);
   /** 카드/태그 자동 질문 중 loadMessages가 응답을 덮어쓰지 않도록 */
   const skipLoadSessionRef = useRef<number | null>(null);
 
@@ -106,18 +135,86 @@ function ChatsPageContent() {
   const loadMessages = useCallback(
     async (sessionId: number, options?: { silent?: boolean }) => {
       if (!userId) return;
+      const seq = ++loadMessagesSeqRef.current;
+      const isLatest = () => seq === loadMessagesSeqRef.current;
       if (!options?.silent) setMessagesLoading(true);
       setPageError(null);
       try {
         const stored = await fetchSessionMessages(sessionId, userId, apiBaseUrl);
+        if (!isLatest()) return;
         setSessionMessages(storedMessagesToGemini(stored));
+        loadedSessionRef.current = sessionId;
       } catch (e) {
+        if (!isLatest()) return;
+        if (e instanceof ChatApiError && e.status === 404) {
+          loadedSessionRef.current = null;
+          setPageError(null);
+          router.replace(routes.lifestyle.chats, { scroll: false });
+          return;
+        }
         setSessionMessages([]);
         setPageError(e instanceof Error ? e.message : "메시지를 불러오지 못했습니다.");
       } finally {
+        if (!isLatest()) return;
         if (!options?.silent) setMessagesLoading(false);
-        loadedSessionRef.current = sessionId;
         setMessagesEpoch((n) => n + 1);
+      }
+    },
+    [userId, router]
+  );
+
+  const injectTodayBriefing = useCallback(
+    async (sessionId: number, options?: { forceRefresh?: boolean }) => {
+      if (!userId) return;
+      const seq = ++injectBriefingSeqRef.current;
+      const isLatest = () => seq === injectBriefingSeqRef.current;
+      const forceRefresh = Boolean(options?.forceRefresh) || shouldForceBriefingRefresh();
+      const storageKey = briefingInjectStorageKey(userId, sessionId);
+      if (forceRefresh) {
+        clearBriefingInjectedForUser(userId);
+      } else if (typeof window !== "undefined" && sessionStorage.getItem(storageKey)) {
+        return;
+      }
+
+      const prefs = loadMyPagePreferences(userId);
+      try {
+        const briefing = await fetchTodayBriefing(userId, {
+          apiBaseUrl,
+          speechTone: prefs.speechTone,
+          userType: prefs.userType,
+          industry: prefs.industry,
+          forceRefresh,
+        });
+        if (!isLatest()) return;
+        const text = briefing.content.trim();
+        if (!text) {
+          setPageError("오늘의 브리핑을 생성하지 못했습니다.");
+          return;
+        }
+        const assistantMsg: GeminiChatMessage = {
+          role: "assistant",
+          text,
+          ts: new Date().toISOString(),
+          responseType: "briefing",
+          toolLogs: briefing.tool_logs,
+          pendingReview: briefing.pending_review ?? null,
+          briefingId: briefing.id ?? null,
+          userNotes: briefing.user_notes ?? "",
+        };
+        setSessionMessages([assistantMsg]);
+        setMessagesEpoch((n) => n + 1);
+        setPageError(null);
+        try {
+          await saveSessionMessage(sessionId, userId, "assistant", text, apiBaseUrl);
+          sessionStorage.setItem(storageKey, "1");
+          clearHomeMeetingsBriefingRefreshFlag();
+        } catch {
+          /* 화면은 유지 — 다음 진입 시 다시 주입 */
+        }
+      } catch (e) {
+        setPageError(
+          e instanceof Error ? e.message : "오늘의 브리핑을 불러오지 못했습니다."
+        );
       }
     },
     [userId]
@@ -125,6 +222,8 @@ function ChatsPageContent() {
 
   const selectSession = useCallback(
     (sessionId: number, replaceUrl = true) => {
+      loadMessagesSeqRef.current += 1;
+      injectBriefingSeqRef.current += 1;
       loadedSessionRef.current = null;
       setActiveSessionId(sessionId);
       setStarterPrompt(undefined);
@@ -138,8 +237,21 @@ function ChatsPageContent() {
     [loadMessages, router]
   );
 
+  const creatingNewRef = useRef(false);
+  const newChatHandledRef = useRef<string | null>(null);
+
   const handleNewChat = useCallback(async () => {
-    if (!userId) return;
+    if (!userId || creatingNewRef.current) return;
+
+    const reusable = sessions.find(
+      (s) => s.message_count === 0 && s.title.trim() === "새 대화"
+    );
+    if (reusable) {
+      selectSession(reusable.id);
+      return;
+    }
+
+    creatingNewRef.current = true;
     setPageError(null);
     try {
       const session = await createChatSession(userId, "새 대화", apiBaseUrl);
@@ -147,8 +259,10 @@ function ChatsPageContent() {
       selectSession(session.id);
     } catch (e) {
       setPageError(e instanceof Error ? e.message : "채팅방 생성 실패");
+    } finally {
+      creatingNewRef.current = false;
     }
-  }, [userId, selectSession]);
+  }, [userId, sessions, selectSession]);
 
   const handleRenameSession = useCallback(
     async (sessionId: number, title: string) => {
@@ -195,21 +309,15 @@ function ChatsPageContent() {
     [userId, sessions, activeSessionId, selectSession, router]
   );
 
-  const creatingNewRef = useRef(false);
-  const newChatHandledRef = useRef<string | null>(null);
-
   useEffect(() => {
     setUserId(getChatUserId());
+    setGuestRemaining(getGuestRemaining());
     setMounted(true);
   }, []);
 
   useEffect(() => {
-    if (!mounted) return;
-    void loadSessions();
-  }, [mounted, loadSessions]);
-
-  useEffect(() => {
-    if (!userId || !isNewFromHome) return;
+    if (!mounted || userId) return;
+    if (!isNewFromHome) return;
 
     const queryPrompt = searchParams.get("prompt")?.trim();
     const stored = readChatStarter();
@@ -217,22 +325,91 @@ function ChatsPageContent() {
     if (!prompt) return;
 
     const nonce = searchParams.get("nonce") || stored.nonce || crypto.randomUUID();
-    const handleKey = `${nonce}::${prompt}`;
-    if (newChatHandledRef.current === handleKey || creatingNewRef.current) return;
+    const handleKey = `guest::${nonce}::${prompt}`;
+    if (newChatHandledRef.current === handleKey) return;
 
-    creatingNewRef.current = true;
+    newChatHandledRef.current = handleKey;
+    clearChatStarter();
+    setPageError(null);
+    setStarterPrompt(prompt);
+    setStarterNonce(nonce);
+    router.replace(routes.lifestyle.chats, { scroll: false });
+  }, [mounted, userId, isNewFromHome, searchParams, router]);
+
+  useEffect(() => {
+    if (!mounted) return;
+    void loadSessions();
+  }, [mounted, loadSessions]);
+
+  /** 로그인 후 빈 세션에 오늘의 브리핑을 자동 표시. */
+  useEffect(() => {
+    if (!mounted || !userId || !activeSessionId) return;
+    if (messagesLoading || starterPrompt) return;
+    if (sessionMessages.length > 0) return;
+    void injectTodayBriefing(activeSessionId);
+  }, [
+    mounted,
+    userId,
+    activeSessionId,
+    messagesLoading,
+    starterPrompt,
+    sessionMessages.length,
+    injectTodayBriefing,
+  ]);
+
+  useEffect(() => {
+    if (!userId || !activeSessionId) return;
+    const onMeetingsSaved = () => {
+      clearBriefingInjectedForUser(userId);
+      if (sessionMessages.length === 0) {
+        void injectTodayBriefing(activeSessionId, { forceRefresh: true });
+      }
+    };
+    window.addEventListener(HOME_MEETINGS_SAVED_EVENT, onMeetingsSaved);
+    return () => window.removeEventListener(HOME_MEETINGS_SAVED_EVENT, onMeetingsSaved);
+  }, [userId, activeSessionId, sessionMessages.length, injectTodayBriefing]);
+
+  useEffect(() => {
+    if (!userId || !isNewFromHome) return;
+
+    const queryPrompt = searchParams.get("prompt")?.trim();
+    const stored = readChatStarter();
+    const prompt = queryPrompt || stored.prompt?.trim() || "";
+    // nonce 없으면 UUID를 새로 뽑지 않음 — remount마다 키가 바뀌어 세션이 중복 생성됨
+    const nonce = searchParams.get("nonce") || stored.nonce;
+    if (!prompt || !nonce) return;
+
+    const handleKey = `${nonce}::${prompt}`;
+    if (newChatHandledRef.current === handleKey) return;
     newChatHandledRef.current = handleKey;
     clearChatStarter();
     setPageError(null);
 
     void (async () => {
       try {
-        const session = await createChatSession(
-          userId,
-          promptToSessionTitle(prompt),
-          apiBaseUrl
-        );
-        setSessions((prev) => [session, ...prev.filter((s) => s.id !== session.id)]);
+        const claimedId = readClaimedSessionIdForNonce(nonce);
+        let session: ChatSessionItem;
+        if (claimedId != null) {
+          const list = await fetchChatSessions(userId, apiBaseUrl);
+          const found = list.find((s) => s.id === claimedId);
+          if (found) {
+            session = found;
+            setSessions(list);
+          } else {
+            session = await shareNewChatByNonce(nonce, () =>
+              createChatSession(userId, promptToSessionTitle(prompt), apiBaseUrl)
+            );
+            claimSessionIdForNonce(nonce, session.id);
+            setSessions((prev) => [session, ...prev.filter((s) => s.id !== session.id)]);
+          }
+        } else {
+          session = await shareNewChatByNonce(nonce, () =>
+            createChatSession(userId, promptToSessionTitle(prompt), apiBaseUrl)
+          );
+          claimSessionIdForNonce(nonce, session.id);
+          setSessions((prev) => [session, ...prev.filter((s) => s.id !== session.id)]);
+        }
+
         setActiveSessionId(session.id);
         setSessionMessages([]);
         skipLoadSessionRef.current = session.id;
@@ -243,14 +420,12 @@ function ChatsPageContent() {
       } catch (e) {
         newChatHandledRef.current = null;
         setPageError(e instanceof Error ? e.message : "채팅방 생성 실패");
-      } finally {
-        creatingNewRef.current = false;
       }
     })();
   }, [userId, isNewFromHome, searchParams, router]);
 
   useEffect(() => {
-    if (!userId || isNewFromHome) return;
+    if (!userId || isNewFromHome || sessionsLoading) return;
 
     const sid = searchParams.get("session");
     if (!sid) return;
@@ -258,15 +433,47 @@ function ChatsPageContent() {
     const id = Number(sid);
     if (!Number.isFinite(id)) return;
 
-    setActiveSessionId(id);
+    if (sessions.length > 0 && !sessions.some((s) => s.id === id)) {
+      loadedSessionRef.current = null;
+      router.replace(chatsSessionUrl(sessions[0].id), { scroll: false });
+      selectSession(sessions[0].id, false);
+      return;
+    }
+
     if (starterPrompt) return;
     if (skipLoadSessionRef.current === id) return;
-
     if (loadedSessionRef.current === id) return;
+
+    setActiveSessionId(id);
     loadedSessionRef.current = id;
     setSessionMessages([]);
     void loadMessages(id);
-  }, [userId, isNewFromHome, searchParams, starterPrompt, loadMessages]);
+  }, [
+    userId,
+    isNewFromHome,
+    sessionsLoading,
+    sessions,
+    searchParams,
+    starterPrompt,
+    loadMessages,
+    router,
+    selectSession,
+  ]);
+
+  useEffect(() => {
+    if (!userId || isNewFromHome || searchParams.get("session")) return;
+    if (activeSessionId || sessionsLoading || creatingNewRef.current) return;
+    if (sessions.length > 0) return;
+    void handleNewChat();
+  }, [
+    userId,
+    isNewFromHome,
+    searchParams,
+    activeSessionId,
+    sessionsLoading,
+    sessions.length,
+    handleNewChat,
+  ]);
 
   useEffect(() => {
     if (!userId || isNewFromHome || searchParams.get("session")) return;
@@ -275,12 +482,20 @@ function ChatsPageContent() {
   }, [userId, isNewFromHome, searchParams, activeSessionId, sessions, selectSession]);
 
   const handleSendMessage = useCallback(
-    async (text: string): Promise<GeminiChatMessage> => {
+    async (
+      text: string,
+      options?: { regenerate?: boolean }
+    ): Promise<GeminiChatMessage> => {
       if (!userId || !activeSessionId) {
         throw new Error("채팅방이 선택되지 않았습니다.");
       }
-      const userSavePromise = saveSessionMessage(activeSessionId, userId, "user", text, apiBaseUrl);
-      const assistant = await callAgentChat(text, userId);
+      const isRegenerate = Boolean(options?.regenerate);
+      const userSavePromise = isRegenerate
+        ? Promise.resolve()
+        : saveSessionMessage(activeSessionId, userId, "user", text, apiBaseUrl);
+      const assistant = await callAgentChat(text, userId, {
+        regenerate: isRegenerate,
+      });
       void Promise.allSettled([
         userSavePromise,
         saveSessionMessage(activeSessionId, userId, "assistant", assistant.text, apiBaseUrl),
@@ -291,6 +506,17 @@ function ChatsPageContent() {
     },
     [userId, activeSessionId, loadSessions]
   );
+
+  const handleGuestSendMessage = useCallback(async (text: string): Promise<GeminiChatMessage> => {
+    const result = await callGuestChat(text);
+    setGuestRemaining(result.remaining);
+    return {
+      role: "assistant",
+      text: result.reply,
+      ts: new Date().toISOString(),
+      model: result.model,
+    };
+  }, []);
 
   const activeSession = useMemo(
     () => sessions.find((s) => s.id === activeSessionId) ?? null,
@@ -304,20 +530,100 @@ function ChatsPageContent() {
   }
 
   if (!userId) {
+    const loginNext = encodeURIComponent(routes.lifestyle.chats);
+    const used = Math.max(0, GUEST_DAILY_LIMIT - guestRemaining);
+    const remainingPct = Math.round((guestRemaining / GUEST_DAILY_LIMIT) * 100);
     return (
-      <div className="flex h-dvh flex-col items-center justify-center gap-4 bg-white px-4 dark:bg-gray-950">
-        <p className="text-center text-sm text-gray-600 dark:text-gray-400">
-          대화 기록을 사용하려면 로그인이 필요합니다.
-        </p>
-        <Link
-          href={routes.oauth.login}
-          className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
-        >
-          로그인
-        </Link>
-        <Link href="/" className="text-sm text-gray-500 hover:underline">
-          ← 홈으로
-        </Link>
+      <div className="relative flex h-dvh max-h-dvh overflow-hidden moneo-grid-bg text-[var(--moneo-text)]">
+        <div className="relative z-10 flex min-w-0 flex-1 flex-col overflow-hidden">
+          <header className="shrink-0 border-b border-white/10 bg-[#0a0a0f]/75 backdrop-blur-md">
+            <div className="flex h-14 items-center gap-3 px-4 sm:px-6">
+              <Link
+                href="/"
+                className="inline-flex min-w-0 items-center gap-2 text-[var(--moneo-text)] hover:opacity-90"
+                aria-label="홈으로"
+              >
+                <Logo variant="horizontal" theme="dark" size={28} />
+              </Link>
+              <span className="hidden text-white/20 sm:inline" aria-hidden>
+                |
+              </span>
+              <h1 className="min-w-0 flex-1 truncate text-sm font-medium tracking-wide text-indigo-200/80 sm:text-base">
+                Agent Chat
+              </h1>
+              <Link
+                href={`${routes.oauth.login}?next=${loginNext}`}
+                className="rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-500"
+              >
+                로그인
+              </Link>
+            </div>
+          </header>
+
+          <div className="shrink-0 border-b border-indigo-400/25 bg-indigo-500/10 px-4 py-3 sm:px-6">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-w-0 border-l-2 border-indigo-400 pl-3">
+                <p className="text-sm text-indigo-100/90">
+                  게스트로 둘러보는 중이에요. 대화 기록은 남지 않아요.
+                </p>
+                <div className="mt-2 flex max-w-xs items-center gap-2">
+                  <div
+                    className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/10"
+                    role="progressbar"
+                    aria-valuenow={guestRemaining}
+                    aria-valuemin={0}
+                    aria-valuemax={GUEST_DAILY_LIMIT}
+                    aria-label="오늘 남은 게스트 메시지"
+                  >
+                    <div
+                      className="h-full rounded-full bg-indigo-400/80 transition-[width] duration-300 ease-out"
+                      style={{ width: `${remainingPct}%` }}
+                    />
+                  </div>
+                  <span className="font-mono text-[11px] tabular-nums text-indigo-200/70">
+                    {guestRemaining}/{GUEST_DAILY_LIMIT}
+                  </span>
+                </div>
+                <p className="mt-1 text-[10px] text-indigo-300/50">
+                  오늘 사용 {used}회 · 남은 {guestRemaining}회
+                </p>
+              </div>
+              <Link
+                href={`${routes.oauth.login}?next=${loginNext}`}
+                className="inline-flex shrink-0 items-center justify-center rounded-lg border border-indigo-400/40 bg-transparent px-3 py-2 text-xs font-medium text-indigo-100 transition-colors hover:border-indigo-400/70 hover:bg-indigo-500/15"
+              >
+                로그인하면 맞춤 에이전트·기록 저장·도구를 사용할 수 있습니다
+              </Link>
+            </div>
+          </div>
+
+          {pageError && (
+            <p role="alert" className="shrink-0 px-4 py-2 text-sm text-rose-300">
+              {pageError}
+            </p>
+          )}
+
+          <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden px-4 py-4 sm:px-6 sm:py-6">
+            <GeminiChatPanel
+              apiBaseUrl={apiBaseUrl}
+              className="min-h-0 flex-1"
+              resetKey="guest"
+              guestMode
+              starterDedupeKey={starterNonce}
+              initialInput={starterPrompt}
+              autoSendInitialInput={Boolean(starterPrompt?.trim())}
+              onSendMessage={handleGuestSendMessage}
+              onInitialInputHandled={() => {
+                setStarterPrompt(undefined);
+                setStarterNonce(undefined);
+              }}
+              placeholder="업무에 대해 물어보세요 (예: 오늘 일정 정리해줘)"
+              emptyTitle="업무 에이전트를 체험해 보세요"
+              emptySubtitle="아래 예시로 시작하거나, 궁금한 업무를 입력해 보세요."
+              emptySuggestions={GUEST_SUGGESTIONS}
+            />
+          </main>
+        </div>
       </div>
     );
   }
@@ -365,7 +671,7 @@ function ChatsPageContent() {
           </p>
         )}
 
-        <main className="flex flex-1 min-h-0 flex-col overflow-hidden px-4 py-4 sm:px-6 sm:py-6">
+        <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden px-4 py-4 sm:px-6 sm:py-6">
           {messagesLoading && sessionMessages.length === 0 && !starterPrompt ? (
             <div className="flex flex-1 items-center justify-center">
               <Loader2 className="size-8 animate-spin text-indigo-600" aria-label="메시지 로딩 중" />
@@ -380,9 +686,11 @@ function ChatsPageContent() {
               starterDedupeKey={starterNonce}
               initialMessages={sessionMessages}
               onSendMessage={handleSendMessage}
+              chatUserId={userId}
               initialInput={starterPrompt}
               autoSendInitialInput={Boolean(starterPrompt?.trim())}
               messagesEpoch={messagesEpoch}
+              placeholder="업무에 대해 물어보세요 (예: 이번 주 리포트 요약해 줘)"
               onInitialInputHandled={() => {
                 skipLoadSessionRef.current = null;
                 setStarterPrompt(undefined);

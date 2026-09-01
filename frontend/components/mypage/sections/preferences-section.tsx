@@ -14,7 +14,10 @@ import {
 } from "@/components/ui/select";
 import {
   INTEREST_OPTIONS,
+  INDUSTRY_OPTIONS,
   SPEECH_TONE_OPTIONS,
+  USER_TYPE_OPTIONS,
+  type Industry,
   type MyPagePreferences,
   type SpeechTone,
 } from "@/lib/mypage-preferences";
@@ -48,33 +51,36 @@ export function PreferencesSection({
       {error && (
         <p
           role="alert"
-          className="rounded-2xl border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/40 px-4 py-3 text-sm text-red-600 dark:text-red-400"
+          className="rounded-2xl border border-red-500/40 bg-red-950/40 px-4 py-3 text-sm text-red-300"
         >
           {error}
         </p>
       )}
       {savedMessage && (
-        <p className="rounded-2xl border border-green-200 dark:border-green-900 bg-green-50 dark:bg-green-950/40 px-4 py-3 text-sm text-green-700 dark:text-green-300">
+        <p className="rounded-2xl border border-emerald-500/30 bg-emerald-950/30 px-4 py-3 text-sm text-emerald-300">
           {savedMessage}
         </p>
       )}
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <section className={mypageCardClass}>
-          <Label htmlFor="speech-tone" className="text-base font-semibold">
+          <Label htmlFor="speech-tone" className="text-base font-semibold text-white">
             말투 변경
           </Label>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            AI 에이전트가 대화할 때 사용할 말투를 선택합니다.
+          <p className="mt-1 text-sm text-[var(--moneo-muted)]">
+            선택한 말투가 채팅 응답 생성(시스템 프롬프트)에 반영됩니다.
           </p>
           <Select
             value={prefs.speechTone}
             onValueChange={(value) => onChange({ speechTone: value as SpeechTone })}
           >
-            <SelectTrigger id="speech-tone" className="mt-4 w-full">
+            <SelectTrigger
+              id="speech-tone"
+              className="mt-4 w-full border-[var(--moneo-border)] bg-white/[0.04] text-[var(--moneo-text)]"
+            >
               <SelectValue placeholder="말투 선택" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="border-[var(--moneo-border)] bg-[var(--moneo-bg-elevated)] text-[var(--moneo-text)]">
               {SPEECH_TONE_OPTIONS.map(({ value, label }) => (
                 <SelectItem key={value} value={value}>
                   {label}
@@ -85,10 +91,10 @@ export function PreferencesSection({
         </section>
 
         <section className={mypageCardClass}>
-          <Label htmlFor="agent-name" className="text-base font-semibold">
+          <Label htmlFor="agent-name" className="text-base font-semibold text-white">
             에이전트 이름
           </Label>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+          <p className="mt-1 text-sm text-[var(--moneo-muted)]">
             홈 화면과 채팅에서 부를 AI 이름을 설정합니다.
           </p>
           <Input
@@ -96,17 +102,77 @@ export function PreferencesSection({
             name="agentName"
             value={prefs.agentName}
             onChange={(e) => onChange({ agentName: e.target.value })}
-            className="mt-4"
-            placeholder="예: 모네난"
+            className="mt-4 border-[var(--moneo-border)] bg-white/[0.04] text-[var(--moneo-text)] placeholder:text-[var(--moneo-muted)]"
+            placeholder="예: Moneo"
             maxLength={24}
           />
         </section>
       </div>
 
       <section className={mypageCardClass}>
-        <h3 className="text-base font-semibold">관심 분야</h3>
-        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-          맞춤 추천에 반영할 주제를 선택하세요. (복수 선택 가능)
+        <h3 className="text-base font-semibold text-white">업무 상황</h3>
+        <p className="mt-1 text-sm text-[var(--moneo-muted)]">
+          Moneo는 한 업종 전용이 아닙니다. 아래 선택은 예시·브리핑 톤 맞춤용입니다.
+        </p>
+        <div className="mt-4">
+          <Label className="text-sm text-indigo-100/90">어떤 상황이신가요?</Label>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {USER_TYPE_OPTIONS.map((opt) => {
+              const selected = prefs.userType === opt.value;
+              return (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() =>
+                    onChange({
+                      userType: opt.value,
+                      industry: opt.value === "직장인" ? prefs.industry : null,
+                    })
+                  }
+                  aria-pressed={selected}
+                  className={`rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
+                    selected
+                      ? "border-indigo-500 bg-indigo-600 text-white shadow-[0_0_16px_var(--moneo-glow)]"
+                      : "border-[var(--moneo-border)] bg-white/[0.03] text-indigo-100/80 hover:border-indigo-400/40 hover:bg-white/[0.06]"
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+        {prefs.userType === "직장인" ? (
+          <div className="mt-5">
+            <Label className="text-sm text-indigo-100/90">어떤 업무를 하시나요?</Label>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {INDUSTRY_OPTIONS.map((opt) => {
+                const selected = prefs.industry === opt.value;
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => onChange({ industry: opt.value as Industry })}
+                    aria-pressed={selected}
+                    className={`rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
+                      selected
+                        ? "border-indigo-500 bg-indigo-600 text-white shadow-[0_0_16px_var(--moneo-glow)]"
+                        : "border-[var(--moneo-border)] bg-white/[0.03] text-indigo-100/80 hover:border-indigo-400/40 hover:bg-white/[0.06]"
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ) : null}
+      </section>
+
+      <section className={mypageCardClass}>
+        <h3 className="text-base font-semibold text-white">주요 활용 분야</h3>
+        <p className="mt-1 text-sm text-[var(--moneo-muted)]">
+          에이전트가 우선 도울 업무 영역을 선택하세요. (복수 선택 가능)
         </p>
         <div className="mt-4 flex flex-wrap gap-2">
           {INTEREST_OPTIONS.map((interest) => {
@@ -119,8 +185,8 @@ export function PreferencesSection({
                 aria-pressed={selected}
                 className={`rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
                   selected
-                    ? "border-indigo-600 bg-indigo-600 text-white shadow-sm"
-                    : "border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-950 text-gray-700 dark:text-gray-300 hover:border-indigo-300"
+                    ? "border-indigo-500 bg-indigo-600 text-white shadow-[0_0_16px_var(--moneo-glow)]"
+                    : "border-[var(--moneo-border)] bg-white/[0.03] text-indigo-100/80 hover:border-indigo-400/40 hover:bg-white/[0.06]"
                 }`}
               >
                 {interest}
@@ -135,7 +201,7 @@ export function PreferencesSection({
           type="button"
           onClick={onSave}
           disabled={saving}
-          className="inline-flex items-center gap-2 rounded-2xl bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-60"
+          className="inline-flex items-center gap-2 rounded-2xl bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-indigo-500 disabled:opacity-60"
         >
           {saving ? <Loader2 className="size-4 animate-spin" /> : null}
           설정 저장

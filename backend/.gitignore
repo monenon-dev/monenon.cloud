@@ -4,6 +4,8 @@
 !.env.example
 !.env.sample
 !.env.template
+!.env.auth.example
+/env
 *.pem
 *.key
 *.p12
@@ -48,6 +50,8 @@ env/
 htmlcov/
 .tox/
 .nox/
+.import_linter_cache/
+.keys/
 pip-log.txt
 pip-delete-this-directory.txt
 

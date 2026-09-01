@@ -6,13 +6,9 @@ import {
   Menu,
   X,
   LayoutDashboard,
-  Users,
-  Settings,
-  MessageSquare,
-  Bot,
-  Shirt,
-  Refrigerator,
-  Music2,
+  BriefcaseBusiness,
+  Files,
+  FileBarChart,
   Home,
   Inbox,
   CalendarDays,
@@ -23,12 +19,10 @@ import {
 export type PlatformSection =
   | "overview"
   | "users"
-  | "user_settings"
   | "closet"
   | "refrigerator"
   | "music"
-  | "chat_sessions"
-  | "messages";
+  | "chat_sessions";
 
 export interface NavItem {
   id: PlatformSection;
@@ -45,25 +39,18 @@ export interface NavGroup {
 
 export const PLATFORM_NAV: NavGroup[] = [
   {
-    title: "개인 맞춤",
-    icon: Users,
+    title: "에이전트 작업",
+    icon: BriefcaseBusiness,
     items: [
-      { id: "user_settings", label: "취향 설정", tableName: "user_settings", icon: Settings },
-      { id: "closet", label: "오늘의 옷장", tableName: "closet", icon: Shirt },
-      { id: "refrigerator", label: "냉장고 관리", tableName: "refrigerator", icon: Refrigerator },
-      { id: "music", label: "음악 추천", tableName: "music", icon: Music2 },
-    ],
-  },
-  {
-    title: "AI 대화",
-    icon: Bot,
-    items: [
-      { id: "messages", label: "AI 채팅방", tableName: "messages", icon: MessageSquare },
+      { id: "closet", label: "오늘의 업무 브리핑", tableName: "closet", icon: BriefcaseBusiness },
+      { id: "refrigerator", label: "문서/자료 정리", tableName: "refrigerator", icon: Files },
+      { id: "music", label: "업무 리포트 생성", tableName: "music", icon: FileBarChart },
     ],
   },
 ];
 
 import { routes } from "@/lib/routes";
+import Logo from "@/components/brand/Logo";
 
 // 링크형 메뉴 (페이지 이동)
 export const LINK_NAV = [
@@ -199,11 +186,8 @@ export function PlatformSidebarLayout({
           >
             {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
-          <Link
-            href="/"
-            className="text-base font-bold text-indigo-600 dark:text-indigo-400 sm:text-lg"
-          >
-            Monenon AI
+          <Link href="/" className="inline-flex" aria-label="Moneo home">
+            <Logo variant="horizontal" theme="dark" size={32} />
           </Link>
           <div className="ml-auto flex items-center gap-2">{headerActions}</div>
         </header>

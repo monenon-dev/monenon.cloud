@@ -165,14 +165,14 @@ export function ChatSessionsSidebar({
                           {session.message_count > 0 ? ` · ${session.message_count}개` : ""}
                         </p>
                       </button>
-                      <div className="absolute right-1 top-1.5 flex gap-0.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
+                      <div className="absolute right-1 top-1.5 z-10 flex gap-0.5">
                         <button
                           type="button"
                           onClick={(e) => {
                             e.stopPropagation();
                             startEdit(session);
                           }}
-                          className="rounded-md p-1.5 text-gray-500 hover:bg-white hover:text-indigo-600 dark:hover:bg-gray-800 dark:hover:text-indigo-400"
+                          className="rounded-md bg-white/90 p-1.5 text-gray-600 shadow-sm hover:text-indigo-600 dark:bg-gray-900/90 dark:text-gray-300 dark:hover:text-indigo-400"
                           aria-label={`${session.title} 이름 변경`}
                         >
                           <Pencil size={14} />
@@ -183,7 +183,7 @@ export function ChatSessionsSidebar({
                             e.stopPropagation();
                             patchUi({ deleteTarget: session });
                           }}
-                          className="rounded-md p-1.5 text-gray-500 hover:bg-white hover:text-red-600 dark:hover:bg-gray-800 dark:hover:text-red-400"
+                          className="rounded-md bg-white/90 p-1.5 text-red-600 shadow-sm hover:bg-red-50 dark:bg-gray-900/90 dark:text-red-400 dark:hover:bg-red-950/50"
                           aria-label={`${session.title} 삭제`}
                         >
                           <Trash2 size={14} />

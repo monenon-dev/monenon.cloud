@@ -1,0 +1,40 @@
+# Nginx + Certbot (Let's Encrypt) — EC2 전용
+#
+# 사전 조건:
+#   - api.monenon.cloud → EC2 퍼블릭 IP (A 레코드, Cloudflare 프록시 OFF)
+#   - 보안 그룹 80/443 인바운드
+#   - backend 가 호스트 8000 에 떠 있음 (monenoncloud compose)
+#   - 시스템 nginx 중지: sudo systemctl stop nginx
+#
+# 최초 발급:
+#   bash scripts/nginx-certbot-init.sh
+#
+# 이후 기동:
+#   docker compose -f docker-compose.nginx.yaml up -d
+
+name: monenon-nginx
+
+services:
+  nginx:
+    image: nginx:alpine
+    container_name: monenon-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./certbot/conf:/etc/letsencrypt:ro
+      - ./certbot/www:/var/www/certbot:ro
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    command: '/bin/sh -c ''while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g "daemon off;"'''
+
+  certbot:
+    image: certbot/certbot
+    container_name: monenon-certbot
+    restart: unless-stopped
+    volumes:
+      - ./certbot/conf:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"

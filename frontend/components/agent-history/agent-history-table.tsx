@@ -1,0 +1,240 @@
+"use client";
+
+import { useMemo, useState } from "react";
+import { ChevronDown, Search } from "lucide-react";
+import { AgentHistoryTableRow } from "@/components/agent-history/agent-history-table-row";
+import {
+  AGENT_HISTORY_FILTER_AGENTS,
+  AGENT_HISTORY_FILTER_STATUSES,
+} from "@/lib/agent-history/mock-data";
+import { AGENT_HISTORY_PAGE_SIZE } from "@/lib/agent-history/constants";
+import type {
+  AgentHistoryLog,
+  AgentHistoryStatus,
+  AgentName,
+} from "@/lib/agent-history/types";
+import type { AgentHistoryLiveHighlights } from "@/hooks/use-agent-history-live";
+
+type SortKey = "timestamp" | "durationMs" | "tokens" | "agentName" | "tool" | "status";
+type SortDir = "asc" | "desc";
+
+type Props = {
+  logs: AgentHistoryLog[];
+  highlights: AgentHistoryLiveHighlights;
+  totalCount: number;
+  hasMoreOlder?: boolean;
+  loadingMore?: boolean;
+  onLoadMoreOlder?: () => void;
+};
+
+export function AgentHistoryTable({
+  logs,
+  highlights,
+  totalCount,
+  hasMoreOlder = false,
+  loadingMore = false,
+  onLoadMoreOlder,
+}: Props) {
+  const [ui, setUi] = useState({
+    agent: "all" as AgentName | "all",
+    status: "all" as AgentHistoryStatus | "all",
+    query: "",
+    sortKey: "timestamp" as SortKey,
+    sortDir: "desc" as SortDir,
+    visible: AGENT_HISTORY_PAGE_SIZE,
+  });
+
+  const patch = (p: Partial<typeof ui>) =>
+    setUi((prev) => ({ ...prev, ...p }));
+
+  const filtered = useMemo(() => {
+    let rows = [...logs];
+    if (ui.agent !== "all") {
+      rows = rows.filter((r) => r.agentName === ui.agent);
+    }
+    if (ui.status !== "all") {
+      rows = rows.filter((r) => r.status === ui.status);
+    }
+    const q = ui.query.trim().toLowerCase();
+    if (q) {
+      rows = rows.filter((r) => r.tool.toLowerCase().includes(q));
+    }
+    rows.sort((a, b) => {
+      const dir = ui.sortDir === "asc" ? 1 : -1;
+      const av = a[ui.sortKey];
+      const bv = b[ui.sortKey];
+      if (ui.sortKey === "timestamp") {
+        return (new Date(String(av)).getTime() - new Date(String(bv)).getTime()) * dir;
+      }
+      if (typeof av === "number" && typeof bv === "number") {
+        return (av - bv) * dir;
+      }
+      return String(av).localeCompare(String(bv)) * dir;
+    });
+    return rows;
+  }, [logs, ui.agent, ui.status, ui.query, ui.sortKey, ui.sortDir]);
+
+  const visibleRows = filtered.slice(0, ui.visible);
+  const canLoadMoreLocal = ui.visible < filtered.length;
+  const canLoadMoreRemote = hasMoreOlder && !canLoadMoreLocal;
+
+  const toggleSort = (key: SortKey) => {
+    if (ui.sortKey === key) {
+      patch({ sortDir: ui.sortDir === "asc" ? "desc" : "asc" });
+      return;
+    }
+    patch({
+      sortKey: key,
+      sortDir: key === "timestamp" || key === "durationMs" || key === "tokens" ? "desc" : "asc",
+    });
+  };
+
+  const th = (key: SortKey, label: string) => (
+    <th scope="col" className="px-3 py-2.5 text-left font-medium text-indigo-300/70">
+      <button
+        type="button"
+        onClick={() => toggleSort(key)}
+        className="inline-flex items-center gap-1 hover:text-indigo-200"
+      >
+        {label}
+        {ui.sortKey === key ? (
+          <ChevronDown
+            size={12}
+            className={ui.sortDir === "asc" ? "rotate-180" : ""}
+            aria-hidden
+          />
+        ) : null}
+      </button>
+    </th>
+  );
+
+  return (
+    <section aria-label="전체 로그">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <h2 className="font-mono text-[10px] uppercase tracking-[0.22em] text-indigo-300/70">
+          전체 로그
+        </h2>
+        <p className="font-mono text-[11px] text-indigo-200/45">
+          {filtered.length} / {totalCount} events
+        </p>
+      </div>
+
+      <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+        <label className="flex min-w-[10rem] flex-1 flex-col gap-1 font-mono text-[10px] text-indigo-300/60 sm:max-w-[14rem]">
+          Agent
+          <select
+            value={ui.agent}
+            onChange={(e) =>
+              patch({
+                agent: e.target.value as AgentName | "all",
+                visible: AGENT_HISTORY_PAGE_SIZE,
+              })
+            }
+            className="rounded-lg border border-white/10 bg-[#121218] px-2.5 py-2 text-xs text-indigo-100 outline-none focus:border-indigo-400/40"
+          >
+            <option value="all">전체</option>
+            {AGENT_HISTORY_FILTER_AGENTS.map((name) => (
+              <option key={name} value={name}>
+                {name}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="flex min-w-[8rem] flex-1 flex-col gap-1 font-mono text-[10px] text-indigo-300/60 sm:max-w-[11rem]">
+          상태
+          <select
+            value={ui.status}
+            onChange={(e) =>
+              patch({
+                status: e.target.value as AgentHistoryStatus | "all",
+                visible: AGENT_HISTORY_PAGE_SIZE,
+              })
+            }
+            className="rounded-lg border border-white/10 bg-[#121218] px-2.5 py-2 text-xs text-indigo-100 outline-none focus:border-indigo-400/40"
+          >
+            {AGENT_HISTORY_FILTER_STATUSES.map((s) => (
+              <option key={s} value={s}>
+                {s === "all" ? "전체" : s === "success" ? "성공" : s === "running" ? "진행중" : "실패"}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="flex min-w-0 flex-[2] flex-col gap-1 font-mono text-[10px] text-indigo-300/60">
+          Tool 검색
+          <span className="relative">
+            <Search
+              size={14}
+              className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-indigo-300/50"
+              aria-hidden
+            />
+            <input
+              value={ui.query}
+              onChange={(e) => patch({ query: e.target.value, visible: AGENT_HISTORY_PAGE_SIZE })}
+              placeholder="예: docs.search"
+              className="w-full rounded-lg border border-white/10 bg-[#121218] py-2 pl-8 pr-2.5 text-xs text-indigo-100 outline-none placeholder:text-indigo-200/30 focus:border-indigo-400/40"
+            />
+          </span>
+        </label>
+      </div>
+
+      <div className="mt-4 overflow-x-auto rounded-xl border border-white/10">
+        <table className="min-w-[720px] w-full border-collapse font-mono text-[11px]">
+          <thead className="bg-white/[0.04]">
+            <tr>
+              {th("timestamp", "타임스탬프")}
+              {th("agentName", "Agent")}
+              {th("tool", "Tool")}
+              {th("status", "상태")}
+              {th("durationMs", "소요시간")}
+              {th("tokens", "토큰")}
+            </tr>
+          </thead>
+          <tbody>
+            {visibleRows.map((row) => (
+              <AgentHistoryTableRow
+                key={row.id}
+                row={row}
+                highlights={highlights}
+              />
+            ))}
+            {visibleRows.length === 0 && (
+              <tr>
+                <td
+                  colSpan={6}
+                  className="px-3 py-8 text-center text-indigo-200/45"
+                >
+                  조건에 맞는 로그가 없습니다.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {(canLoadMoreLocal || canLoadMoreRemote) && (
+        <div className="mt-4 flex justify-center">
+          <button
+            type="button"
+            disabled={loadingMore}
+            onClick={() => {
+              if (canLoadMoreLocal) {
+                patch({ visible: ui.visible + AGENT_HISTORY_PAGE_SIZE });
+                return;
+              }
+              onLoadMoreOlder?.();
+            }}
+            className="rounded-lg border border-white/10 bg-white/[0.03] px-4 py-2 text-xs text-indigo-100 transition-colors hover:border-white/20 hover:bg-white/[0.05] disabled:opacity-60"
+          >
+            {loadingMore
+              ? "불러오는 중…"
+              : canLoadMoreLocal
+                ? `더 보기 (${Math.min(AGENT_HISTORY_PAGE_SIZE, filtered.length - ui.visible)} / 남은 ${filtered.length - ui.visible})`
+                : "이전 로그 더 보기"}
+          </button>
+        </div>
+      )}
+    </section>
+  );
+}

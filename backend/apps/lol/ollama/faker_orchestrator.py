@@ -2,30 +2,28 @@
 
 from __future__ import annotations
 
-import os
-
 import httpx
 
-_OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://host.docker.internal:11434")
-_EXAONE_MODEL = os.getenv("OLLAMA_MODEL", "exaone3.5:2.4b")
+from lol.config import get_ollama_base_url, get_ollama_model
 
 
 class FakerOrchestrator:
     def __init__(
         self,
-        base_url: str = _OLLAMA_BASE_URL,
-        model: str = _EXAONE_MODEL,
+        base_url: str | None = None,
+        model: str | None = None,
         timeout: float = 60.0,
     ) -> None:
-        self.base_url = base_url
-        self.model = model
+        self.base_url = (base_url or get_ollama_base_url()).rstrip("/")
+        self.model = model or get_ollama_model()
         self.timeout = timeout
 
-    async def chat(self, messages: list[dict]) -> str:
+    async def chat(self, messages: list[dict], *, model: str | None = None) -> str:
+        use_model = model or self.model
         async with httpx.AsyncClient(timeout=self.timeout) as client:
             response = await client.post(
                 f"{self.base_url}/api/chat",
-                json={"model": self.model, "messages": messages, "stream": False},
+                json={"model": use_model, "messages": messages, "stream": False},
             )
             response.raise_for_status()
             return response.json()["message"]["content"]

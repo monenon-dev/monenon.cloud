@@ -200,13 +200,30 @@ export default function CalendarPage() {
     setLoading(true);
 
     try {
-      const result: CalendarAddResult = await addCalendarEvent(userId, text);
+      let result: CalendarAddResult = await addCalendarEvent(userId, text);
+      if (result.needs_confirm) {
+        const ok = window.confirm(
+          result.message ||
+            "톡캘린더에 겹치는 일정이 있습니다. 그래도 등록할까요?"
+        );
+        if (!ok) {
+          setMessages((prev) => [
+            ...prev,
+            { role: "ai", text: "겹치는 일정으로 등록을 취소했습니다." },
+          ]);
+          return;
+        }
+        result = await addCalendarEvent(userId, text, { confirmOverlap: true });
+      }
+      if (!result.event) {
+        throw new Error(result.message || "일정 파싱에 실패했습니다.");
+      }
       const resultId = `event-${Date.now()}`;
       setMessages((prev) => [
         ...prev,
         {
           role: "ai",
-          text: "아래 일정을 파싱했습니다. 확인 후 캘린더에 추가해 주세요.",
+          text: result.message || "아래 일정을 파싱했습니다. 확인 후 캘린더에 추가해 주세요.",
           event: result.event,
           confirmed: false,
           resultId,

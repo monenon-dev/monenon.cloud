@@ -4,9 +4,13 @@
 !.env.example
 !.env.sample
 !.env.template
+!.env.auth.example
 !*.example
 *.pem
 *.key
+backend/.keys/
+backend/.import_linter_cache/
+.import_linter_cache/
 *.p12
 *.pfx
 *.cer
@@ -15,6 +19,9 @@ secrets/
 .secrets/
 credentials/
 *.secret
+
+# ===== Git 임시·실수 산출물 =====
+/FETCH_HEAD
 
 # ===== Python =====
 __pycache__/
@@ -30,8 +37,10 @@ eggs/
 *.egg
 .venv/
 venv/
+.venv-gateway-train/
 ENV/
 env/
+artifacts/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
@@ -52,8 +61,28 @@ out/
 *.pt
 *.pth
 *.onnx
+*.safetensors
+*.gguf
+*.ggml
+*.awq
+*.ckpt
+*.h5
+*.npz*
 runs/
 backend/apps/face/archive/
+
+# EXAONE / HF 로컬 가중치 (scripts/exaone/*.py 는 코드 — 무시하지 않음)
+**/EXAONE-*/
+**/EXAONE_*/
+/models/
+/EXAONE-*/
+
+# Ollama·HF·venv 캐시가 레포 루트에 생겼을 때
+.ollama/
+.cache/huggingface/
+.venvs/
+hf-venv/
+exaone-venv/
 
 # ===== 로그·로컬 런타임 =====
 *.log
@@ -81,3 +110,8 @@ Desktop.ini
 # ===== 기타 로컬 도구 =====
 *.local
 .cache/
+
+# ===== Nginx + Certbot (EC2 로컬) =====
+certbot/conf/
+certbot/www/
+nginx/conf.d/default.conf

@@ -11,8 +11,8 @@ from sqlalchemy.types import Date
 
 from admin.adapter.outbound.orm.admin_account import AdminAccount
 from admin.adapter.outbound.orm.warning import Warning
-from lifestyle.adapter.outbound.orm.chat_orm import Message, MessageRole
-from lifestyle.adapter.outbound.orm.lifestyle_orm import UserSetting
+from orchestration.adapter.outbound.orm.chat_orm import Message, MessageRole
+from orchestration.adapter.outbound.orm.orchestration_orm import UserSetting
 from secretary.adapter.outbound.orm.user_model import User, UserRole
 from secretary.adapter.outbound.pg.user_command_pg_repository import UserCommandPgRepository
 from secretary.adapter.outbound.pg.user_query_pg_repository import UserQueryPgRepository

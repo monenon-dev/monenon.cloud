@@ -21,6 +21,10 @@ import admin.adapter.outbound.orm.warning  # noqa: E402, F401
 import secretary.adapter.outbound.orm.user_model  # noqa: E402, F401
 import titanic.adapter.outbound.orm.passenger_jack_trainer_orm  # noqa: E402, F401
 import titanic.adapter.outbound.orm.passenger_rose_model_orm  # noqa: E402, F401
+import moneyball.adapter.outbound.orm.stadium_orm  # noqa: E402, F401
+import moneyball.adapter.outbound.orm.team_orm  # noqa: E402, F401
+import moneyball.adapter.outbound.orm.player_orm  # noqa: E402, F401
+import moneyball.adapter.outbound.orm.schedule_orm  # noqa: E402, F401
 
 config = context.config
 config.set_main_option("sqlalchemy.url", resolved_database_url())

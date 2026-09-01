@@ -1,41 +1,58 @@
-import type { Metadata } from 'next'
-import { Geist, Geist_Mono } from 'next/font/google'
-import { Analytics } from '@vercel/analytics/next'
-import { ClearAdminSessionOutsideAdmin } from '@/components/auth/clear-admin-outside-admin'
-import { UserWarningNotifier } from '@/components/auth/user-warning-notifier'
-import './globals.css'
+import type { Metadata } from "next";
+import { JetBrains_Mono, Playfair_Display, Space_Grotesk } from "next/font/google";
+import { ClearAdminSessionOutsideAdmin } from "@/components/auth/clear-admin-outside-admin";
+import { AuthSessionRestore } from "@/components/auth/auth-session-restore";
+import { UserWarningNotifier } from "@/components/auth/user-warning-notifier";
+import "./globals.css";
 
-const geistSans = Geist({
+const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
-  variable: "--font-geist-sans",
+  variable: "--font-sans",
 });
 
-const geistMono = Geist_Mono({
+const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
-  variable: "--font-geist-mono",
+  variable: "--font-mono",
+});
+
+const playfair = Playfair_Display({
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+  variable: "--font-logo",
 });
 
 export const metadata: Metadata = {
-  // 브라우저 탭에 표시될 타이틀입니다.
-  title: 'Monenon | AI Agent Orchestration', 
-  description: 'Advanced AI Agent Orchestration Platform for Developers',
-  generator: 'Monenon Labs',
+  title: "Moneo | AI Agents Orchestrated for Work",
+  description:
+    "Moneo — AI agent platform for briefings, document ops, and work reports.",
+  generator: "Moneo",
+  icons: {
+    icon: [
+      { url: "/icon.svg", type: "image/svg+xml" },
+      { url: "/icon-dark-32x32.png", sizes: "32x32", type: "image/png" },
+    ],
+    apple: "/apple-icon.png",
+  },
 };
 
 export default function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode
+  children: React.ReactNode;
 }>) {
   return (
-    // 1. lang을 "ko"에서 "en"으로 변경 (영문 서비스 기준)
-    <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
-      <body className={`${geistSans.className} antialiased bg-white dark:bg-gray-950`}>
+    <html
+      lang="ko"
+      className={`dark ${spaceGrotesk.variable} ${jetbrainsMono.variable} ${playfair.variable}`}
+    >
+      <body
+        className={`${spaceGrotesk.className} antialiased bg-[var(--moneo-bg)] text-[var(--moneo-text)]`}
+      >
         <ClearAdminSessionOutsideAdmin />
+        <AuthSessionRestore />
         <UserWarningNotifier />
         {children}
-        {process.env.VERCEL === '1' && <Analytics />}
       </body>
     </html>
-  )
+  );
 }

@@ -26,7 +26,7 @@ function extractJsonObject(text: string): ComposedMail | null {
     const subject = String(parsed.subject ?? "").trim();
     const message = String(parsed.message ?? "").trim();
     if (!to || !message) return null;
-    return { to, subject: subject || "Monenon 메일", message };
+    return { to, subject: subject || "Moneo 메일", message };
   } catch {
     return null;
   }

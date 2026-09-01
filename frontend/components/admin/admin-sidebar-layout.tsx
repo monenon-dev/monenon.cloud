@@ -69,7 +69,7 @@ export function AdminSidebarLayout({
             href="/"
             className="text-sm font-bold text-indigo-600 hover:opacity-90 dark:text-indigo-400"
           >
-            Monenon AI Agent
+            Moneo
           </Link>
         </div>
 

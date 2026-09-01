@@ -1,28 +1,53 @@
 const LOCAL_API_BASE = "http://127.0.0.1:8000";
+const PRODUCTION_API_BASE = "https://api.monenon.cloud";
 
 /** .env.example placeholder — 빌드에 박히면 API 전체가 깨짐 */
 function isPlaceholderApiUrl(url: string): boolean {
   return /your-api\.example\.com/i.test(url) || url.includes("example.com");
 }
 
+function isLocalhostUrl(url: string): boolean {
+  return /localhost|127\.0\.0\.1/i.test(url);
+}
+
+function isMonenonHost(hostname: string): boolean {
+  return hostname === "monenon.cloud" || hostname.endsWith(".monenon.cloud");
+}
+
+function fromEnv(): string {
+  const raw = process.env.NEXT_PUBLIC_API_BASE_URL?.trim();
+  if (!raw || isPlaceholderApiUrl(raw)) return "";
+  return raw.replace(/\/$/, "");
+}
+
+function ensureHttpsOnSecurePage(url: string): string {
+  if (typeof window === "undefined") return url;
+  if (window.location.protocol !== "https:") return url;
+  if (isLocalhostUrl(url)) return url;
+  if (url.startsWith("http://")) return `https://${url.slice("http://".length)}`;
+  return url;
+}
+
 /**
  * API 베이스 URL — Vercel/Docker 빌드 시 NEXT_PUBLIC_API_BASE_URL 필요.
- * 미설정·placeholder면 로컬 백엔드(8000)로 폴백.
+ * www.monenon.cloud 에서는 로컬/placeholder 값이 박혀 있어도 api.monenon.cloud 로 붙인다.
  */
 export function getApiBaseUrl(): string {
-  const fromEnv = process.env.NEXT_PUBLIC_API_BASE_URL?.trim();
-  if (fromEnv && !isPlaceholderApiUrl(fromEnv)) {
-    return fromEnv.replace(/\/$/, "");
+  const envUrl = fromEnv();
+
+  if (typeof window !== "undefined" && isMonenonHost(window.location.hostname)) {
+    if (!envUrl || isLocalhostUrl(envUrl) || isPlaceholderApiUrl(envUrl)) {
+      return PRODUCTION_API_BASE;
+    }
+    return ensureHttpsOnSecurePage(envUrl);
   }
-  if (fromEnv && isPlaceholderApiUrl(fromEnv)) {
-    console.warn(
-      "[api] NEXT_PUBLIC_API_BASE_URL이 예시 값입니다. backend/.env 또는 Docker 빌드 args를 확인하세요."
-    );
-  } else if (process.env.NODE_ENV === "production") {
-    console.warn(
-      "[api] NEXT_PUBLIC_API_BASE_URL이 없습니다. Docker 빌드 args 또는 Vercel 환경 변수를 설정하세요."
-    );
+
+  if (envUrl) return envUrl;
+
+  if (typeof window === "undefined" && process.env.NODE_ENV === "production") {
+    return PRODUCTION_API_BASE;
   }
+
   return LOCAL_API_BASE;
 }
 

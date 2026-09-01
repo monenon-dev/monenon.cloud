@@ -20,14 +20,18 @@ def chat(
     *,
     model: str | None = None,
     temperature: float = 0.2,
+    num_predict: int | None = None,
 ) -> str:
     """EXAONE에게 메시지 전송 → 응답 텍스트 반환."""
     model_name = model or get_ollama_model()
+    options: dict = {"temperature": temperature}
+    if num_predict is not None:
+        options["num_predict"] = num_predict
     try:
         response = _client().chat(
             model=model_name,
             messages=messages,
-            options={"temperature": temperature},
+            options=options,
         )
         return response["message"]["content"].strip()
     except Exception as exc:

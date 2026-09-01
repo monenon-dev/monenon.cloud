@@ -1,8 +1,62 @@
-# Cursor 하네스 (Karpathy식)
+# Cursor 하네스 (Monenon · Karpathy식)
 
-이 저장소에서 AI 코딩 어시스턴트는 **하네스** 안에서만 움직인다. 하네스란 프롬프트·규칙·검증 루프로 **가정·과설계·부수 피해**를 막는 경계다. 철학은 저장소 루트 `CLAUDE.md`(카파시 관찰 → Forrest Chang 정리)와 같다. 상세는 `CLAUDE.md`를 따르고, 여기서는 Cursor 실행 관점만 고정한다.
+이 저장소에서 AI 코딩 어시스턴트는 **하네스** 안에서만 움직인다. 하네스란 프롬프트·규칙·검증 루프로 **가정·과설계·부수 피해**를 막는 경계다. 철학 근간은 카파시 관찰 → Forrest Chang 정리. 스택·도메인별 세부는 하위 문서를 따른다.
+
+| 문서 | 범위 |
+|------|------|
+| `backend/CLAUDE.md` | FastAPI, `backend/apps` 시블링 앱 |
+| `frontend/.cursorrules` | Next.js, UI·API 호출 |
+| `backend/apps/titanic/_docs/CLAUDE.md` | Titanic 교육 도메인 (헥사고날) |
+| `backend/_docs/BACKEND_RULES.md` · `frontend/_docs/REACT_RULES.md` | 코딩 규칙 본문 |
+| `CURSOR.md` | Cursor에서 사람이 컨텍스트·요청을 어떻게 줄지 |
 
 **트레이드오프:** 속도보다 신중함. 사소한 작업은 판단으로 완화한다.
+
+---
+
+## 0. 프로젝트 목적
+
+**Monenon**은 사용자의 **냉장고 데이터**, **날씨 환경**, **취향 정보**를 통합 분석하여 일상의 결정을 **능동적으로 큐레이션**하는 개인 맞춤형 AI 라이프 어시스턴트 플랫폼이다.
+
+| 축 | 역할 |
+|----|------|
+| **냉장고** | 보유 재료·소비 패턴을 바탕으로 요리·장보기 결정 지원 |
+| **날씨** | 기온·강수·시간대를 반영한 코디·외출·일정 큐레이션 |
+| **취향** | 음악·스타일·대화 톤 등 개인 선호를 누적·반영 |
+
+핵심 가치: **데이터 통합 → 맥락 이해 → 능동적 제안**.  
+기능을 추가할 때 “이 변경이 사용자의 일상 결정을 더 잘 돕는가?”를 기준으로 삼는다.
+
+### 핵심 기능 (요약)
+
+| 기능 | 설명 | 주요 경로 |
+|------|------|-----------|
+| AI 비서 대화 | 날씨·맥락을 반영한 Gemini 기반 대화 | `/`, `/chats`, `/api/agent/chat` |
+| 날씨 연동 | OpenWeather 기반 현재 날씨·대화 보강 | `/weather` |
+| 옷장·코디 | 날씨에 맞는 착장 추천 | `/closet`, lifestyle closet API |
+| 냉장고 | 재료 관리, 요리·장보기 제안 | refrigerator API |
+| 음악 큐레이션 | 날씨·상황·취향 기반 플레이리스트 | `/music` |
+| 채팅 세션 | 대화 이력 저장·재개 | `chat` API |
+| 계정·관리 | 회원가입·로그인·Google OAuth, 관리자 | `secretary`, `admin` |
+| 교육 모듈 | Titanic·Lesson 등 — `titanic`, `/lesson/*`에 격리 | |
+
+### 스택·아키텍처
+
+- **백엔드:** Python 3.13+, FastAPI, Uvicorn · PostgreSQL, SQLAlchemy 2 (async), Alembic · Gemini/Ollama · `.env` + Keymaker
+- **프론트:** Next.js 16 (App Router), React 19, TypeScript · Tailwind 4 · Vercel
+- **로컬:** `docker compose up --build` 또는 `backend/apps`에서 `uvicorn main:app --reload` (:8000), `frontend`에서 `npm run dev` (:3000)
+- 도메인은 `backend/apps/` 아래 **시블링 앱** (`lifestyle`, `secretary`, `admin`, `titanic`, `core` …). 헥사고날(ports/adapters) 패턴.
+- 새 기능은 **제품 축(냉장고·날씨·취향)** 에 맞는 앱에 두고, 교육 전용 로직은 `titanic`·`/lesson`에 격리한다.
+
+### 개발 방향성
+
+1. **맥락 통합** — “날씨 + 냉장고 + 취향”을 엮는 흐름 우선
+2. **능동적 제안** — 홈·위젯·추천 태그로 다음 행동 제시
+3. **개인화** — 사용자별 설정·이력·선호를 DB에 남기고 대화에 반영
+4. **교육 모듈 분리** — Titanic·Lesson이 라이프스타일 코어를 오염시키지 않음
+5. **비밀·환경** — API 키·토큰은 `.env` + Keymaker만. 코드·커밋에 하드코딩 금지
+
+---
 
 ## 1. 구현 전 사고
 
@@ -31,27 +85,29 @@
 - 여러 단계면 짧은 계획 + 각 단계 끝의 검증을 밝힌다.
 - 터미널·도구는 추측으로 남발하지 말고, 목적과 기대 출력이 있을 때 쓴다. 실패하면 한 번에 포기하지 말고 원인을 좁힌다.
 
-## 5. docs/ 코딩 규칙 (필수 — 구현 전)
+## 5. `_docs/` 코딩 규칙 (필수 — 구현 전)
 
-백엔드 Python·FastAPI 코드를 **작성·수정·리팩터하기 전에** 반드시 `docs/` 아래 규칙을 읽고 적용한다.  
+백엔드 Python·FastAPI 코드를 **작성·수정·리팩터하기 전에** 반드시 `backend/_docs/` 규칙을 읽고 적용한다.  
 `.cursorrules`만 보고 코딩하지 않는다.
 
 ### 읽는 순서
 
-1. **`docs/DevOps/README.md`** — 규칙 색인
-2. **`docs/DevOps/backend/BACKEND_RULES.md`** — 백엔드·FastAPI 규칙 (필수)
-3. 작업과 관련된 **`docs/obsidian/`** · **`docs/`** 문서 (예: FastAPI 초기화) — 필요 시만
+1. **`backend/_docs/BACKEND_RULES.md`** — 백엔드·FastAPI 규칙 (필수)
+2. **`backend/_docs/docker-rules.md`** — Docker·DB·백엔드 **생성 전** 존재 체크·승인 (필수)
+3. 작업과 관련된 **`backend/_docs/`** ERD·ENTITY 문서 — 필요 시만
+4. 프론트는 **`frontend/_docs/REACT_RULES.md`**
 
 ### 적용 규칙
 
-- `docs/DevOps/backend/` 와 기존 `backend/apps` 코드가 충돌하면 **docs/DevOps → 기존 코드 스타일** 순으로 따른다.
-- docs에 없는 새 패턴이 필요하면, 코드만 넣지 말고 **규칙을 docs에 추가할지 사용자에게 확인**한다.
-- 프론트 작업 시에는 `docs/DevOps/frontend/REACT_RULES.md` 를 따른다 (백엔드 규칙으로 프론트를 대체하지 않음).
+- `backend/_docs/` 와 기존 `backend/apps` 코드가 충돌하면 **`backend/_docs` → 기존 코드 스타일** 순으로 따른다.
+- docs에 없는 새 패턴이 필요하면, 코드만 넣지 말고 **규칙을 `_docs`에 추가할지 사용자에게 확인**한다.
+- 프론트 작업 시에는 `frontend/_docs/REACT_RULES.md` 를 따른다 (백엔드 규칙으로 프론트를 대체하지 않음).
+- Docker·DB·백엔드 “생성/올려” 요청은 **`docker-rules.md`**: 기존이 있으면 체크·보고 후 **승인 없이는 새로 만들지 않는다.**
 
 ### Cursor 멘션 (권장)
 
 ```text
-@backend/.cursorrules @docs/DevOps/backend/BACKEND_RULES.md
+@backend/.cursorrules @backend/_docs/BACKEND_RULES.md @backend/_docs/docker-rules.md
 ```
 
 ## 6. 이 프로젝트에 맞게 채울 항목
@@ -69,8 +125,12 @@
 ## 7. 산출물
 
 - 사용자가 마크다운 문서를 요청하지 않은 한 **새 MD 파일을 만들지 않는다.**  
-  (예외: 사용자가 `docs/DevOps/` 규칙 문서 추가·수정을 명시적으로 요청한 경우)
+  (예외: 사용자가 `backend/_docs/` · `frontend/_docs/` 규칙 문서 추가·수정을 명시적으로 요청한 경우)
 - 설명이 필요하면 채팅으로 하고, 코드 인용은 `시작줄:끝줄:경로` 형식을 지킨다.
 
 이 하네스가 맞으면: diff 잡음이 줄고, 과한 추상화로 인한 재작성이 줄고, **구현 전**에 질문이 나온다.  
-백엔드는 **`docs/DevOps/backend/BACKEND_RULES.md`** 를 거쳐 프로젝트 규칙을 인지한 뒤 코드를 쓴다.
+백엔드는 **`backend/_docs/BACKEND_RULES.md`** 를 거쳐 프로젝트 규칙을 인지한 뒤 코드를 쓴다.
+
+## 출처
+
+- 행동 가이드라인 근간: Andrej Karpathy의 관찰 — https://github.com/forrestchang/andrej-karpathy-skills

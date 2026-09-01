@@ -1,4 +1,4 @@
-"""star_craft API v1 — Kerrigan(라우팅) + Raynor(스포크 레지스트리)."""
+"""star_craft API v1 — Kerrigan(라우팅) + Raynor(스포크 레지스트리) + 종족 온톨로지."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field
 
 from star_craft.app.use_cases import ContextRoutingUseCase
 from star_craft.dependencies import get_routing_use_case
-from star_craft.domain import SpokeNode
+from star_craft.domain import SpokeNode, races_as_dict
 
 hub_router = APIRouter(prefix="/hub", tags=["star-craft-hub"])
 
@@ -22,6 +22,7 @@ class SpokeRegisterBody(BaseModel):
     description: str
     endpoint: str
     keywords: list[str] = Field(default_factory=list)
+    race: str | None = Field(default=None, description="zerg | protoss | terran")
 
 
 # ── Kerrigan — 컨텍스트 라우팅 ───────────────────────────────────────────────
@@ -54,7 +55,8 @@ async def list_spokes(
 ) -> list[dict]:
     spokes = await use_case.get_spokes()
     return [{"name": s.name, "description": s.description,
-             "endpoint": s.endpoint, "status": s.status} for s in spokes]
+             "endpoint": s.endpoint, "status": s.status, "race": s.race}
+            for s in spokes]
 
 
 @hub_router.post("/spokes", status_code=201)
@@ -64,6 +66,14 @@ async def register_spoke(
 ) -> dict:
     await use_case.register_spoke(SpokeNode(
         name=body.name, description=body.description,
-        endpoint=body.endpoint, keywords=body.keywords,
+        endpoint=body.endpoint, keywords=body.keywords, race=body.race,
     ))
     return {"ok": True, "registered": body.name}
+
+
+# ── 종족 온톨로지 (저그=비전, 프로토스=LLM, 테란=시계열) ─────────────────────
+
+@hub_router.get("/races")
+async def list_races() -> list[dict]:
+    """초보자용 종족 메타포 + 소속 툴 카탈로그."""
+    return races_as_dict()

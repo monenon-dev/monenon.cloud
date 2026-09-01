@@ -1,20 +1,17 @@
 import 'dart:convert';
 
-import 'package:http/http.dart' as http;
-
-import '../config/api_config.dart';
+import 'api_client.dart';
 
 class AgentService {
-  Future<String> chat(String prompt, {int? userId}) async {
-    final payload = <String, dynamic>{'prompt': prompt};
-    if (userId != null) {
-      payload['user_id'] = userId;
-    }
+  AgentService({ApiClient? client}) : _client = client ?? ApiClient.instance;
 
-    final res = await http.post(
-      Uri.parse('${ApiConfig.baseUrl}/agent/chat'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode(payload),
+  final ApiClient _client;
+
+  /// `/agent/chat` — 서버가 JWT `sub`로 사용자를 식별한다.
+  Future<String> chat(String prompt) async {
+    final res = await _client.post(
+      '/agent/chat',
+      body: {'prompt': prompt},
     );
 
     final body = jsonDecode(res.body);

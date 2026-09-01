@@ -78,7 +78,18 @@ export function GeminiScheduleChat() {
   const handleRegister = async (messageId: string, draft: CalendarEventDraft) => {
     patchUi({ registeringId: messageId, error: null, success: null });
     try {
-      const result = await registerScheduleEvent(draft);
+      let result = await registerScheduleEvent(draft);
+      if (result.needs_confirm) {
+        const ok = window.confirm(
+          result.message ||
+            "톡캘린더에 겹치는 일정이 있습니다. 그래도 등록할까요?"
+        );
+        if (!ok) {
+          patchUi({ error: "겹치는 일정으로 등록을 취소했습니다." });
+          return;
+        }
+        result = await registerScheduleEvent(draft, { confirmOverlap: true });
+      }
       patchUi({ success: result.message ?? "일정 등록 요청이 완료되었습니다." });
     } catch (err) {
       patchUi({

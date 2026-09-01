@@ -1,27 +1,31 @@
-# 2단계 시그마 — Hub 이미지 + Neo 공유 DB + Cloudflare 터널 커넥터
+# 시그마 remote-server — 백엔드 전용 (Ubuntu Docker Engine)
+#
+# Docker Desktop(Windows) 불필요. 시그마 우분투(WSL) Engine에서만 실행.
+# 프론트는 Vercel / 로컬 Next.js — Docker 배포 제외.
 #
 # 루트 .env 필수:
-#   NEO_HOST=<네오 LAN IP>  (예: 192.168.0.10)
-#   CLOUDFLARE_TUNNEL_TOKEN=<네오와 동일 토큰>
+#   CLOUDFLARE_TUNNEL_TOKEN=<터널 토큰>
 #
-# 실행: scripts/phase2-sigma.ps1
-# 또는:
-#   docker compose -f docker-compose.yaml -f docker-compose.sigma.yaml pull backend
-#   docker compose -f docker-compose.yaml -f docker-compose.sigma.yaml --profile tunnel up -d backend cloudflared
+# 시그마 우분투 (Hub 이미지):
+#   bash scripts/phase2-sigma.sh
+# 시그마 우분투 (로컬 코드 빌드 — moneyball 등 최신 반영):
+#   bash scripts/phase2-sigma-local.sh
+#
+# pull_policy=missing: 로컬 빌드 후 up 할 때 Hub 옛 이미지로 덮어쓰지 않음.
+# Hub 최신이 필요하면 phase2-sigma.sh 가 명시적으로 pull 함.
 
 services:
   backend:
     image: ${BACKEND_IMAGE:-whtjgml2002/monenon-backend:latest}
-    pull_policy: always
-    depends_on: !override []
-    environment:
-      DATABASE_URL: postgresql+psycopg://postgres:${POSTGRES_PASSWORD:-monenon2026}@${NEO_HOST:?set NEO_HOST in root .env}:5432/monenon
-      NEO4J_URI: bolt://${NEO_HOST:?set NEO_HOST in root .env}:7687
-      NEO4J_USER: neo4j
-      NEO4J_PASSWORD: ${NEO4J_PASSWORD:-monenon2026}
-      REDIS_URL: redis://${NEO_HOST:?set NEO_HOST in root .env}:6379
+    pull_policy: missing
+
+  auth:
+    image: ${AUTH_IMAGE:-whtjgml2002/monenon-auth:latest}
+    pull_policy: missing
 
   cloudflared:
     depends_on: !override
       backend:
+        condition: service_healthy
+      auth:
         condition: service_healthy

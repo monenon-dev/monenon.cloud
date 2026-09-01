@@ -333,7 +333,7 @@ export function SessionChatView({ apiBaseUrl, userId, className = "" }: SessionC
             initialMessages={initialMessages}
             resetKey={activeId ?? "new"}
             onSendMessage={(text) => handleSendMessage(text)}
-            placeholder="질문하세요 (예: 서울 날씨 어때?, 한국의 수도는?)"
+            placeholder="업무에 대해 물어보세요 (예: 이번 주 리포트 요약해 줘)"
           />
         )}
       </div>

@@ -1,0 +1,31 @@
+---
+description: 백엔드 구현 전 backend/_docs 읽는 순서 (.cursorrules §5)
+globs: backend/**/*
+alwaysApply: false
+---
+
+# `_docs/` 코딩 규칙 (필수 — 구현 전)
+
+출처: 저장소 루트 `.cursorrules` §5.  
+백엔드 Python·FastAPI 코드를 **작성·수정·리팩터하기 전에** 반드시 `backend/_docs/` 규칙을 읽고 적용한다.  
+루트 `.cursorrules`만 보고 코딩하지 않는다.
+
+## 읽는 순서
+
+1. **`backend/_docs/BACKEND_RULES.md`** — 백엔드·FastAPI 규칙 (필수)
+2. **`backend/_docs/docker-rules.md`** — Docker·DB·백엔드 **생성 전** 존재 체크·승인 (필수)
+3. 작업과 관련된 **`backend/_docs/`** ERD·ENTITY 문서 — 필요 시만
+4. 프론트는 **`frontend/_docs/REACT_RULES.md`** (백엔드 규칙으로 프론트를 대체하지 않음)
+
+## 적용 규칙
+
+- `backend/_docs/` 와 기존 `backend/apps` 코드가 충돌하면 **`backend/_docs` → 기존 코드 스타일** 순으로 따른다.
+- docs에 없는 새 패턴이 필요하면, 코드만 넣지 말고 **규칙을 `_docs`에 추가할지 사용자에게 확인**한다.
+
+## Cursor 멘션 (권장)
+
+```text
+@backend/.cursorrules @backend/_docs/BACKEND_RULES.md @backend/_docs/docker-rules.md
+```
+
+도메인 세부는 `backend/CLAUDE.md`, Titanic은 `backend/apps/titanic/_docs/CLAUDE.md`를 따른다.

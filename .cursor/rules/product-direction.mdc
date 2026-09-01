@@ -1,0 +1,43 @@
+---
+description: Monenon 제품 축·핵심 기능·시블링 앱 경계 (.cursorrules §0)
+alwaysApply: true
+---
+
+# 제품 방향 · 아키텍처 경계
+
+출처: 저장소 루트 `.cursorrules` §0.
+
+## 목적
+
+**Monenon**은 **냉장고 · 날씨 · 취향**을 통합해 일상의 결정을 **능동적으로 큐레이션**하는 AI 라이프 어시스턴트다.
+
+핵심 가치: **데이터 통합 → 맥락 이해 → 능동적 제안**.  
+기능을 추가할 때 “이 변경이 사용자의 일상 결정을 더 잘 돕는가?”를 기준으로 삼는다.
+
+## 제품 축
+
+| 축 | 역할 |
+|----|------|
+| **냉장고** | 보유 재료·소비 패턴 → 요리·장보기 |
+| **날씨** | 기온·강수·시간대 → 코디·외출·일정 |
+| **취향** | 음악·스타일·대화 톤 등 선호 누적 |
+
+## 개발 방향성
+
+1. **맥락 통합** — “날씨 + 냉장고 + 취향”을 엮는 흐름 우선
+2. **능동적 제안** — 홈·위젯·추천 태그로 다음 행동 제시
+3. **개인화** — 사용자별 설정·이력·선호를 DB에 남기고 대화에 반영
+4. **교육 모듈 분리** — Titanic·Lesson이 라이프스타일 코어를 오염시키지 않음
+5. **비밀·환경** — API 키·토큰은 `.env` + Keymaker만. 코드·커밋에 하드코딩 금지
+
+## 시블링 앱 · 격리
+
+- 도메인은 `backend/apps/` 아래 **시블링 앱** (`lifestyle`, `secretary`, `admin`, `titanic`, `core` …). 헥사고날(ports/adapters) 패턴.
+- 새 기능은 **제품 축(냉장고·날씨·취향)** 에 맞는 앱에 둔다.
+- 교육 전용 로직은 `titanic`·`/lesson`에 격리한다.
+
+## 스택 요약
+
+- 백엔드: Python 3.13+, FastAPI, Uvicorn · PostgreSQL, SQLAlchemy 2 (async), Alembic
+- 프론트: Next.js 16, React 19, TypeScript · Tailwind 4
+- 로컬: `docker compose up --build` / `uvicorn main:app --reload` (:8000) / `npm run dev` (:3000)

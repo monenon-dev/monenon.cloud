@@ -14,7 +14,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { clearAuthSession, getAuthSession } from "@/lib/auth-api";
+import { getAuthSession, logoutAuthSession } from "@/lib/auth-api";
 import { routes } from "@/lib/routes";
 
 function LessonMenuSidebar({ active }: { active: LessonMenuNavActive }) {
@@ -37,7 +37,7 @@ export function LessonTitanicShell({ children }: { children: ReactNode }) {
   }, []);
 
   const handleLogout = () => {
-    clearAuthSession();
+    logoutAuthSession(routes.oauth.login);
     setAuthUser(null);
   };
 
@@ -70,7 +70,7 @@ export function LessonTitanicShell({ children }: { children: ReactNode }) {
               href="/"
               className="shrink-0 text-left text-lg font-bold tracking-tight text-indigo-600 hover:opacity-90 transition-opacity"
             >
-              Monenon AI Agent
+              Moneo
             </Link>
           </div>
           <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">

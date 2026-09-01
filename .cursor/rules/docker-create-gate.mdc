@@ -1,0 +1,17 @@
+---
+description: Docker·DB·백엔드 생성/기동 전 존재 체크·승인 게이트 (.cursorrules §5)
+globs: "{docker-compose*.y*ml,**/Dockerfile*,backend/**/*}"
+alwaysApply: false
+---
+
+# Docker · DB · 백엔드 생성 게이트
+
+출처: 저장소 루트 `.cursorrules` §5 · `backend/_docs/docker-rules.md`.
+
+Docker·DB·백엔드 “생성/올려” 요청은:
+
+1. **`backend/_docs/docker-rules.md`** 를 읽는다
+2. 기존 스택이 있으면 **체크·보고**한다
+3. **사용자 승인 없이는 새로 만들지 않는다**
+
+로컬 기동 참고: `docker compose up --build` / API docs `http://127.0.0.1:8000/docs`.

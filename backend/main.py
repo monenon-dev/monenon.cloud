@@ -17,7 +17,7 @@ from core.matrix.vault_keymaker_secret_manager import get_keymaker
 # 전역 환경·키는 Keymaker 한곳에서 로드 (DB·Gemini 공통)
 get_keymaker().load_environment()
 
-from fastapi import Depends, FastAPI
+from fastapi import Depends, FastAPI, Request
 from fastapi.encoders import jsonable_encoder
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
@@ -28,27 +28,53 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.matrix import grid_oracle_database_manager as db
 from core.matrix.grid_oracle_database_manager import Base, dispose_engine, get_db
+from core.dependencies import get_authenticated_user_id
 from db_health_adapter import check_db_connection
 from gemini_caller import GeminiQuotaError, call_gemini
 from weather_caller import fetch_current_weather
 from weather_chat import augment_message_with_weather, try_weather_chat_reply
 try:
-    import lifestyle.adapter.outbound.orm.chat_orm  # noqa: F401 — 채팅 테이블 metadata
+    import orchestration.adapter.outbound.orm.chat_orm  # noqa: F401 — 채팅 테이블 metadata
 except ModuleNotFoundError:
     pass
 try:
-    import lifestyle.adapter.outbound.orm.lifestyle_orm  # noqa: F401 — 라이프스타일 테이블 metadata
+    import orchestration.adapter.outbound.orm.orchestration_orm  # noqa: F401 — 오케스트레이션 테이블 metadata
+    import orchestration.adapter.outbound.orm.daily_briefing_orm  # noqa: F401 — daily_briefings
+    import orchestration.adapter.outbound.orm.user_integration_orm  # noqa: F401 — user_integrations
+    import orchestration.adapter.outbound.orm.proactive_alert_orm  # noqa: F401
+    import orchestration.adapter.outbound.orm.user_notification_settings_orm  # noqa: F401
 except ModuleNotFoundError:
     pass
 try:
-    from lifestyle.adapter.inbound.api.v1 import lifestyle_router
+    from orchestration.adapter.inbound.api.v1 import orchestration_router
+    from orchestration.adapter.inbound.api.schemas.briefing_schema import (
+        BriefingNotesRequest,
+        BriefingReviewRequest,
+    )
+    from orchestration.adapter.inbound.api.schemas.weekly_report_schema import (
+        WeeklyReportRequest,
+    )
 except ModuleNotFoundError:
-    lifestyle_router = None
+    orchestration_router = None
+    WeeklyReportRequest = None  # type: ignore[misc, assignment]
+    BriefingReviewRequest = None  # type: ignore[misc, assignment]
+    BriefingNotesRequest = None  # type: ignore[misc, assignment]
 try:
     from secretary.adapter.inbound.api.v1 import secretary_router
-    from secretary.adapter.outbound.orm.user_model import User  # noqa: F401
-except ModuleNotFoundError:
+except Exception as e:
+    logging.getLogger(__name__).exception(
+        "secretary_router import failed — /auth/login 등 비활성: %s", e
+    )
     secretary_router = None
+else:
+    # ORM 메타데이터 등록 (실패해도 로그인 라우터는 유지)
+    try:
+        from secretary.adapter.outbound.orm.user_model import User  # noqa: F401
+        from secretary.adapter.outbound.orm.kakao_account import KakaoAccount  # noqa: F401
+    except Exception as e:
+        logging.getLogger(__name__).warning(
+            "secretary ORM import skipped: %s", e
+        )
 try:
     from admin.adapter.inbound.api.v1 import admin_router
     from admin.adapter.outbound.orm.admin_account import AdminAccount  # noqa: F401
@@ -58,7 +84,7 @@ except ModuleNotFoundError:
     admin_router = None
     build_admin_use_case = None
 try:
-    from lifestyle.adapter.inbound.api.v1 import chat_router
+    from orchestration.adapter.inbound.api.v1 import chat_router
 except ModuleNotFoundError:
     chat_router = None
 try:
@@ -98,6 +124,28 @@ import titanic.adapter.outbound.orm.passenger_jack_trainer_orm  # noqa: F401 —
 import titanic.adapter.outbound.orm.passenger_rose_model_orm  # noqa: F401 — 부킹 metadata
 from titanic.adapter.inbound.api.v1 import titanic_router
 from scheduled_jobs.internal_router import internal_router
+try:
+    import moneyball.adapter.outbound.orm  # noqa: F401 — moneyball 테이블 metadata
+    from moneyball.adapter.inbound.api import moneyball_router
+except ModuleNotFoundError as exc:
+    moneyball_router = None
+    logging.getLogger(__name__).warning(
+        "moneyball router disabled (ModuleNotFoundError): %s", exc
+    )
+try:
+    from gateway.adapter.inbound.api import gateway_api_router
+except ModuleNotFoundError as exc:
+    gateway_api_router = None
+    logging.getLogger(__name__).warning(
+        "gateway router disabled (ModuleNotFoundError): %s", exc
+    )
+try:
+    from silicon_valley.adapter.inbound.api import silicon_valley_api_router
+except Exception as exc:
+    silicon_valley_api_router = None
+    logging.getLogger(__name__).warning(
+        "silicon_valley router disabled: %s", exc
+    )
 # Titanic CSV 자동 시드는 사용자가 업로드할 때만 실행
 UPLOAD_DIR = Path(__file__).resolve().parent / "uploads"
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
@@ -209,6 +257,42 @@ async def lifespan(app: FastAPI):
                     "suspended_until TIMESTAMPTZ"
                 )
             )
+            await conn.execute(
+                text(
+                    "ALTER TABLE user_settings ADD COLUMN IF NOT EXISTS "
+                    "kakao_calendar_sync BOOLEAN NOT NULL DEFAULT FALSE"
+                )
+            )
+            await conn.execute(
+                text(
+                    "ALTER TABLE user_notification_settings "
+                    "ADD COLUMN IF NOT EXISTS briefing_hour INTEGER NOT NULL DEFAULT 7"
+                )
+            )
+            await conn.execute(
+                text(
+                    "ALTER TABLE user_notification_settings "
+                    "ADD COLUMN IF NOT EXISTS briefing_minute INTEGER NOT NULL DEFAULT 0"
+                )
+            )
+            await conn.execute(
+                text(
+                    "ALTER TABLE user_notification_settings "
+                    "ADD COLUMN IF NOT EXISTS density_threshold INTEGER NOT NULL DEFAULT 3"
+                )
+            )
+            await conn.execute(
+                text(
+                    "ALTER TABLE user_notification_settings "
+                    "ADD COLUMN IF NOT EXISTS active_hours_start INTEGER NOT NULL DEFAULT 8"
+                )
+            )
+            await conn.execute(
+                text(
+                    "ALTER TABLE user_notification_settings "
+                    "ADD COLUMN IF NOT EXISTS active_hours_end INTEGER NOT NULL DEFAULT 20"
+                )
+            )
             for drop_sql in (
                 "DROP TABLE IF EXISTS playing_with_neon CASCADE",
                 "DROP TABLE IF EXISTS tool_usage_history CASCADE",
@@ -239,7 +323,37 @@ async def lifespan(app: FastAPI):
                 await build_admin_use_case(session).seed_defaults_if_empty()
     except Exception as e:
         logger.warning("Startup DB bootstrap skipped: %s", e)
+    try:
+        from orchestration.app.briefing.scheduler import start_briefing_scheduler
+
+        start_briefing_scheduler()
+    except Exception as e:
+        logger.warning("Briefing scheduler start skipped: %s", e)
+    try:
+        from orchestration.app.watcher.scheduler import start_watcher_scheduler
+
+        start_watcher_scheduler()
+    except Exception as e:
+        logger.warning("Watcher scheduler start skipped: %s", e)
     yield
+    try:
+        from orchestration.app.watcher.scheduler import stop_watcher_scheduler
+
+        stop_watcher_scheduler()
+    except Exception as e:
+        logger.warning("Watcher scheduler shutdown skipped: %s", e)
+    try:
+        from orchestration.app.briefing.scheduler import stop_briefing_scheduler
+
+        stop_briefing_scheduler()
+    except Exception as e:
+        logger.warning("Briefing scheduler shutdown skipped: %s", e)
+    try:
+        from lol.neo4j import close_driver
+
+        await close_driver()
+    except Exception as e:
+        logger.warning("Neo4j driver shutdown skipped: %s", e)
     await dispose_engine()
 
 
@@ -268,7 +382,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=_cors_allow_origins(),
     allow_origin_regex=_CORS_ORIGIN_REGEX,
-    allow_credentials=False,
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -279,8 +393,8 @@ if secretary_router is not None:
     app.include_router(secretary_router)
 if admin_router is not None:
     app.include_router(admin_router)
-if lifestyle_router is not None:
-    app.include_router(lifestyle_router)
+if orchestration_router is not None:
+    app.include_router(orchestration_router)
 if chat_router is not None:
     app.include_router(chat_router)
 if mail_api_router is not None:
@@ -299,6 +413,12 @@ if faker_api_router is not None:
     app.include_router(faker_api_router)
 app.include_router(titanic_router)
 app.include_router(internal_router)
+if moneyball_router is not None:
+    app.include_router(moneyball_router)
+if gateway_api_router is not None:
+    app.include_router(gateway_api_router)
+if silicon_valley_api_router is not None:
+    app.include_router(silicon_valley_api_router)
 
 
 @app.get("/")
@@ -334,6 +454,22 @@ def read_weather(city: str | None = None):
 class AgentChatBody(BaseModel):
     prompt: str = Field(..., min_length=1)
     user_id: int | None = Field(default=None, ge=1)
+    speech_tone: str | None = Field(
+        default=None,
+        description="마이페이지 말투: friendly | formal | humorous",
+    )
+    user_type: str | None = Field(
+        default=None,
+        description="온보딩 업종/역할: 직장인 | 학생 | 프리랜서_창업자",
+    )
+    industry: str | None = Field(
+        default=None,
+        description="직장인 업종: IT개발 | 마케팅 | 영업 | 인사 | 재무회계 | 기획전략 | 기타",
+    )
+    force_refresh: bool = Field(
+        default=False,
+        description="브리핑 다시 생성 시 오늘자 캐시를 무시하고 재실행",
+    )
 
 
 class ChatMessageBody(BaseModel):
@@ -369,19 +505,47 @@ def chat(body: ChatMessageBody):
         return JSONResponse({"detail": str(e)}, status_code=502)
 
 
-@app.post("/agent/chat")
-async def agent_chat(body: AgentChatBody, session: AsyncSession = Depends(get_db)):
-    """프론트 Monenon 채팅 — 응답 우선 모델로 Gemini 호출."""
-    from lifestyle.app.chat_context import augment_prompt_with_user_context
+def _basic_chat_reply(message: str) -> dict:
+    weather = try_weather_chat_reply(message)
+    if weather is not None:
+        model_id, reply = weather
+        return {"model": model_id, "reply": reply}
+    km = get_keymaker()
+    chat_model = km.gemini_chat_model_id()
+    prompt = augment_message_with_weather(message)
+    reply = call_gemini(prompt, model=chat_model)
+    return {"model": chat_model, "reply": reply}
 
-    prompt = body.prompt
-    if body.user_id is not None:
-        prompt = await augment_prompt_with_user_context(session, body.user_id, prompt)
-        logger.info("[agent_chat] user_id=%s prompt_chars=%s", body.user_id, len(prompt))
+
+@app.post("/chat/guest")
+def chat_guest(body: ChatMessageBody, request: Request):
+    """
+    비로그인 게스트용 기본 채팅 — Moneo 에이전트 프롬프트·DB 저장 없음.
+    IP 기준 일일 호출 한도 적용.
+    """
+    from guest_chat_limit import GUEST_DAILY_LIMIT, check_guest_quota, increment_guest_quota
+
+    client_ip = request.client.host if request.client else "unknown"
+    allowed, used, limit = check_guest_quota(client_ip)
+    if not allowed:
+        return JSONResponse(
+            {
+                "detail": f"게스트 일일 이용 한도({limit}회)를 모두 사용했습니다. 로그인 후 이용해 주세요.",
+                "guest_used": used,
+                "guest_limit": limit,
+                "guest_remaining": 0,
+            },
+            status_code=429,
+        )
     try:
-        km = get_keymaker()
-        chat_model = km.gemini_chat_model_id()
-        answer = call_gemini(prompt, model=chat_model)
+        payload = _basic_chat_reply(body.message)
+        used_after, limit, remaining = increment_guest_quota(client_ip)
+        return {
+            **payload,
+            "guest_used": used_after,
+            "guest_limit": limit,
+            "guest_remaining": remaining,
+        }
     except ValueError as e:
         return JSONResponse({"detail": str(e)}, status_code=400)
     except GeminiQuotaError as e:
@@ -390,7 +554,161 @@ async def agent_chat(body: AgentChatBody, session: AsyncSession = Depends(get_db
         return JSONResponse({"detail": str(e)}, status_code=503)
     except Exception as e:
         return JSONResponse({"detail": str(e)}, status_code=502)
-    return {"answer": answer, "confidence": 0.0, "sources": []}
+
+
+@app.post("/agent/chat")
+async def agent_chat(
+    body: AgentChatBody,
+    auth_user_id: int = Depends(get_authenticated_user_id),
+    session: AsyncSession = Depends(get_db),
+):
+    """프론트 Monenon 채팅 — 의도 분류 후 브리핑·리포트 그래프 또는 Gemini."""
+    from orchestration.app.use_cases.run_agent_chat import run_agent_chat
+
+    logger.info(
+        "[agent_chat] user_id=%s speech_tone=%s user_type=%s industry=%s prompt_chars=%s",
+        auth_user_id,
+        body.speech_tone,
+        body.user_type,
+        body.industry,
+        len(body.prompt),
+    )
+    try:
+        return await run_agent_chat(
+            session,
+            prompt=body.prompt,
+            user_id=auth_user_id,
+            speech_tone=body.speech_tone,
+            user_type=body.user_type,
+            industry=body.industry,
+            force_refresh=bool(body.force_refresh),
+        )
+    except ValueError as e:
+        return JSONResponse({"detail": str(e)}, status_code=400)
+    except GeminiQuotaError as e:
+        return JSONResponse({"detail": str(e)}, status_code=429)
+    except RuntimeError as e:
+        return JSONResponse({"detail": str(e)}, status_code=503)
+    except Exception as e:
+        logger.exception("[agent_chat] failed: %s", e)
+        return JSONResponse({"detail": str(e)}, status_code=502)
+
+
+@app.get("/agent/briefing/today")
+async def agent_briefing_today(
+    auth_user_id: int = Depends(get_authenticated_user_id),
+    speech_tone: str | None = None,
+    user_type: str | None = None,
+    industry: str | None = None,
+    force_refresh: bool = False,
+    session: AsyncSession = Depends(get_db),
+):
+    """오늘자 능동적 브리핑 — 없으면 LangGraph로 동기 생성 후 반환."""
+    from orchestration.app.use_cases.get_or_create_today_briefing import (
+        get_or_create_today_briefing,
+    )
+
+    user_id = auth_user_id
+    try:
+        payload = await get_or_create_today_briefing(
+            session,
+            user_id=user_id,
+            speech_tone=speech_tone,
+            user_type=user_type,
+            industry=industry,
+            force_refresh=force_refresh,
+        )
+    except ValueError as e:
+        return JSONResponse({"detail": str(e)}, status_code=400)
+    except GeminiQuotaError as e:
+        return JSONResponse({"detail": str(e)}, status_code=429)
+    except RuntimeError as e:
+        return JSONResponse({"detail": str(e)}, status_code=503)
+    except Exception as e:
+        logger.exception("[agent_briefing_today] failed: %s", e)
+        return JSONResponse({"detail": "오늘의 브리핑을 불러오지 못했습니다."}, status_code=502)
+    return payload
+
+
+@app.post("/agent/briefing/{briefing_id}/review")
+async def agent_briefing_review(
+    briefing_id: int,
+    body: BriefingReviewRequest,
+    auth_user_id: int = Depends(get_authenticated_user_id),
+    session: AsyncSession = Depends(get_db),
+):
+    """검토 대기 브리핑 문장에 대해 포함/제외 결정."""
+    from orchestration.app.use_cases.resolve_briefing_review import resolve_briefing_review
+
+    try:
+        payload = await resolve_briefing_review(
+            session,
+            briefing_id=briefing_id,
+            user_id=auth_user_id,
+            decision=body.decision,
+        )
+    except ValueError as e:
+        return JSONResponse({"detail": str(e)}, status_code=400)
+    except Exception as e:
+        logger.exception("[agent_briefing_review] failed: %s", e)
+        return JSONResponse({"detail": "브리핑 검토 결과를 저장하지 못했습니다."}, status_code=502)
+    return payload
+
+
+@app.patch("/agent/briefing/today/notes")
+async def agent_briefing_today_notes(
+    body: BriefingNotesRequest,
+    auth_user_id: int = Depends(get_authenticated_user_id),
+    session: AsyncSession = Depends(get_db),
+):
+    """오늘 브리핑에 사용자 메모를 저장한다."""
+    from orchestration.app.use_cases.update_briefing_notes import update_today_briefing_notes
+
+    try:
+        payload = await update_today_briefing_notes(
+            session,
+            user_id=auth_user_id,
+            notes=body.notes,
+        )
+    except ValueError as e:
+        return JSONResponse({"detail": str(e)}, status_code=400)
+    except Exception as e:
+        logger.exception("[agent_briefing_notes] failed: %s", e)
+        return JSONResponse({"detail": "브리핑 메모를 저장하지 못했습니다."}, status_code=502)
+    return payload
+
+
+@app.post("/agent/report/weekly")
+async def agent_weekly_report(
+    body: WeeklyReportRequest,
+    auth_user_id: int = Depends(get_authenticated_user_id),
+    session: AsyncSession = Depends(get_db),
+):
+    """최근 7일 daily_briefings를 종합한 주간 업무 리포트 (동기 생성)."""
+    from orchestration.app.use_cases.run_weekly_report import run_weekly_report
+
+    speech_tone = body.speech_tone
+    user_type = body.user_type
+    industry = body.industry
+
+    try:
+        payload = await run_weekly_report(
+            session=session,
+            user_id=auth_user_id,
+            speech_tone=speech_tone,
+            user_type=user_type,
+            industry=industry,
+        )
+    except ValueError as e:
+        return JSONResponse({"detail": str(e)}, status_code=400)
+    except GeminiQuotaError as e:
+        return JSONResponse({"detail": str(e)}, status_code=429)
+    except RuntimeError as e:
+        return JSONResponse({"detail": str(e)}, status_code=503)
+    except Exception as e:
+        logger.exception("[agent_weekly_report] failed: %s", e)
+        return JSONResponse({"detail": "주간 리포트 생성에 실패했습니다."}, status_code=502)
+    return payload
 
 
 @app.get("/agent/logs")

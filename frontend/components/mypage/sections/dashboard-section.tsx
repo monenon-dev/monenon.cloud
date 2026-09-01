@@ -1,71 +1,41 @@
 import Link from "next/link";
 
-import { routes } from "@/lib/routes";
-import { Bot, Calendar, Shield, Shirt } from "lucide-react";
-
+import { RecentActivityCard } from "@/components/mypage/recent-activity-card";
 import { mypageCardClass } from "@/components/mypage/mypage-sidebar-layout";
+import { routes } from "@/lib/routes";
+import { Bot, Terminal } from "lucide-react";
 
 type DashboardSectionProps = {
   nickname: string;
-  roleLabel: string;
-  joinDate: string;
   agentName: string;
-  interestCount: number;
 };
 
 export function DashboardSection({
   nickname,
-  roleLabel,
-  joinDate,
   agentName,
-  interestCount,
 }: DashboardSectionProps) {
   return (
     <div className="space-y-6">
       <section className={mypageCardClass}>
-        <p className="text-sm text-gray-500 dark:text-gray-400">활동 요약</p>
-        <h2 className="mt-2 text-xl font-semibold">
-          {nickname}님, 오늘도 Monenon과 함께해요
+        <p className="text-sm text-[var(--moneo-muted)]">활동 요약</p>
+        <h2 className="mt-2 text-xl font-semibold text-white">
+          {nickname}님, 오늘도 Moneo와 함께해요
         </h2>
-        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-          에이전트 <span className="font-medium text-indigo-600 dark:text-indigo-400">{agentName}</span>
-          가 맞춤 추천을 도와드립니다.
+        <p className="mt-2 text-sm text-[var(--moneo-muted)]">
+          에이전트 <span className="font-medium text-indigo-300">{agentName}</span>
+          가 맞춤 업무 지원을 도와드립니다.
         </p>
       </section>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-        <StatCard icon={Shield} label="역할" value={roleLabel} />
-        <StatCard icon={Calendar} label="가입일" value={joinDate} />
-        <StatCard icon={Shirt} label="관심 분야" value={`${interestCount}개 선택됨`} />
-      </div>
+      <RecentActivityCard />
 
       <section className={mypageCardClass}>
-        <h3 className="text-base font-semibold">빠른 이동</h3>
+        <h3 className="text-base font-semibold text-white">빠른 이동</h3>
         <div className="mt-4 flex flex-wrap gap-3">
-          <QuickLink href="/" icon={Bot} label="에이전트 채팅" />
-          <QuickLink href={routes.lifestyle.closet} icon={Shirt} label="오늘의 옷장" />
+          <QuickLink href={routes.lifestyle.chats} icon={Bot} label="에이전트 채팅" />
+          <QuickLink href={routes.agent.history} icon={Terminal} label="에이전트 히스토리" />
         </div>
       </section>
-    </div>
-  );
-}
-
-function StatCard({
-  icon: Icon,
-  label,
-  value,
-}: {
-  icon: typeof Shield;
-  label: string;
-  value: string;
-}) {
-  return (
-    <div className={mypageCardClass}>
-      <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400">
-        <Icon size={16} />
-        <span className="text-sm">{label}</span>
-      </div>
-      <p className="mt-3 text-lg font-semibold">{value}</p>
     </div>
   );
 }
@@ -82,9 +52,9 @@ function QuickLink({
   return (
     <Link
       href={href}
-      className="inline-flex items-center gap-2 rounded-2xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-950 px-4 py-2.5 text-sm font-medium hover:border-indigo-300 dark:hover:border-indigo-700 transition-colors"
+      className="inline-flex items-center gap-2 rounded-2xl border border-[var(--moneo-border)] bg-white/[0.03] px-4 py-2.5 text-sm font-medium text-indigo-100/90 transition-colors hover:border-indigo-400/40 hover:bg-white/[0.06]"
     >
-      <Icon size={16} className="text-indigo-600 dark:text-indigo-400" />
+      <Icon size={16} className="text-indigo-300" />
       {label}
     </Link>
   );
