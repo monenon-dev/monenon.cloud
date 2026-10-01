@@ -16,8 +16,6 @@ export type Project = {
   links: ProjectLink[];
   /** 카드 왼쪽 위 원형 프로필 이미지(public 기준 경로). 없으면 이름 첫 글자를 보여 준다. */
   avatar?: string;
-  /** 프로필 원의 강조 색(프로젝트 브랜드 색). */
-  accent?: string;
 };
 
 export const PROJECTS: Project[] = [
@@ -29,7 +27,6 @@ export const PROJECTS: Project[] = [
     status: "live",
     tags: ["Next.js", "FastAPI", "Flutter"],
     avatar: "/images/projects/pumsae-avatar.webp",
-    accent: "#B4222E",
     links: [
       { label: "웹 열기", href: "https://pumsae.vercel.app" },
       { label: "GitHub", href: "https://github.com/monenon-dev/pumsae" },

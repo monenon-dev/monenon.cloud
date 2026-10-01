@@ -167,18 +167,10 @@ function ProjectCard({ project }: { project: Project }) {
   );
 }
 
-/** 카드 왼쪽 위 원형 프로필. 브랜드 색으로 꽉 채운 원 위에 캐릭터를 올리고, 같은 색 빛을 은은하게 퍼뜨린다. */
+/** 카드 왼쪽 위 원형 프로필. 카드와 같은 어두운 유리 톤 원에 얇은 테두리만 둘러 캐릭터가 돋보이게 한다. */
 function ProjectAvatar({ project }: { project: Project }) {
-  const accent = project.accent ?? "#6366f1";
   return (
-    <div
-      className="relative size-20 shrink-0 overflow-hidden rounded-full border-2"
-      style={{
-        background: `radial-gradient(circle at 50% 30%, ${accent}, ${accent}cc 55%, #1a0a0c 100%)`,
-        borderColor: `${accent}`,
-        boxShadow: `0 0 0 4px ${accent}26, 0 0 28px ${accent}66`,
-      }}
-    >
+    <div className="relative size-20 shrink-0 overflow-hidden rounded-full border border-white/15 bg-[radial-gradient(circle_at_50%_30%,rgba(255,255,255,0.12),rgba(255,255,255,0.03)_70%)] shadow-[0_8px_24px_rgba(0,0,0,0.35)]">
       {project.avatar ? (
         // eslint-disable-next-line @next/next/no-img-element -- 움직이는 WebP라 next/image 최적화를 거치지 않는다.
         <img
@@ -189,7 +181,7 @@ function ProjectAvatar({ project }: { project: Project }) {
           className="h-full w-full scale-110 object-contain"
         />
       ) : (
-        <span className="flex h-full w-full items-center justify-center text-2xl font-semibold text-white/90">
+        <span className="flex h-full w-full items-center justify-center text-2xl font-semibold text-white/70">
           {project.name.slice(0, 1).toUpperCase()}
         </span>
       )}
