@@ -10,6 +10,7 @@ export const LANDING_NAV_ITEMS: LandingNavItem[] = [
   { label: "데모", href: routes.demo },
   { label: "FAQ", href: routes.faq },
   { label: "아키텍처", href: routes.architecture },
+  { label: "프로젝트", href: routes.projects },
 ];
 
 export function isLandingNavActive(href: string, pathname: string): boolean {

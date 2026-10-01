@@ -4,6 +4,7 @@ export const routes = {
   about: "/about",
   faq: "/faq",
   architecture: "/architecture",
+  projects: "/projects",
   demo: "/demo",
   showcase: "/showcase",
   addressbook: "/addressbook",

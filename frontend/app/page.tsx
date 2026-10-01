@@ -9,7 +9,6 @@ import {
   BriefcaseBusiness,
   Files,
   FileBarChart,
-  ExternalLink,
   type LucideIcon,
 } from "lucide-react";
 
@@ -37,9 +36,6 @@ import { routes } from "@/lib/routes";
 import { fetchWeeklyReport, type WeeklyReport } from "@/lib/weekly-report-api";
 
 type AuthUser = { nickname: string; role: string };
-
-/** 개인 프로젝트 PUMSAE(태권도장 관리) 웹 바로가기. */
-const PUMSAE_WEB_URL = "https://pumsae.vercel.app";
 
 const FEATURE_PROMO_CARDS: {
   icon: LucideIcon;
@@ -198,15 +194,6 @@ export default function MoneoHomePage() {
                     <Terminal size={18} />
                     에이전트 히스토리
                   </Link>
-                  <a
-                    href={PUMSAE_WEB_URL}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-5 py-2.5 text-sm font-medium text-indigo-100 transition-colors hover:border-indigo-400/30"
-                  >
-                    <ExternalLink size={18} aria-hidden />
-                    품새 바로가기
-                  </a>
                 </div>
               </div>
 
