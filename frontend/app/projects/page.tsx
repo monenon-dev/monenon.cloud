@@ -112,15 +112,20 @@ function ProjectCard({ project }: { project: Project }) {
 
   return (
     <article className="moneo-glass flex h-full flex-col rounded-2xl p-6">
-      <div className="flex items-center justify-between gap-3">
-        <h2 className="text-lg font-semibold text-white">{project.name}</h2>
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-4">
+          <ProjectAvatar project={project} />
+          <div className="min-w-0">
+            <h2 className="text-lg font-semibold text-white">{project.name}</h2>
+            <p className="mt-0.5 break-keep text-sm font-medium text-indigo-300">{project.summary}</p>
+          </div>
+        </div>
         <span
           className={`shrink-0 rounded border px-2 py-0.5 text-[11px] font-medium ${badge.className}`}
         >
           {badge.label}
         </span>
       </div>
-      <p className="mt-1 text-sm font-medium text-indigo-300">{project.summary}</p>
       <p className="mt-3 text-sm leading-relaxed text-[var(--moneo-muted)]">
         {project.description}
       </p>
@@ -159,5 +164,35 @@ function ProjectCard({ project }: { project: Project }) {
         </div>
       ) : null}
     </article>
+  );
+}
+
+/** 카드 왼쪽 위 원형 프로필. 브랜드 색으로 꽉 채운 원 위에 캐릭터를 올리고, 같은 색 빛을 은은하게 퍼뜨린다. */
+function ProjectAvatar({ project }: { project: Project }) {
+  const accent = project.accent ?? "#6366f1";
+  return (
+    <div
+      className="relative size-20 shrink-0 overflow-hidden rounded-full border-2"
+      style={{
+        background: `radial-gradient(circle at 50% 30%, ${accent}, ${accent}cc 55%, #1a0a0c 100%)`,
+        borderColor: `${accent}`,
+        boxShadow: `0 0 0 4px ${accent}26, 0 0 28px ${accent}66`,
+      }}
+    >
+      {project.avatar ? (
+        // eslint-disable-next-line @next/next/no-img-element -- 움직이는 WebP라 next/image 최적화를 거치지 않는다.
+        <img
+          src={project.avatar}
+          alt={`${project.name} 캐릭터`}
+          width={80}
+          height={80}
+          className="h-full w-full scale-110 object-contain"
+        />
+      ) : (
+        <span className="flex h-full w-full items-center justify-center text-2xl font-semibold text-white/90">
+          {project.name.slice(0, 1).toUpperCase()}
+        </span>
+      )}
+    </div>
   );
 }
