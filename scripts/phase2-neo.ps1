@@ -12,4 +12,4 @@ docker push $image
 Write-Host "==> Neo phase2: tunnel stack up"
 docker compose --profile tunnel up -d
 
-Write-Host "Done. api.monenon.cloud -> Neo backend (+ DB/Redis/Neo4j)"
+Write-Host "Done. api.choseohee.com -> Neo backend (+ DB/Redis/Neo4j)"

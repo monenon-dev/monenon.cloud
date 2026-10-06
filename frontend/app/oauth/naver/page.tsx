@@ -218,7 +218,7 @@ function NaverOauthLoginContent() {
           <span className="mx-2">|</span>
           <span>한국어</span>
         </p>
-        <p className="mt-2 text-center text-[11px] text-slate-600">© NAVER Corp. · monenon.cloud PoC</p>
+        <p className="mt-2 text-center text-[11px] text-slate-600">© NAVER Corp. · choseohee.com PoC</p>
 
         <p className="mt-4 truncate text-center font-mono text-[10px] text-slate-700">
           consent: {ui.consentToken}

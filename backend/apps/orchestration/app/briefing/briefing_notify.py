@@ -29,7 +29,7 @@ from secretary.adapter.outbound.orm.user_model import User
 
 logger = logging.getLogger(__name__)
 
-BRIEFING_LINK = "https://www.monenon.cloud"
+BRIEFING_LINK = "https://www.choseohee.com"
 GMAIL_SEND_URL = "https://gmail.googleapis.com/gmail/v1/users/me/messages/send"
 
 

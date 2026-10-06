@@ -18,7 +18,7 @@ from secretary.adapter.outbound.orm.user_model import User
 
 logger = logging.getLogger(__name__)
 
-MONENON_LINK = "https://www.monenon.cloud"
+MONENON_LINK = "https://www.choseohee.com"
 
 
 def bundle_proactive_message(issues: list[DetectedIssue]) -> str:

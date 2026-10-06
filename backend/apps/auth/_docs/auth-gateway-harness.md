@@ -11,7 +11,7 @@ links:
 
 # AUTH-GATEWAY-HARNESS
 
-> Claude Code / Cursor 작업 지시서 — 인증 게이트웨이(`auth.monenon.cloud`) 분리 배포  
+> Claude Code / Cursor 작업 지시서 — 인증 게이트웨이(`auth.choseohee.com`) 분리 배포  
 > **대상 저장소:** `monenon.cloud` · `backend/` 모노레포 (`apps/` 시블링 앱)  
 > **원칙:** 기존 구조 **무변경 우선**, **추가만 허용**. **발급은 auth 컨테이너에서만**, 백엔드(api)는 **검증만**.
 
@@ -21,7 +21,7 @@ links:
 
 | 항목 | 현황 |
 |------|------|
-| 배포 | `backend/main.py` 단일 Uvicorn → Cloudflare Tunnel **`api.monenon.cloud`** |
+| 배포 | `backend/main.py` 단일 Uvicorn → Cloudflare Tunnel **`api.choseohee.com`** |
 | 앱 | `backend/apps/` 시블링 (secretary, lifestyle, gateway, star_craft, titanic …) |
 | 기존 로그인 | **`secretary`** — `/auth/login`, Google/Naver/Kakao, opaque `access_token` (서버 미검증) |
 | AI gateway | **`gateway`** — 인텐트 라우터 (`/api/gateway/*`). OAuth/JWT 엣지 **아님** |
@@ -34,8 +34,8 @@ links:
 
 | 호스트 | 컨테이너 | 역할 |
 |--------|----------|------|
-| `auth.monenon.cloud` | `auth` → `auth_main:app` :9000 | OAuth·로그인·JWT 발급·refresh·JWKS·logout |
-| `api.monenon.cloud` | `backend` → `main:app` :8000 | 비즈니스 API. **공개키로 JWT 검증만** |
+| `auth.choseohee.com` | `auth` → `auth_main:app` :9000 | OAuth·로그인·JWT 발급·refresh·JWKS·logout |
+| `api.choseohee.com` | `backend` → `main:app` :8000 | 비즈니스 API. **공개키로 JWT 검증만** |
 
 - 키 체계: **RS256** 비대칭. **개인키는 auth 컨테이너에만** 존재.
 - `apps/auth` = 발급 전용 앱. `secretary`의 “회원 ORM·프로필”과 **중복 로그인 UI를 장기적으로 이관**할 수 있으나, **이번 하네스는 auth 발급 경로 신설**이 범위.
@@ -92,7 +92,7 @@ def verify_token(token: str, aud: str) -> TokenPayload: ...
     # jwt.decode(token, PUBLIC_KEY, algorithms=["RS256"], audience=aud)
 
 COOKIE_KWARGS = dict(
-    domain=".monenon.cloud",
+    domain=".choseohee.com",
     secure=True,
     httponly=True,
     samesite="lax",
@@ -191,15 +191,15 @@ echo "jwt_public.pem  → backend/.env.backend(또는 .env) 의 JWT_PUBLIC_KEY"
 
 ```yaml
 ingress:
-  - hostname: auth.monenon.cloud
+  - hostname: auth.choseohee.com
     service: http://auth:9000
-  - hostname: api.monenon.cloud
+  - hostname: api.choseohee.com
     service: http://backend:8000
   - service: http_status:404
 ```
 
 ```bash
-cloudflared tunnel route dns <터널이름> auth.monenon.cloud
+cloudflared tunnel route dns <터널이름> auth.choseohee.com
 ```
 
 - 작업 완료 보고서에 **「수동 적용 필요」** 섹션으로 출력.
@@ -258,11 +258,11 @@ forbidden_modules =
 
 | 템플릿 (RAG Tailor) | Monenon |
 |---------------------|---------|
-| `auth.ragtailor.com` | `auth.monenon.cloud` |
-| `api.ragtailor.com` | `api.monenon.cloud` |
+| `auth.ragtailor.com` | `auth.choseohee.com` |
+| `api.ragtailor.com` | `api.choseohee.com` |
 | `dreamscape` 네트워크 | compose 기본 네트워크 (`monenoncloud`) |
 | `totem` (Redis) | `redis` 서비스 |
-| `.ragtailor.com` 쿠키 | `.monenon.cloud` |
+| `.ragtailor.com` 쿠키 | `.choseohee.com` |
 | `login_gate.py` | 없음 → `secretary` login_router 유지 |
 | 영화 앱만 | secretary, lifestyle, gateway, star_craft, … 전부 시블링 |
 | `ports` 노출 | **금지** (Tunnel only) |

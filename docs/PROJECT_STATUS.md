@@ -17,7 +17,7 @@
 | DB | PostgreSQL (SQLAlchemy 2 async, Alembic, pgvector 서비스) |
 | 에이전트 | LangGraph + Gemini (`orchestration/app/briefing`, `weekly_report`) |
 | 스케줄 | APScheduler (`briefing/scheduler.py`, `watcher/scheduler.py`) |
-| 배포 | **프론트: Vercel** (`www.monenon.cloud`) · **API/auth: Docker Compose + Cloudflare Tunnel** (`api.monenon.cloud`, `auth.monenon.cloud`) |
+| 배포 | **프론트: Vercel** (`www.choseohee.com`) · **API/auth: Docker Compose + Cloudflare Tunnel** (`api.choseohee.com`, `auth.choseohee.com`) |
 
 **검증 메모:** 요청안에 있던 “Railway 배포”는 **이 저장소에 설정·문서가 없다.** (과거 커밋 메시지에 Railway URL 정규화 언급만 있음 — `277615c`. 현재 compose/터널 구조가 기준.)
 
@@ -269,10 +269,10 @@ weekly_router → aggregate_briefings → risk_analyzer
 
 | 항목 | 실제 상태 |
 |------|-----------|
-| 프론트 도메인 | `https://www.monenon.cloud` (apex → www 307), **Vercel** |
-| API | `https://api.monenon.cloud` → Docker `backend:8000` (Cloudflare Tunnel) |
-| Auth | `https://auth.monenon.cloud` → Docker `auth:9000` |
-| n8n | `https://n8n.monenon.cloud` (compose에 포함) |
+| 프론트 도메인 | `https://www.choseohee.com` (apex → www 307), **Vercel** |
+| API | `https://api.choseohee.com` → Docker `backend:8000` (Cloudflare Tunnel) |
+| Auth | `https://auth.choseohee.com` → Docker `auth:9000` |
+| n8n | `https://n8n.choseohee.com` (compose에 포함) |
 | PostgreSQL | compose `pgvector` (+ 운영 DB URL은 `.env` / Keymaker) |
 | Neo4j | compose `neo4j:5` 기동 · **오케스트레이션 미사용**. `star_craft` / `lol/neo4j` 교육·허브용. Aura Free “예정” 전용 설정은 문서화만 (`lol/neo4j/README.md`) |
 | Redis / Qdrant / Ollama | compose에 존재 |

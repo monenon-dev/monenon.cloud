@@ -19,7 +19,7 @@ def _allowed_redirect_uri(redirect_uri: str) -> bool:
     origin = redirect_uri.rsplit("/api/auth/callback/", 1)[0]
     allowed = os.getenv(
         "OAUTH_REDIRECT_ORIGINS",
-        "http://localhost:3000,https://www.monenon.cloud,https://monenon.cloud",
+        "http://localhost:3000,https://www.choseohee.com,https://choseohee.com",
     )
     return any(origin == item.strip() for item in allowed.split(",") if item.strip())
 

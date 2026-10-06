@@ -1,6 +1,6 @@
 # Monenon Flutter
 
-Monenon AI 라이프 어시스턴트 모바일 앱. 백엔드: `https://api.monenon.cloud` (JWT + Redis refresh).
+Monenon AI 라이프 어시스턴트 모바일 앱. 백엔드: `https://api.choseohee.com` (JWT + Redis refresh).
 
 ## 실행
 

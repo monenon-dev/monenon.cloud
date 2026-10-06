@@ -1,7 +1,7 @@
 # Nginx + Certbot (Let's Encrypt) — EC2 전용
 #
 # 사전 조건:
-#   - api.monenon.cloud → EC2 퍼블릭 IP (A 레코드, Cloudflare 프록시 OFF)
+#   - api.choseohee.com → EC2 퍼블릭 IP (A 레코드, Cloudflare 프록시 OFF)
 #   - 보안 그룹 80/443 인바운드
 #   - backend 가 호스트 8000 에 떠 있음 (monenoncloud compose)
 #   - 시스템 nginx 중지: sudo systemctl stop nginx

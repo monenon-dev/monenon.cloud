@@ -17,10 +17,10 @@ REFRESH_COOKIE = "monenon_refresh"
 
 
 def cookie_kwargs() -> dict:
-    """환경별 httpOnly 쿠키 옵션 — 로컬(도메인 없음) / 프로덕션(.monenon.cloud)."""
+    """환경별 httpOnly 쿠키 옵션 — 로컬(도메인 없음) / 프로덕션(.choseohee.com)."""
     domain = os.getenv("AUTH_COOKIE_DOMAIN", "").strip()
     if not domain and os.getenv("ENV", "").strip().lower() in ("production", "prod"):
-        domain = ".monenon.cloud"
+        domain = ".choseohee.com"
     secure_raw = os.getenv("AUTH_COOKIE_SECURE", "auto").strip().lower()
     if secure_raw == "true":
         secure = True

@@ -12,7 +12,7 @@ import 'package:flutter/foundation.dart';
 ///    - Windows / iOS 시뮬레이터 / Web: `127.0.0.1:8000`
 ///    - Android 에뮬레이터: `10.0.2.2:8000`
 class ApiConfig {
-  static const String productionBaseUrl = 'https://api.monenon.cloud';
+  static const String productionBaseUrl = 'https://api.choseohee.com';
 
   static const String _fromDefine = String.fromEnvironment('API_BASE');
   static const String _useProductionDefine =

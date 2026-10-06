@@ -42,4 +42,4 @@ docker compose -f docker-compose.yaml -f docker-compose.sigma.yaml --profile tun
 echo "==> status"
 docker compose -f docker-compose.yaml -f docker-compose.sigma.yaml --profile tunnel ps
 
-echo "Done. https://api.monenon.cloud -> Sigma Docker Engine (frontend excluded)"
+echo "Done. https://api.choseohee.com -> Sigma Docker Engine (frontend excluded)"

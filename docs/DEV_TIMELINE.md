@@ -125,7 +125,7 @@ Instagram 클론을 목표로 한 팀 프로젝트.
 
 ### 3-1. Moneo — `monenon.cloud`
 
-AI 업무 오케스트레이션 웹앱. Live: [https://www.monenon.cloud](https://www.monenon.cloud)
+AI 업무 오케스트레이션 웹앱. Live: [https://www.choseohee.com](https://www.choseohee.com)
 
 **커밋으로 확인되는 핵심 마일스톤**
 

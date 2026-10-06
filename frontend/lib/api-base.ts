@@ -1,5 +1,5 @@
 const LOCAL_API_BASE = "http://127.0.0.1:8000";
-const PRODUCTION_API_BASE = "https://api.monenon.cloud";
+const PRODUCTION_API_BASE = "https://api.choseohee.com";
 
 /** .env.example placeholder — 빌드에 박히면 API 전체가 깨짐 */
 function isPlaceholderApiUrl(url: string): boolean {
@@ -11,7 +11,7 @@ function isLocalhostUrl(url: string): boolean {
 }
 
 function isMonenonHost(hostname: string): boolean {
-  return hostname === "monenon.cloud" || hostname.endsWith(".monenon.cloud");
+  return hostname === "choseohee.com" || hostname.endsWith(".choseohee.com");
 }
 
 function fromEnv(): string {
@@ -30,7 +30,7 @@ function ensureHttpsOnSecurePage(url: string): string {
 
 /**
  * API 베이스 URL — Vercel/Docker 빌드 시 NEXT_PUBLIC_API_BASE_URL 필요.
- * www.monenon.cloud 에서는 로컬/placeholder 값이 박혀 있어도 api.monenon.cloud 로 붙인다.
+ * www.choseohee.com 에서는 로컬/placeholder 값이 박혀 있어도 api.choseohee.com 로 붙인다.
  */
 export function getApiBaseUrl(): string {
   const envUrl = fromEnv();

@@ -9,7 +9,7 @@
 | 정책 문서 | `backend/apps/sherlock_homes/docs/detective-mary-mail-policy.md` (본 문서) |
 | 구현 앱 | `backend/apps/sherlock_homes/` — **메리 왓슨(Mary)** 메일 수신·pgvector 저장 |
 | 왓슨 게이트웨이 정책 | [[detective-watson-watcher-policy]] |
-| n8n (Docker) | `docker-compose.yaml` → `https://n8n.monenon.cloud/` |
+| n8n (Docker) | `docker-compose.yaml` → `https://n8n.choseohee.com/` |
 | 프론트 수신함 UI | `/mail` → **수신함** 탭 (`POST /api/mail/inbox/webhook`) |
 
 ---
@@ -23,7 +23,7 @@ Gmail 새 메일
    └─ (Push)  Google Cloud Pub/Sub → 공개 HTTPS Webhook
    │
    ▼
-n8n (https://n8n.monenon.cloud)
+n8n (https://n8n.choseohee.com)
    │  Gmail 조회 노드 (Push 시 historyId → 본문 조회)
    ▼
 n8n: HTTP Request → 백엔드 POST
@@ -40,7 +40,7 @@ n8n: HTTP Request → 백엔드 POST
 | 방식 | 지연 | 난이도 | 비용 | 비고 |
 |---|---|---|---|---|
 | 폴링 (Gmail Trigger, Poll) | 최대 1분 | 낮음 | 무료 | n8n 기본 노드만으로 완결. **Monenon 개발·운영 1차 권장** |
-| Push (Pub/Sub) | 거의 실시간 | 높음 | 무료(소량) | 공개 HTTPS 필수, watch 7일 만료. `n8n.monenon.cloud` 사용 시 Named Tunnel 전제 |
+| Push (Pub/Sub) | 거의 실시간 | 높음 | 무료(소량) | 공개 HTTPS 필수, watch 7일 만료. `n8n.choseohee.com` 사용 시 Named Tunnel 전제 |
 
 실시간성이 꼭 필요하지 않다면 **폴링으로 끝내는 것을 권장**. Push는 4~9단계를 모두 거쳐야 완성됨.
 
@@ -49,11 +49,11 @@ n8n: HTTP Request → 백엔드 POST
 ## 1. 사전 조건 확인
 
 - [ ] n8n 실행 위치 → **Monenon `docker compose` 셀프호스팅** (`n8n` 서비스, 커뮤니티 에디션 무료)
-- [ ] `WEBHOOK_URL=https://n8n.monenon.cloud/` 설정 여부 (`docker-compose.yaml` n8n 환경 변수)
+- [ ] `WEBHOOK_URL=https://n8n.choseohee.com/` 설정 여부 (`docker-compose.yaml` n8n 환경 변수)
 - [ ] n8n 컨테이너 → 백엔드 컨테이너 통신: `http://backend:8000/api/sherlock/mary/mail/webhook`
 - [ ] 로컬 n8n UI: `http://localhost:5678`
 - [ ] 수신 목적: (a) **Mary + pgvector 저장** / (b) 프론트 수신함 표시 / (c) 둘 다 (HTTP Request 2갈래 또는 순차 호출)
-- [ ] Push 방식 시: Cloudflare Named Tunnel(`n8n.monenon.cloud`) 또는 Quick Tunnel URL 확보
+- [ ] Push 방식 시: Cloudflare Named Tunnel(`n8n.choseohee.com`) 또는 Quick Tunnel URL 확보
 
 ---
 
@@ -73,10 +73,10 @@ n8n:
   ports:
     - "5678:5678"
   environment:
-    N8N_HOST: n8n.monenon.cloud
+    N8N_HOST: n8n.choseohee.com
     N8N_PORT: 5678
     N8N_PROTOCOL: https
-    WEBHOOK_URL: https://n8n.monenon.cloud/
+    WEBHOOK_URL: https://n8n.choseohee.com/
     GENERIC_TIMEZONE: Asia/Seoul
     TZ: Asia/Seoul
   volumes:
@@ -84,7 +84,7 @@ n8n:
 ```
 
 - UI: `http://localhost:5678` → 최초 1회 계정 생성
-- Production Webhook 예: `https://n8n.monenon.cloud/webhook/<path>`
+- Production Webhook 예: `https://n8n.choseohee.com/webhook/<path>`
 - 워크플로·실행 횟수 제한 없음 (커뮤니티 에디션)
 
 ---
@@ -109,7 +109,7 @@ n8n:
 
 **운영(권장): Named Tunnel + 고정 도메인**
 
-- Webhook 공개 URL: `https://n8n.monenon.cloud/webhook/gmail-push`
+- Webhook 공개 URL: `https://n8n.choseohee.com/webhook/gmail-push`
 - `docker-compose`의 `WEBHOOK_URL`과 일치해야 n8n이 Production URL을 올바르게 생성함
 
 **로컬·임시 테스트: Quick Tunnel**
@@ -121,7 +121,7 @@ cloudflared tunnel --url http://localhost:5678 &
 
 | 종류 | URL | Monenon |
 |---|---|---|
-| Named Tunnel | `https://n8n.monenon.cloud` | **운영 기본** |
+| Named Tunnel | `https://n8n.choseohee.com` | **운영 기본** |
 | Quick Tunnel | `https://xxxxx.trycloudflare.com` | 재시작마다 URL 변경 → Pub/Sub 구독 URL 수동 갱신 필요 |
 
 ⚠️ Quick Tunnel은 터미널 종료 시 끊김. 상시 Push는 Named Tunnel 유지.
@@ -136,7 +136,7 @@ cloudflared tunnel --url http://localhost:5678 &
    - Path: `gmail-push`
    - Authentication: `None` (초기 테스트; 운영 시 강화)
    - Respond: `Immediately`
-3. Production URL: `https://n8n.monenon.cloud/webhook/gmail-push`
+3. Production URL: `https://n8n.choseohee.com/webhook/gmail-push`
 4. `⌘S` 저장 후 **Publish** (Publish 전에는 Production Webhook 비활성)
 
 ---
@@ -156,7 +156,7 @@ cloudflared tunnel --url http://localhost:5678 &
 ### 6-3. Push 구독 생성
 - Subscription ID: 예) `gmail-push-sub`
 - 전송 유형: **Push**
-- 엔드포인트 URL: `https://n8n.monenon.cloud/webhook/gmail-push`
+- 엔드포인트 URL: `https://n8n.choseohee.com/webhook/gmail-push`
 - 인증·페이로드 래핑: 끔 (초기)
 
 ### 6-4. 비용
@@ -325,7 +325,7 @@ async def receive_mail(...) -> MaryMailResponse:
 | n8n 셀프호스팅 (Monenon Docker) | 무료 | 커뮤니티 에디션 |
 | Gmail API (watch/조회) | 무료 | 개인 사용량 한도 내 |
 | Pub/Sub | 무료 | 월 10GiB 무료 |
-| Cloudflare Named Tunnel (`n8n.monenon.cloud`) | 무료 | 운영 도메인 |
+| Cloudflare Named Tunnel (`n8n.choseohee.com`) | 무료 | 운영 도메인 |
 | Schedule Trigger (watch 갱신) | 무료 | n8n 내부 |
 
 ---
@@ -344,11 +344,11 @@ async def receive_mail(...) -> MaryMailResponse:
 
 ## 13. 단계별 완료 체크리스트
 
-- [ ] `docker compose up -d n8n` + `WEBHOOK_URL=https://n8n.monenon.cloud/` 확인
+- [ ] `docker compose up -d n8n` + `WEBHOOK_URL=https://n8n.choseohee.com/` 확인
 - [ ] **(폴링)** Gmail Trigger → HTTP Request → `POST /api/sherlock/mary/mail/webhook` 종단 테스트
 - [ ] **(선택)** 동일 체인에서 `POST /api/mail/inbox/webhook` → `/mail` 수신함 표시 확인
 - [ ] **(Push)** n8n Webhook `gmail-push` 생성 및 Publish
-- [ ] Pub/Sub 토픽 + Gmail Publisher 권한 + Push 구독 (`https://n8n.monenon.cloud/webhook/gmail-push`)
+- [ ] Pub/Sub 토픽 + Gmail Publisher 권한 + Push 구독 (`https://n8n.choseohee.com/webhook/gmail-push`)
 - [ ] `users.watch()` 등록 (historyId / expiration 확인)
 - [ ] Push 체인: Webhook → Gmail 조회 → Mary API 실메일 테스트
 - [ ] watch 갱신 Schedule Trigger 등록·Publish

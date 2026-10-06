@@ -11,7 +11,7 @@ links:
 
 # Harness: Overseer (Observer Agent) — ConvNeXt Nano 이미지 분류
 
-> Monenon (`monenon.cloud`) · 허브 `star_craft` · 종족 **저그(vision)**  
+> Monenon (`choseohee.com`) · 허브 `star_craft` · 종족 **저그(vision)**  
 > 기존 Face YOLO(`zerg/face`)·레나 vision UI와 **나란히** 두는 분류 툴.  
 > 템플릿의 `inception` / `dreamscape` / `totem` 이름을 **이 레포 컨벤션**으로 치환한 계약 문서다.
 

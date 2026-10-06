@@ -5,7 +5,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
-DOMAIN="${DOMAIN:-api.monenon.cloud}"
+DOMAIN="${DOMAIN:-api.choseohee.com}"
 EMAIL="${CERTBOT_EMAIL:-}"
 
 if [[ -z "$EMAIL" ]]; then

@@ -2,8 +2,8 @@
 # Auth 게이트웨이: docker compose up --build auth  (ports 없음 — Tunnel만)
 # API 터널:       docker compose --profile tunnel up -d
 #                 (루트 .env 에 CLOUDFLARE_TUNNEL_TOKEN 필요
-#                  api.monenon.cloud → backend:8000
-#                  auth.monenon.cloud → auth:9000  ← Cloudflare 대시보드에서 수동 추가)
+#                  api.choseohee.com → backend:8000
+#                  auth.choseohee.com → auth:9000  ← Cloudflare 대시보드에서 수동 추가)
 # 프론트엔드:     Docker 배포 제외 (Vercel / 로컬 npm run dev)
 # 강사님 흐름: backend Dockerfile + requirements.txt → Hub push → 시그마 Ubuntu Docker Engine
 # 접속 PC(네오): scripts/docker-build-push.ps1
@@ -54,7 +54,7 @@ services:
       retries: 5
       start_period: 40s
 
-  # JWT 발급 전용 — 호스트 ports 없음 (Tunnel: auth.monenon.cloud → auth:9000)
+  # JWT 발급 전용 — 호스트 ports 없음 (Tunnel: auth.choseohee.com → auth:9000)
   # env: backend/.env.auth (JWT_PRIVATE_KEY). 예: cp backend/.env.auth.example backend/.env.auth
   auth:
     image: ${AUTH_IMAGE:-whtjgml2002/monenon-auth:latest}
@@ -96,10 +96,10 @@ services:
     ports:
       - "5678:5678"
     environment:
-      N8N_HOST: n8n.monenon.cloud
+      N8N_HOST: n8n.choseohee.com
       N8N_PORT: 5678
       N8N_PROTOCOL: https
-      WEBHOOK_URL: https://n8n.monenon.cloud/
+      WEBHOOK_URL: https://n8n.choseohee.com/
       GENERIC_TIMEZONE: Asia/Seoul
       TZ: Asia/Seoul
     volumes:
@@ -107,10 +107,10 @@ services:
 
   # ── Cloudflare Tunnel — API·auth·n8n Docker 노출 (프론트는 Vercel) ───────────
   # Public Hostname 예 (대시보드·config 수동):
-  #   auth.monenon.cloud → http://auth:9000
-  #   api.monenon.cloud  → http://backend:8000
-  #   n8n.monenon.cloud  → http://n8n:5678
-  # monenon.cloud(홈)은 Vercel DNS — 터널에 frontend 넣지 말 것
+  #   auth.choseohee.com → http://auth:9000
+  #   api.choseohee.com  → http://backend:8000
+  #   n8n.choseohee.com  → http://n8n:5678
+  # choseohee.com(홈)은 Vercel DNS — 터널에 frontend 넣지 말 것
   cloudflared:
     profiles: [tunnel]
     image: cloudflare/cloudflared:latest

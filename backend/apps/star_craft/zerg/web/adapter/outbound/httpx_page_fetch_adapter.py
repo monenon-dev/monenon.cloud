@@ -7,7 +7,7 @@ import httpx
 from star_craft.zerg.web.app.ports.output.page_fetch_port import PageFetchPort
 
 _DEFAULT_HEADERS = {
-    "User-Agent": "MonenonZergBot/1.0 (+https://monenon.cloud; research)",
+    "User-Agent": "MonenonZergBot/1.0 (+https://choseohee.com; research)",
     "Accept": "text/html,application/xhtml+xml;q=0.9,*/*;q=0.8",
 }
 

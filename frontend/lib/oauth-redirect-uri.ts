@@ -1,10 +1,10 @@
 /**
  * OAuth 콜백 origin.
- * 사이트 기본 진입은 www 이고, apex(monenon.cloud)는 www 로 307 된다.
+ * 사이트 기본 진입은 www 이고, apex(choseohee.com)는 www 로 307 된다.
  * 네이버가 apex 로 돌려주면 콜백 홉에서 state 쿠키가 깨져 oauth-state-mismatch 가 난다.
  * 디벨로퍼스에 www 콜백이 등록돼 있으므로 www 로 통일한다.
  */
-const DEFAULT_PRODUCTION_ORIGIN = "https://www.monenon.cloud";
+const DEFAULT_PRODUCTION_ORIGIN = "https://www.choseohee.com";
 
 function isLocalOrigin(origin: string): boolean {
   try {
@@ -19,7 +19,7 @@ function isLocalOrigin(origin: string): boolean {
 function pinProductionOrigin(origin: string): string {
   try {
     const host = new URL(origin).hostname;
-    if (host === "monenon.cloud") {
+    if (host === "choseohee.com") {
       return DEFAULT_PRODUCTION_ORIGIN;
     }
   } catch {
@@ -66,8 +66,8 @@ export function oauthCookieOptions(requestOrigin: string) {
   };
   try {
     const host = new URL(requestOrigin).hostname;
-    if (host === "monenon.cloud" || host.endsWith(".monenon.cloud")) {
-      return { ...base, domain: ".monenon.cloud" };
+    if (host === "choseohee.com" || host.endsWith(".choseohee.com")) {
+      return { ...base, domain: ".choseohee.com" };
     }
   } catch {
     /* localhost 등 — domain 미설정 */

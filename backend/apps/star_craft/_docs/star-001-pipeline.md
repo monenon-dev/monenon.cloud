@@ -6,7 +6,7 @@ links: []
 
 # star_craft 허브 파이프라인 전략
 
-> Monenon (`monenon.cloud`) — 냉장고·날씨·취향을 잇는 라이프 어시스턴트 위의 **교육·오케스트레이션 허브**.  
+> Monenon (`choseohee.com`) — 냉장고·날씨·취향을 잇는 라이프 어시스턴트 위의 **교육·오케스트레이션 허브**.  
 > 구현 위치: `backend/apps/star_craft/` · API prefix: `/star-craft` (허브: `/star-craft/hub/...`)
 
 ## 개요
