@@ -367,7 +367,7 @@ _DEFAULT_CORS_ORIGINS = [
 _CORS_ORIGIN_REGEX = (
     r"https?://(localhost|127\.0\.0\.1|192\.168\.\d{1,3}\.\d{1,3})(:\d+)?"
     r"|https://[a-z0-9-]+\.vercel\.app"
-    r"|https://(.*\.)?monenon\.cloud"
+    r"|https://(.*\.)?choseohee\.com"
 )
 
 
