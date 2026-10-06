@@ -22,7 +22,7 @@ LangGraph로 **수집 → 합성 → 검증** 파이프라인을 돌리고, 검�
 
 ## Demo
 
-**Live:** [https://www.choseohee.com](https://www.choseohee.com)
+**Live:** [https://moneo.choseohee.com](https://moneo.choseohee.com)
 
 <!-- 스크린샷 / GIF를 `docs/assets/` 에 넣은 뒤 아래 주석을 해제하세요.
 ![Moneo home](./docs/assets/demo-home.png)
@@ -37,7 +37,7 @@ LangGraph로 **수집 → 합성 → 검증** 파이프라인을 돌리고, 검�
 └──────────────────────────────────────────────┘
 ```
 
-API: `https://api.choseohee.com` · Auth: `https://auth.choseohee.com`
+API: `https://moneo-api.choseohee.com`
 
 ---
 

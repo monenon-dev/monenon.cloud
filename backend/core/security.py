@@ -17,17 +17,16 @@ REFRESH_COOKIE = "monenon_refresh"
 
 
 def cookie_kwargs() -> dict:
-    """환경별 httpOnly 쿠키 옵션 — 로컬(도메인 없음) / 프로덕션(.choseohee.com)."""
+    """환경별 httpOnly 쿠키 옵션 — 기본은 host-only, AUTH_COOKIE_DOMAIN 지정 시에만 domain 설정."""
     domain = os.getenv("AUTH_COOKIE_DOMAIN", "").strip()
-    if not domain and os.getenv("ENV", "").strip().lower() in ("production", "prod"):
-        domain = ".choseohee.com"
+    is_production = os.getenv("ENV", "").strip().lower() in ("production", "prod")
     secure_raw = os.getenv("AUTH_COOKIE_SECURE", "auto").strip().lower()
     if secure_raw == "true":
         secure = True
     elif secure_raw == "false":
         secure = False
     else:
-        secure = bool(domain)
+        secure = is_production
     same_site = os.getenv("AUTH_COOKIE_SAMESITE", "lax").strip().lower() or "lax"
     if same_site not in ("lax", "strict", "none"):
         same_site = "lax"

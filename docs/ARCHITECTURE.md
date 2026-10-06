@@ -199,7 +199,7 @@ flowchart TB
 | `SLACK_CLIENT_SECRET` | Slack 앱 Client Secret (백엔드만) |
 | `GOOGLE_CLIENT_ID` | Google OAuth Web Client ID (Gmail 연동·발송) |
 | `GOOGLE_CLIENT_SECRET` | Google OAuth Client Secret (백엔드만) |
-| `OAUTH_REDIRECT_ORIGINS` | 허용 callback origin, 쉼표 구분 (예: `http://localhost:3000,https://www.choseohee.com`) |
+| `OAUTH_REDIRECT_ORIGINS` | 허용 callback origin, 쉼표 구분 (예: `http://localhost:3000,https://moneo.choseohee.com`) |
 
 ### 프론트 (루트 또는 `frontend/.env.local`)
 
